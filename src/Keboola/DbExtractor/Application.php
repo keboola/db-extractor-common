@@ -9,6 +9,7 @@
 
 namespace Keboola\DbExtractor;
 
+use Keboola\DbExtractor\Exception\UserException;
 use Pimple\Container;
 
 class Application extends Container
@@ -36,6 +37,10 @@ class Application extends Container
 
     public function run()
     {
+        if (empty($this['config']['parameters']['tables'])) {
+            throw new UserException("No tables defined for extraction. Check your configuration for key 'tables'.");
+        }
+
         $imported = [];
         $tables = array_filter($this['config']['parameters']['tables'], function ($table) {
             return ($table['enabled']);
