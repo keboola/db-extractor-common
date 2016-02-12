@@ -95,10 +95,15 @@ abstract class Extractor
     {
         $outFilename = $this->dataDir . '/out/tables/' . $table['outputTable'] . '.csv.manifest';
 
-        return file_put_contents($outFilename , Yaml::dump([
+        $manifestData = [
             'destination' => $table['outputTable'],
-            'incremental' => $table['incremental'],
-            'primary_key' => $table['primaryKey']
-        ]));
+            'incremental' => $table['incremental']
+        ];
+
+        if (!empty($table['primaryKey'])) {
+            $manifestData['primary_key'] = $table['primaryKey'];
+        }
+
+        return file_put_contents($outFilename , Yaml::dump($manifestData));
     }
 }
