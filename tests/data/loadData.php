@@ -6,12 +6,12 @@
  * Time: 16:44
  */
 
-$pdo = new \PDO("mysql:host=localhost;dbname=test;charset=utf8", 'travis');
+$pdo = new \PDO("mysql:host=localhost;dbname=test;charset=utf8", 'travis', [
+    \PDO::MYSQL_ATTR_LOCAL_INFILE => true
+]);
 
-$pdo->setAttribute(\PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, false);
-$pdo->setAttribute(\PDO::MYSQL_ATTR_LOCAL_INFILE, true);
-
-$result = $pdo->exec("LOAD DATA LOCAL
+$result = $pdo->exec("
+    LOAD DATA
     INFILE 'escaping.csv'
     INTO TABLE escaping
     FIELDS TERMINATED BY ','
