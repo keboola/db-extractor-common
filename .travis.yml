@@ -12,4 +12,4 @@ before_install:
   - echo $PWD;
   - mysql -e "CREATE DATABASE IF NOT EXISTS test;" -uroot
   - mysql -e "USE test; CREATE TABLE escaping (col1 VARCHAR(255) NOT NULL, col2 VARCHAR(255) NOT NULL);" -uroot
-  - mysql -e "USE test; LOAD DATA LOCAL INFILE 'tests/data/escaping.csv' INTO TABLE escaping FIELDS TERMINATED BY ',' ENCLOSED BY '"' LINES TERMINATED BY '\\n' IGNORE 1 LINES"
+  - mysql -e "USE test; LOAD DATA LOCAL INFILE '/home/travis/build/keboola/db-extractor-common/tests/data/escaping.csv' INTO TABLE escaping FIELDS TERMINATED BY ',' ENCLOSED BY '"' LINES TERMINATED BY '\\n' IGNORE 1 LINES"
