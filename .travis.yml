@@ -10,6 +10,6 @@ services:
 
 before_install:
   - mysql -e "CREATE DATABASE IF NOT EXISTS test;" -uroot
-  - mysql -e "USE `test`;" -uroot
-  - mysql -e "CREATE TABLE `escaping` (`col1` VARCHAR(255) NOT NULL, `col2` VARCHAR(255) NOT NULL);" -uroot
-  - mysql -e "LOAD DATA LOCAL INFILE 'tests/data/escaping.csv' INTO TABLE `escaping` FIELDS TERMINATED ',' ENCLOSED BY '"' LINES TERMINATED BY '\n' IGNORE 1 LINES"
+  - mysql -e "USE test;" -uroot
+  - mysql -e "CREATE TABLE escaping (col1 VARCHAR(255) NOT NULL, col2 VARCHAR(255) NOT NULL);" -uroot
+  - mysql -e "LOAD DATA LOCAL INFILE 'tests/data/escaping.csv' INTO TABLE escaping FIELDS TERMINATED ',' ENCLOSED BY '"' LINES TERMINATED BY '\n' IGNORE 1 LINES"
