@@ -22,8 +22,7 @@ class CommonExtractorTest extends ExtractorTest
     public function testRun()
     {
         $result = $this->app->run();
-        $expectedCsvFile = ROOT_PATH . '/tests/data/common/' . $result['imported'][0] . '.csv';
-        $expectedManifestFile = ROOT_PATH . '/tests/data/common/' . $result['imported'][0] . '.csv.manifest';
+        $expectedCsvFile = ROOT_PATH . '/tests/data/common/escaping.csv';
         $outputCsvFile = $this->dataDir . '/out/tables/' . $result['imported'][0] . '.csv';
         $outputManifestFile = $this->dataDir . '/out/tables/' . $result['imported'][0] . '.csv.manifest';
 
@@ -31,7 +30,6 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertFileExists($outputCsvFile);
         $this->assertFileExists($outputManifestFile);
         $this->assertEquals(file_get_contents($expectedCsvFile), file_get_contents($outputCsvFile));
-        $this->assertEquals(file_get_contents($expectedManifestFile), file_get_contents($outputManifestFile));
     }
 
 }
