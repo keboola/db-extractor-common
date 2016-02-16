@@ -1,0 +1,17 @@
+parameters:
+    db:
+        driver: mysql
+        host: localhost
+        database: test
+        user: travis
+        password:
+        port: 3306
+
+    tables:
+        -
+            name: escaping
+            query: "SELECT * FROM escaping"
+            outputTable: in.c-main.escaping
+            incremental: false
+            primaryKey: ~
+            enabled: true
