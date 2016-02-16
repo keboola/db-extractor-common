@@ -22,7 +22,7 @@ class CommonExtractorTest extends ExtractorTest
     public function testRun()
     {
         $result = $this->app->run();
-        $expectedCsvFile = ROOT_PATH . '/tests/data/common/escaping.csv';
+        $expectedCsvFile = ROOT_PATH . '/tests/data/escaping.csv';
         $outputCsvFile = $this->dataDir . '/out/tables/' . $result['imported'][0] . '.csv';
         $outputManifestFile = $this->dataDir . '/out/tables/' . $result['imported'][0] . '.csv.manifest';
 
