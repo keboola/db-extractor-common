@@ -19,10 +19,3 @@ $result = $pdo->exec("
     IGNORE 1 LINES
 ");
 
-var_dump($result);
-var_dump($pdo->errorInfo());
-
-$stmt = $pdo->query("SELECT * FROM escaping", \PDO::FETCH_ASSOC);
-$result = $stmt->fetchAll();
-
-var_dump($result);
