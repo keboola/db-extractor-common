@@ -26,6 +26,7 @@ class Common extends Extractor
             }
         }
 
+        $params['password'] = empty($params['password'])?null:$params['password'];
         $port = isset($params['port']) ? $params['port'] : '3306';
         $dsn = sprintf("mysql:host=%s;port=%s;dbname=%s;charset=utf8", $params['host'], $port, $params['database']);
 
