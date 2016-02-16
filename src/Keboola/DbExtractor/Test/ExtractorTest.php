@@ -20,29 +20,23 @@ class ExtractorTest extends \PHPUnit_Framework_TestCase
         $config = Yaml::parse(file_get_contents($this->dataDir . '/' .$driver . '/config.yml'));
         $config['dataDir'] = $this->dataDir;
 
-        if (false === getenv(strtoupper($driver) . '_DB_USER')) {
-            throw new \Exception("DB_USER envrionment variable must be set.");
-        }
-
-        if (false === getenv(strtoupper($driver) . '_DB_PASSWORD')) {
-            throw new \Exception("DB_PASSWORD envrionment variable must be set.");
-        }
-
-        $config['parameters']['db']['user'] = getenv(strtoupper($driver) . '_DB_USER');
-        $config['parameters']['db']['password'] = getenv(strtoupper($driver) . '_DB_PASSWORD');
-
-        if (false !== getenv(strtoupper($driver) . '_DB_HOST')) {
-            $config['parameters']['db']['host'] = getenv(strtoupper($driver) . '_DB_HOST');
-        }
-
-        if (false !== getenv(strtoupper($driver) . '_DB_PORT')) {
-            $config['parameters']['db']['port'] = getenv(strtoupper($driver) . '_DB_PORT');
-        }
-
-        if (false !== getenv(strtoupper($driver) . '_DB_DATABASE')) {
-            $config['parameters']['db']['database'] = getenv(strtoupper($driver) . '_DB_DATABASE');
-        }
+        $config['parameters']['db']['user'] = $this->getEnv($driver, 'DB_USER', true);
+        $config['parameters']['db']['password'] = $this->getEnv($driver, 'DB_PASSWORD', true);
+        $config['parameters']['db']['host'] = $this->getEnv($driver, 'DB_HOST');
+        $config['parameters']['db']['host'] = $this->getEnv($driver, 'DB_PORT');
+        $config['parameters']['db']['host'] = $this->getEnv($driver, 'DB_DATABASE');
 
         return $config;
+    }
+
+    protected function getEnv($driver, $suffix, $required = false)
+    {
+        $env = strtoupper($driver) . '_' . $suffix;
+        if ($required) {
+            if (false === getenv($env)) {
+                throw new \Exception($env . " environment variable must be set.");
+            }
+        }
+        return getenv($env);
     }
 }

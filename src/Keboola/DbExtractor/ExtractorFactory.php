@@ -16,6 +16,7 @@ class ExtractorFactory
     private $config;
 
     private $driversMap = [
+        'common'    => 'Common',
         'impala'    => 'Impala',
         'mysql'     => 'MySQL',
         'oracle'    => 'Oracle',

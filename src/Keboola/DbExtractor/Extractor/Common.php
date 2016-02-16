@@ -6,14 +6,12 @@
  * Time: 16:38
  */
 
-namespace Keboola\DbExtractor\Test;
+namespace Keboola\DbExtractor\Extractor;
 
+use Keboola\DbExtractor\Exception\UserException;
 
-use Keboola\DbExtractor\Extractor\Extractor;
-
-class MysqlExtractor extends Extractor
+class Common extends Extractor
 {
-
     public function createConnection($params)
     {
         // convert errors to PDOExceptions
@@ -23,15 +21,15 @@ class MysqlExtractor extends Extractor
 
         // check params
         foreach (['host', 'database', 'user', 'password'] as $r) {
-            if (!isset($dbParams[$r])) {
+            if (!isset($params[$r])) {
                 throw new UserException(sprintf("Parameter %s is missing.", $r));
             }
         }
 
-        $port = isset($dbParams['port']) ? $dbParams['port'] : '3306';
-        $dsn = sprintf("mysql:host=%s;port=%s;dbname=%s;charset=utf8", $dbParams['host'], $port, $dbParams['database']);
+        $port = isset($params['port']) ? $params['port'] : '3306';
+        $dsn = sprintf("mysql:host=%s;port=%s;dbname=%s;charset=utf8", $params['host'], $port, $params['database']);
 
-        $pdo = new \PDO($dsn, $dbParams['user'], $dbParams['password'], $options);
+        $pdo = new \PDO($dsn, $params['user'], $params['password'], $options);
         $pdo->setAttribute(\PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, false);
         $pdo->exec("SET NAMES utf8;");
 

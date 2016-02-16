@@ -6,7 +6,9 @@
  */
 
 // Define path to application directory
-define('ROOT_PATH', __DIR__ . '/../../../');
+if (!defined('ROOT_PATH')) {
+    define('ROOT_PATH', __DIR__);
+}
 
 date_default_timezone_set('Europe/Prague');
 
