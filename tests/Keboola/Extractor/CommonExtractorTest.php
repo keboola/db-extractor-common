@@ -26,6 +26,8 @@ class CommonExtractorTest extends ExtractorTest
         $outputCsvFile = $this->dataDir . '/out/tables/' . $result['imported'][0] . '.csv';
         $outputManifestFile = $this->dataDir . '/out/tables/' . $result['imported'][0] . '.csv.manifest';
 
+        file_get_contents($outputCsvFile);
+
         $this->assertEquals('ok', $result['status']);
         $this->assertFileExists($outputCsvFile);
         $this->assertFileExists($outputManifestFile);

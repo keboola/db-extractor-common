@@ -15,7 +15,8 @@ $result = $pdo->exec("
     INTO TABLE escaping
     FIELDS TERMINATED BY ','
     ENCLOSED BY '\"'
-    LINES TERMINATED BY '\n'
+    ESCAPED BY ''
+    IGNORE 1 LINES
 ");
 
 var_dump($result);
