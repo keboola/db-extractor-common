@@ -14,9 +14,8 @@ $result = $pdo->exec("
     LOAD DATA LOCAL INFILE '/home/travis/build/keboola/db-extractor-common/tests/data/escaping.csv'
     INTO TABLE escaping
     FIELDS TERMINATED BY ','
-    OPTIONALLY ENCLOSED BY '\"'
+    ENCLOSED BY '\"'
     LINES TERMINATED BY '\n'
-    IGNORE 1 LINES
 ");
 
 var_dump($result);
