@@ -29,7 +29,12 @@ class Common extends Extractor
         $params['password'] = empty($params['password'])?null:$params['password'];
         $dsn = sprintf("mysql:host=%s;dbname=%s;charset=utf8", $params['host'], $params['database']);
 
-        $pdo = new \PDO($dsn, $params['user'], $params['password'], $options);
+        var_dump($params);
+
+        $pdo = new \PDO("mysql:host=localhost;dbname=test;charset=utf8", 'travis', '', [
+            \PDO::MYSQL_ATTR_LOCAL_INFILE => true
+        ]);
+
         $pdo->setAttribute(\PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, false);
         $pdo->exec("SET NAMES utf8;");
 
