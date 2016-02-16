@@ -11,14 +11,16 @@ $pdo = new \PDO("mysql:host=localhost;dbname=test;charset=utf8", 'travis', '', [
 ]);
 
 $result = $pdo->exec("
-    LOAD DATA LOCAL
-    INFILE 'escaping.csv'
+    LOAD DATA LOCAL INFILE '/home/travis/build/keboola/db-extractor-common/tests/data/escaping.csv'
     INTO TABLE escaping
     FIELDS TERMINATED BY ','
-    ENCLOSED BY '\"'
+    OPTIONALLY ENCLOSED BY '\"'
     LINES TERMINATED BY '\n'
     IGNORE 1 LINES
 ");
+
+var_dump($result);
+var_dump($pdo->errorInfo());
 
 $stmt = $pdo->query("SELECT * FROM escaping", \PDO::FETCH_ASSOC);
 $result = $stmt->fetchAll();
