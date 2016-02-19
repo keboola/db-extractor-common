@@ -12,8 +12,6 @@ app:
     COMMON_DB_HOST: mysql
     COMMON_DB_PORT: 3306
     COMMON_DB_DATABASE: testdb
-    COMMON_DB_SSH_KEY_PRIVATE: ${COMMON_DB_SSH_KEY_PRIVATE}
-    COMMON_DB_SSH_KEY_PUBLIC: ${COMMON_DB_SSH_KEY_PUBLIC}
   links:
     - sshproxy
     - mysql
