@@ -52,6 +52,9 @@ class SSH
     {
         $fileName = 'ssh.' . microtime(true) . '.key';
         file_put_contents(ROOT_PATH . '/' . $fileName, $stringKey);
+
+        var_dump(file_get_contents($fileName));
+
         chmod($fileName, 0600);
         return realpath($fileName);
     }
