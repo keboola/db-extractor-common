@@ -13,6 +13,7 @@ use Keboola\Csv\CsvFile;
 use Keboola\DbExtractor\Exception\ApplicationException;
 use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractor\Logger;
+use Keboola\DbExtractor\SSH;
 use Symfony\Component\Yaml\Yaml;
 
 abstract class Extractor
@@ -29,6 +30,10 @@ abstract class Extractor
         $this->logger = $logger;
         $this->dataDir = $config['dataDir'];
 
+        if (isset($config['parameters']['db']['ssh']['enabled']) && $config['parameters']['db']['ssh']['enabled']) {
+            $config['parameters']['db'] = $this->createSshTunnel($config['parameters']['db']);
+        }
+
         try {
             $this->db = $this->createConnection($config['parameters']['db']);
         } catch (\Exception $e) {
@@ -37,6 +42,32 @@ abstract class Extractor
             }
             throw new UserException("Error connecting to DB: " . $e->getMessage(), 0, $e);
         }
+    }
+
+    protected function createSshTunnel($dbConfig)
+    {
+        $sshConfig = $dbConfig['ssh'];
+        // check params
+        foreach (['user', 'keys', 'sshHost', 'localPort', 'remoteHost', 'remotePort'] as $k) {
+            if (empty($sshConfig[$k])) {
+                throw new UserException(sprintf("Parameter %s is missing.", $k));
+            }
+        }
+
+        $ssh = new SSH();
+        $ssh->openTunnel(
+            $sshConfig['user'],
+            $sshConfig['sshHost'],
+            $sshConfig['localPort'],
+            $sshConfig['remoteHost'],
+            $sshConfig['remotePort'],
+            $sshConfig['keys']['private']
+        );
+
+        $dbConfig['host'] = '127.0.0.1';
+        $dbConfig['port'] = $sshConfig['localPort'];
+
+        return $dbConfig;
     }
 
     public abstract function createConnection($params);
