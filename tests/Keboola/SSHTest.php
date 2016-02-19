@@ -24,13 +24,17 @@ class SSHTest extends ExtractorTest
     {
         $ssh = new \Keboola\DbExtractor\SSH();
 
+        $privateKey = $this->getEnv('common', 'DB_SSH_KEY_PRIVATE');
+
+        var_dump($privateKey); die;
+
         $tunnelProcess = $ssh->openTunnel(
             'root',
             'sshproxy',
             '33306',
             'mysql',
             '3306',
-            $this->getEnv('common', 'DB_SSH_KEY_PRIVATE')
+            $privateKey
         );
 
         while($tunnelProcess->isRunning()) {
