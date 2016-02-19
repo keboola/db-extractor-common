@@ -6,6 +6,7 @@
  * Time: 16:44
  */
 
+require_once '../../vendor/autoload.php';
 
 $dataLoader = new \Keboola\DbExtractor\Test\DataLoader('localhost', 3306, 'test', 'travis', '');
 $dataLoader->load('/home/travis/build/keboola/db-extractor-common/tests/data/escaping.csv', 'escaping');
