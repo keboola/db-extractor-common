@@ -3,4 +3,4 @@ vendor/
 .idea/
 composer.phar
 runtests.sh
-ssh.*
+/ssh.*
