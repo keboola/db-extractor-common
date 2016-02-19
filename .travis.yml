@@ -4,4 +4,4 @@ services:
   - docker
 
 script:
-  - docker-compose run -e COMMON_DB_SSH_KEY_PRIVATE="${COMMON_DB_SSH_KEY_PRIVATE}" app
+  - docker-compose run app
