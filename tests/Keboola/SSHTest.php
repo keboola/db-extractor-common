@@ -42,8 +42,8 @@ class SSHTest extends ExtractorTest
         $inputFile = ROOT_PATH . '/tests/data/escaping.csv';
         $dataLoader = new \Keboola\DbExtractor\Test\DataLoader('127.0.0.1', 33306, 'testdb', 'root', 'somePassword');
         $dataLoader->getPdo()->exec("SET NAMES utf8;");
-        $dataLoader->getPdo()->exec("DROP TABLE escaping");
-        $dataLoader->getPdo()->exec("CREATE TABLE escaping (col1 VARCHAR(255) NOT NULL, col2 VARCHAR(255) NOT NULL)");
+        $dataLoader->getPdo()->exec("DROP TABLE IF EXISTS escaping");
+        $dataLoader->getPdo()->exec("CREATE TABLE escaping (col1 VARCHAR(255) NOT NULL, col2 VARCHAR(255) NOT NULL) CHARSET=utf8");
         $dataLoader->load($inputFile, 'escaping');
 
         $stmt = $dataLoader->getPdo()->query("SELECT * FROM escaping");

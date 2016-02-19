@@ -1,19 +1,7 @@
 sudo: false
 
-language: php
-
-php:
-  - 5.6
-
 services:
-  - mysql
+  - docker
 
-before_install:
-  - mysql -e "CREATE DATABASE IF NOT EXISTS test;" -uroot
-  - mysql -e "USE test; CREATE TABLE escaping (col1 VARCHAR(255) NOT NULL, col2 VARCHAR(255) NOT NULL);" -uroot
-  - php tests/data/loadData.php
-
-install:
-  - composer install -n
-
-
+script:
+  - docker-compose run app
