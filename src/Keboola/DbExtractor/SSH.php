@@ -44,7 +44,19 @@ class SSH
 
         $process = new Process($cmd);
         $process->setTimeout(60);
-        $process->mustRun();
+        $process->start();
+
+        while ($process->isRunning()) {
+            sleep(1);
+        }
+
+        if ($process->getExitCode() !== 0) {
+            throw new \Exception(sprintf(
+                "Unable to create ssh tunnel. Output: %s ErrorOutput: %s",
+                $process->getOutput(),
+                $process->getErrorOutput()
+            ));
+        }
 
         return $process;
     }
