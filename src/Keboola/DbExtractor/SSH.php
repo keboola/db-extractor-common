@@ -44,7 +44,7 @@ class SSH
 
         $process = new Process($cmd);
         $process->setTimeout(60);
-        $process->start();
+        $process->mustRun();
 
         return $process;
     }
