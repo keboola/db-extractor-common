@@ -70,6 +70,10 @@ abstract class Extractor
             $sshConfig['remotePort'] = $dbConfig['port'];
         }
 
+        if (empty($sshConfig['sshPort'])) {
+            $sshConfig['sshPort'] = 22;
+        }
+
         $ssh = new SSH();
         $ssh->openTunnel(
             $sshConfig['user'],
@@ -77,7 +81,8 @@ abstract class Extractor
             $sshConfig['localPort'],
             $sshConfig['remoteHost'],
             $sshConfig['remotePort'],
-            $sshConfig['keys']['private']
+            $sshConfig['keys']['private'],
+            $sshConfig['sshPort']
         );
 
         $dbConfig['host'] = '127.0.0.1';

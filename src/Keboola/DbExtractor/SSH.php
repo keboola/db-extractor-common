@@ -29,10 +29,11 @@ class SSH
         ];
     }
 
-    public function openTunnel($user, $sshHost, $localPort, $remoteHost, $remotePort, $privateKey)
+    public function openTunnel($user, $sshHost, $localPort, $remoteHost, $remotePort, $privateKey, $sshPort = '22')
     {
         $cmd = sprintf(
-            'ssh %s@%s -L %s:%s:%s -i %s -fN -o ExitOnForwardFailure=yes -o StrictHostKeyChecking=no',
+            'ssh -p %s %s@%s -L %s:%s:%s -i %s -fN -o ExitOnForwardFailure=yes -o StrictHostKeyChecking=no',
+            $sshPort,
             $user,
             $sshHost,
             $localPort,
