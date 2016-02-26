@@ -48,10 +48,14 @@ abstract class Extractor
     {
         $sshConfig = $dbConfig['ssh'];
         // check params
-        foreach (['user', 'keys', 'sshHost'] as $k) {
+        foreach (['keys', 'sshHost'] as $k) {
             if (empty($sshConfig[$k])) {
                 throw new UserException(sprintf("Parameter %s is missing.", $k));
             }
+        }
+
+        if (empty($sshConfig['user'])) {
+            $sshConfig['user'] = $dbConfig['user'];
         }
 
         if (empty($sshConfig['localPort'])) {
