@@ -41,14 +41,21 @@ class CommonExtractorTest extends ExtractorTest
         $dataLoader->load($inputFile, 'escaping');
     }
 
+    public function getConfig($driver = 'common')
+    {
+        $config = parent::getConfig($driver);
+        $config['extractor_class'] = 'Common';
+        return $config;
+    }
+
     public function testRun()
     {
-        $this->runApp(new Application($this->getConfig('common')));
+        $this->runApp(new Application($this->getConfig()));
     }
 
     public function testRunWithSSH()
     {
-        $config = $this->getConfig('common');
+        $config = $this->getConfig();
         $config['ssh'] = [
             'enabled' => true,
             'keys' => [

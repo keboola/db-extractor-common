@@ -1,6 +1,5 @@
 parameters:
     db:
-        driver: common
         host: localhost
         database: test
         user: travis

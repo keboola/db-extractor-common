@@ -15,17 +15,6 @@ class ExtractorFactory
 {
     private $config;
 
-    private $driversMap = [
-        'common'    => 'Common',
-        'impala'    => 'Impala',
-        'mysql'     => 'MySQL',
-        'oracle'    => 'Oracle',
-        'pgsql'     => 'PgSQL',
-        'mssql'     => 'MSSQL',
-        'redshift'  => 'Redshift',
-        'firebird'  => 'Firebird'
-    ];
-
     public function __construct($config)
     {
         $this->config = $config;
@@ -33,13 +22,11 @@ class ExtractorFactory
 
     public function create($logger)
     {
-        $driver = $this->config['parameters']['db']['driver'];
-        if (!array_key_exists($driver, $this->driversMap)) {
-            throw new UserException(sprintf("Driver '%s' is not supported", $driver));
+        $extractorClass = __NAMESPACE__ . '\\Extractor\\' . $this->config['extractor_class'];
+        if (!class_exists($extractorClass)) {
+            throw new UserException(sprintf("Extractor class '%s' doesn't exist", $extractorClass));
         }
 
-        $className = __NAMESPACE__ . '\\Extractor\\' . $this->driversMap[$driver];
-
-        return new $className($this->config, $logger);
+        return new $extractorClass($this->config, $logger);
     }
 }
