@@ -74,6 +74,10 @@ abstract class Extractor
             $sshConfig['sshPort'] = 22;
         }
 
+        $privateKey = isset($sshConfig['keys']['#private'])
+            ?$sshConfig['keys']['#private']
+            :$sshConfig['keys']['private'];
+
         $ssh = new SSH();
         $ssh->openTunnel(
             $sshConfig['user'],
@@ -81,7 +85,7 @@ abstract class Extractor
             $sshConfig['localPort'],
             $sshConfig['remoteHost'],
             $sshConfig['remotePort'],
-            $sshConfig['keys']['private'],
+            $privateKey,
             $sshConfig['sshPort']
         );
 
