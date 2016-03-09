@@ -56,7 +56,7 @@ class CommonExtractorTest extends ExtractorTest
     public function testRunWithSSH()
     {
         $config = $this->getConfig();
-        $config['ssh'] = [
+        $config['parameters']['db']['ssh'] = [
             'enabled' => true,
             'keys' => [
                 'private' => $this->getEnv('common', 'DB_SSH_KEY_PRIVATE'),

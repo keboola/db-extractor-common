@@ -9,11 +9,16 @@
 
 namespace Keboola\DbExtractor;
 
+use Keboola\DbExtractor\Configuration\ConfigDefinition;
 use Keboola\DbExtractor\Exception\UserException;
 use Pimple\Container;
+use Symfony\Component\Config\Definition\ConfigurationInterface;
+use Symfony\Component\Config\Definition\Processor;
 
 class Application extends Container
 {
+    private $configDefinition;
+
     public function __construct($config)
     {
         parent::__construct();
@@ -33,13 +38,13 @@ class Application extends Container
         $this['extractor'] = function() use ($app) {
             return $app['extractor_factory']->create($app['logger']);
         };
+
+        $this->configDefinition = new ConfigDefinition();
     }
 
     public function run()
     {
-        if (empty($this['config']['parameters']['tables'])) {
-            throw new UserException("No tables defined for extraction. Check your configuration for key 'tables'.");
-        }
+        $this['config'] = $this->validateConfig($this['config']);
 
         $imported = [];
         $tables = array_filter($this['config']['parameters']['tables'], function ($table) {
@@ -54,5 +59,19 @@ class Application extends Container
             'status' => 'ok',
             'imported' => $imported
         ];
+    }
+
+    public function setConfigDefinition(ConfigurationInterface $definition)
+    {
+        $this->configDefinition = $definition;
+    }
+
+    private function validateConfig($config)
+    {
+        $processor = new Processor();
+        return $processor->processConfiguration(
+            $this->configDefinition,
+            [$config]
+        );
     }
 }

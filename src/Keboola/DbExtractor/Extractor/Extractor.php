@@ -28,7 +28,7 @@ abstract class Extractor
     public function __construct($config, Logger $logger)
     {
         $this->logger = $logger;
-        $this->dataDir = $config['dataDir'];
+        $this->dataDir = $config['data_dir'];
 
         if (isset($config['parameters']['db']['ssh']['enabled']) && $config['parameters']['db']['ssh']['enabled']) {
             $config['parameters']['db'] = $this->createSshTunnel($config['parameters']['db']);
