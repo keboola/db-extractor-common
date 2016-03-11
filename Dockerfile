@@ -3,8 +3,9 @@ FROM keboola/base-php56
 MAINTAINER Miro Cillik <miro@keboola.com>
 
 # Install dependencies
-RUN yum -y --enablerepo=epel,remi,remi-php56 install php-devel
-RUN yum -y --enablerepo=epel,remi,remi-php56 install php-mysql
+RUN yum -y --enablerepo=epel,remi,remi-php56 install \
+    php-devel \
+    php-mysql
 
 ADD . /code
 WORKDIR /code
