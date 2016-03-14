@@ -1,7 +1,7 @@
 # Database Extractor Common
 ---
 
-Common classes for creating specific vendor Database Extractor.
+Common classes for creating vendor specific database extractors.
 
 ## Status
 [![Build Status](https://travis-ci.org/keboola/db-extractor-common.svg)](https://travis-ci.org/keboola/db-extractor-common)
