@@ -136,14 +136,14 @@ The namespace of your extractor class shoud be `Keboola\DbExtractor\Extractor` a
 ## Testing
 Directory structure: (example from Impala Extractor)
 
-  src
-  tests
-  +-- data
-      +-- impala
-          +-- config.yml
-      Keboola
-      +-- Extractor
-          +-- ImpalaTest.php
+      src
+      tests
+      +-- data
+          +-- impala
+              +-- config.yml
+          Keboola
+          +-- Extractor
+              +-- ImpalaTest.php
 
 
 `config.yml` file is a configuration file for test run.
