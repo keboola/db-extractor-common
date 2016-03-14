@@ -24,11 +24,13 @@ class ConfigDefinition implements ConfigurationInterface
 
         $rootNode
             ->children()
-                ->scalarNode('data_dir')->end()
+                ->scalarNode('data_dir')
                     ->isRequired()
+                    ->cannotBeEmpty()
                 ->end()
                 ->scalarNode('extractor_class')
                     ->isRequired()
+                    ->cannotBeEmpty()
                 ->end()
                 ->arrayNode('parameters')
                     ->children()
