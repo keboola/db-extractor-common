@@ -101,32 +101,29 @@ abstract class Extractor
     {
         //@todo check table attributes
         $outputTable = $table['outputTable'];
-        $query = $table['query'];
+        $csv = $this->createOutputCsv($outputTable);
 
         $this->logger->info("Exporting to " . $outputTable);
 
-        $csv = $this->createOutputCsv($outputTable);
+        $query = $table['query'];
 
-        try {
-            $stmt = $this->db->prepare($query);
-            $stmt->execute();
-            $resultRow = $stmt->fetch(\PDO::FETCH_ASSOC);
+        $maxTries = (isset($table['retries']) && $table['retries'])?$table['retries']:1;
+        $tries = 0;
+        $exception = null;
 
-            if (is_array($resultRow) && !empty($resultRow)) {
-                // write header and first line
-                $csv->writeRow(array_keys($resultRow));
-                $csv->writeRow($resultRow);
-
-                // write the rest
-                while ($resultRow = $stmt->fetch(\PDO::FETCH_ASSOC)) {
-                    $csv->writeRow($resultRow);
-                }
-            } else {
-                $this->logger->warn("Query returned empty result. Nothing was imported.");
+        while ($tries < $maxTries) {
+            $exception = null;
+            try {
+                $this->executeQuery($query, $csv);
+            } catch (\PDOException $e) {
+                $exception = new UserException("DB query failed: " . $e->getMessage(), 0, $e);
             }
+            sleep(pow($tries, 2));
+            $tries++;
+        }
 
-        } catch (\PDOException $e) {
-            throw new UserException("DB query failed: " . $e->getMessage(), 0, $e);
+        if ($exception) {
+            throw $exception;
         }
 
         if ($this->createManifest($table) === false) {
@@ -136,6 +133,26 @@ abstract class Extractor
         }
 
         return $outputTable;
+    }
+
+    protected function executeQuery($query, CsvFile $csv)
+    {
+        $stmt = $this->db->prepare($query);
+        $stmt->execute();
+        $resultRow = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if (is_array($resultRow) && !empty($resultRow)) {
+            // write header and first line
+            $csv->writeRow(array_keys($resultRow));
+            $csv->writeRow($resultRow);
+
+            // write the rest
+            while ($resultRow = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+                $csv->writeRow($resultRow);
+            }
+        } else {
+            $this->logger->warn("Query returned empty result. Nothing was imported.");
+        }
     }
 
     protected function createOutputCsv($outputTable)
