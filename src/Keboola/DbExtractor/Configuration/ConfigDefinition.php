@@ -87,6 +87,8 @@ class ConfigDefinition implements ConfigurationInterface
                         ->end()
                     ->end()
                 ->end()
+                ->arrayNode('image_parameters')
+                ->end()
             ->end()
         ;
 

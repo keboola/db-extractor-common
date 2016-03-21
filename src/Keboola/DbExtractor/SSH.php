@@ -8,6 +8,7 @@
 
 namespace Keboola\DbExtractor;
 
+use Keboola\DbExtractor\Exception\UserException;
 use Symfony\Component\Process\Process;
 
 class SSH
@@ -51,7 +52,7 @@ class SSH
         }
 
         if ($process->getExitCode() !== 0) {
-            throw new \Exception(sprintf(
+            throw new UserException(sprintf(
                 "Unable to create ssh tunnel. Output: %s ErrorOutput: %s",
                 $process->getOutput(),
                 $process->getErrorOutput()

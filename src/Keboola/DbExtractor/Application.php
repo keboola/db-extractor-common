@@ -13,6 +13,7 @@ use Keboola\DbExtractor\Configuration\ConfigDefinition;
 use Keboola\DbExtractor\Exception\UserException;
 use Pimple\Container;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
+use Symfony\Component\Config\Definition\Exception\Exception as ConfigException;
 use Symfony\Component\Config\Definition\Processor;
 
 class Application extends Container
@@ -68,10 +69,14 @@ class Application extends Container
 
     private function validateConfig($config)
     {
-        $processor = new Processor();
-        return $processor->processConfiguration(
-            $this->configDefinition,
-            [$config]
-        );
+        try {
+            $processor = new Processor();
+            return $processor->processConfiguration(
+                $this->configDefinition,
+                [$config]
+            );
+        } catch (ConfigException $e) {
+            throw new UserException($e->getMessage(), 0, $e);
+        }
     }
 }
