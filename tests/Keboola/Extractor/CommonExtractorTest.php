@@ -59,7 +59,7 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['db']['ssh'] = [
             'enabled' => true,
             'keys' => [
-                'private' => $this->getEnv('common', 'DB_SSH_KEY_PRIVATE'),
+                '#private' => $this->getEnv('common', 'DB_SSH_KEY_PRIVATE'),
                 'public' => $this->getEnv('common', 'DB_SSH_KEY_PUBLIC')
             ],
             'sshHost' => 'sshproxy',
@@ -68,6 +68,22 @@ class CommonExtractorTest extends ExtractorTest
             'remotePort' => '3306',
         ];
         $this->runApp(new Application($config));
+    }
+
+    public function testRunWithWrongCredentials()
+    {
+        $config = $this->getConfig();
+        $config['parameters']['db']['host'] = 'somebulshit';
+        $config['parameters']['db']['password'] = 'somecrap';
+
+        $isUserError = false;
+        try {
+            $this->runApp(new Application($config));
+        } catch (\Keboola\DbExtractor\Exception\UserException $e) {
+            $isUserError = true;
+        }
+
+        $this->assertTrue($isUserError);
     }
 
     protected function runApp(Application $app)
