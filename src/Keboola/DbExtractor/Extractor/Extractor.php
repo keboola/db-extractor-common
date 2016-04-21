@@ -25,17 +25,17 @@ abstract class Extractor
 
     protected $dataDir;
 
-    public function __construct($config, Logger $logger)
+    public function __construct($parameters, Logger $logger)
     {
         $this->logger = $logger;
-        $this->dataDir = $config['data_dir'];
+        $this->dataDir = $parameters['data_dir'];
 
-        if (isset($config['parameters']['db']['ssh']['enabled']) && $config['parameters']['db']['ssh']['enabled']) {
-            $config['parameters']['db'] = $this->createSshTunnel($config['parameters']['db']);
+        if (isset($parameters['db']['ssh']['enabled']) && $parameters['db']['ssh']['enabled']) {
+            $parameters['db'] = $this->createSshTunnel($parameters['db']);
         }
 
         try {
-            $this->db = $this->createConnection($config['parameters']['db']);
+            $this->db = $this->createConnection($parameters['db']);
         } catch (\Exception $e) {
             if (strstr(strtolower($e->getMessage()), 'could not find driver')) {
                 throw new ApplicationException("Missing driver: " . $e->getMessage());

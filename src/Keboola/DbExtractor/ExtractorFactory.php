@@ -13,20 +13,20 @@ use Keboola\DbExtractor\Exception\UserException;
 
 class ExtractorFactory
 {
-    private $config;
+    private $parameters;
 
-    public function __construct($config)
+    public function __construct($parameters)
     {
-        $this->config = $config;
+        $this->parameters = $parameters;
     }
 
     public function create($logger)
     {
-        $extractorClass = __NAMESPACE__ . '\\Extractor\\' . $this->config['extractor_class'];
+        $extractorClass = __NAMESPACE__ . '\\Extractor\\' . $this->parameters['extractor_class'];
         if (!class_exists($extractorClass)) {
             throw new UserException(sprintf("Extractor class '%s' doesn't exist", $extractorClass));
         }
 
-        return new $extractorClass($this->config, $logger);
+        return new $extractorClass($this->parameters, $logger);
     }
 }

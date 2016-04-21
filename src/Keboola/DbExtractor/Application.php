@@ -26,14 +26,14 @@ class Application extends Container
 
         $app = $this;
 
-        $this['config'] = $config;
+        $this['parameters'] = $config['parameters'];
 
         $this['logger'] = function() use ($app) {
             return new Logger(APP_NAME);
         };
 
         $this['extractor_factory'] = function() use ($app) {
-            return new ExtractorFactory($app['config']);
+            return new ExtractorFactory($app['parameters']);
         };
 
         $this['extractor'] = function() use ($app) {
@@ -45,10 +45,10 @@ class Application extends Container
 
     public function run()
     {
-        $this['config'] = $this->validateConfig($this['config']);
+        $this['parameters'] = $this->validateParameters($this['parameters']);
 
         $imported = [];
-        $tables = array_filter($this['config']['parameters']['tables'], function ($table) {
+        $tables = array_filter($this['parameters']['tables'], function ($table) {
             return ($table['enabled']);
         });
 
@@ -67,13 +67,13 @@ class Application extends Container
         $this->configDefinition = $definition;
     }
 
-    private function validateConfig($config)
+    private function validateParameters($parameters)
     {
         try {
             $processor = new Processor();
             return $processor->processConfiguration(
                 $this->configDefinition,
-                [$config]
+                [$parameters]
             );
         } catch (ConfigException $e) {
             throw new UserException($e->getMessage(), 0, $e);

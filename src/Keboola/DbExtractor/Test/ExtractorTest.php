@@ -18,7 +18,7 @@ class ExtractorTest extends \PHPUnit_Framework_TestCase
     protected function getConfig($driver)
     {
         $config = Yaml::parse(file_get_contents($this->dataDir . '/' .$driver . '/config.yml'));
-        $config['data_dir'] = $this->dataDir;
+        $config['parameters']['data_dir'] = $this->dataDir;
 
         $config['parameters']['db']['user'] = $this->getEnv($driver, 'DB_USER', true);
         $config['parameters']['db']['password'] = $this->getEnv($driver, 'DB_PASSWORD', true);

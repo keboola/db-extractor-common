@@ -44,7 +44,7 @@ class CommonExtractorTest extends ExtractorTest
     public function getConfig($driver = 'common')
     {
         $config = parent::getConfig($driver);
-        $config['extractor_class'] = 'Common';
+        $config['parameters']['extractor_class'] = 'Common';
         return $config;
     }
 
