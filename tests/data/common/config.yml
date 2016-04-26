@@ -13,5 +13,7 @@ parameters:
             query: "SELECT * FROM escaping"
             outputTable: in.c-main.escaping
             incremental: false
-            primaryKey: ~
+            primaryKey:
+              -
+                col1
             enabled: true
