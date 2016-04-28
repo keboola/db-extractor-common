@@ -11,7 +11,6 @@ Common classes for creating vendor specific database extractors.
 - [Impala](https://github.com/keboola/db-extractor-impala)
 - [Firebird](https://github.com/keboola/db-extractor-firebird)
 - [DB2](https://github.com/keboola/db-extractor-db2)
-- [DB2 (Bata)](https://github.com/keboola/db-extractor-db2-bata)
 - [Mongo DB](https://github.com/keboola/mongodb-extractor)
 
 ## Status
