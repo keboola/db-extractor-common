@@ -99,7 +99,6 @@ abstract class Extractor
 
     public function export(array $table)
     {
-        //@todo check table attributes
         $outputTable = $table['outputTable'];
         $csv = $this->createOutputCsv($outputTable);
 
