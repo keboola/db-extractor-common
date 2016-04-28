@@ -19,10 +19,6 @@ class Common extends Extractor
             \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION
         ];
 
-        if (isset($params['#password'])) {
-            $params['password'] = $params['#password'];
-        }
-
         // check params
         foreach (['host', 'database', 'user', 'password'] as $r) {
             if (!isset($params[$r])) {

@@ -71,10 +71,16 @@ class Application extends Container
     {
         try {
             $processor = new Processor();
-            return $processor->processConfiguration(
+            $processedParameters = $processor->processConfiguration(
                 $this->configDefinition,
                 [$parameters]
             );
+
+            if (!empty($processedParameters['db']['#password'])) {
+                $processedParameters['db']['password'] = $processedParameters['db']['#password'];
+            }
+
+            return $processedParameters;
         } catch (ConfigException $e) {
             throw new UserException($e->getMessage(), 0, $e);
         }
