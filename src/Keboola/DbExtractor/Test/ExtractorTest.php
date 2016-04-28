@@ -21,7 +21,7 @@ class ExtractorTest extends \PHPUnit_Framework_TestCase
         $config['parameters']['data_dir'] = $this->dataDir;
 
         $config['parameters']['db']['user'] = $this->getEnv($driver, 'DB_USER', true);
-        $config['parameters']['db']['password'] = $this->getEnv($driver, 'DB_PASSWORD', true);
+        $config['parameters']['db']['#password'] = $this->getEnv($driver, 'DB_PASSWORD', true);
         $config['parameters']['db']['host'] = $this->getEnv($driver, 'DB_HOST');
         $config['parameters']['db']['port'] = $this->getEnv($driver, 'DB_PORT');
         $config['parameters']['db']['database'] = $this->getEnv($driver, 'DB_DATABASE');

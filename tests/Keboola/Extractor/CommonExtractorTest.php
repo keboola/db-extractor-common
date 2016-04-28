@@ -74,7 +74,7 @@ class CommonExtractorTest extends ExtractorTest
     {
         $config = $this->getConfig();
         $config['parameters']['db']['host'] = 'somebulshit';
-        $config['parameters']['db']['password'] = 'somecrap';
+        $config['parameters']['db']['#password'] = 'somecrap';
 
         $isUserError = false;
         try {
