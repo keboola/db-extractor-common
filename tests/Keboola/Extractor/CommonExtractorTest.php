@@ -89,9 +89,10 @@ class CommonExtractorTest extends ExtractorTest
     public function testTestConnection()
     {
         $config = $this->getConfig();
+        $config['action'] = 'testConnection';
         unset($config['parameters']['tables']);
         $app = new Application($config);
-        $res = $app->testConnection();
+        $res = $app->run();
 
         $this->assertEquals('ok', $res['status']);
     }
@@ -99,12 +100,13 @@ class CommonExtractorTest extends ExtractorTest
     public function testTestConnectionFailure()
     {
         $config = $this->getConfig();
+        $config['action'] = 'testConnection';
         unset($config['parameters']['tables']);
         $config['parameters']['db']['#password'] = 'bullshit';
         $app = new Application($config);
         $exceptionThrown = false;
         try {
-            $app->testConnection();
+            $app->run();
         } catch (\Keboola\DbExtractor\Exception\UserException $e) {
             $exceptionThrown = true;
         }

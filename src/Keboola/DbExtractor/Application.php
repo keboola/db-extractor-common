@@ -26,6 +26,8 @@ class Application extends Container
 
         $app = $this;
 
+        $this['action'] = isset($config['action'])?$config['action']:'run';
+
         $this['parameters'] = $config['parameters'];
 
         $this['logger'] = function() use ($app) {
@@ -47,19 +49,12 @@ class Application extends Container
     {
         $this['parameters'] = $this->validateParameters($this['parameters']);
 
-        $imported = [];
-        $tables = array_filter($this['parameters']['tables'], function ($table) {
-            return ($table['enabled']);
-        });
-
-        foreach ($tables as $table) {
-            $imported[] = $this['extractor']->export($table);
+        $actionMethod = $this['action'] . 'Action';
+        if (!method_exists($this, $actionMethod)) {
+            throw new UserException(sprintf("Action '%s' does not exist."));
         }
 
-        return [
-            'status' => 'ok',
-            'imported' => $imported
-        ];
+        return $this->$actionMethod();
     }
 
     public function setConfigDefinition(ConfigurationInterface $definition)
@@ -86,15 +81,33 @@ class Application extends Container
         }
     }
 
-    public function testConnection()
+    private function runAction()
     {
-        $this['parameters'] = $this->validateParameters($this['parameters']);
+        $imported = [];
+        $tables = array_filter($this['parameters']['tables'], function ($table) {
+            return ($table['enabled']);
+        });
+
+        foreach ($tables as $table) {
+            $imported[] = $this['extractor']->export($table);
+        }
+
+        return [
+            'status' => 'ok',
+            'imported' => $imported
+        ];
+    }
+
+    private function testConnectionAction()
+    {
         try {
             $this['extractor']->testConnection();
         } catch (\Exception $e) {
             throw new UserException(sprintf("Connection failed: '%s'", $e->getMessage()), 0, $e);
         }
 
-        return ['status' => 'ok'];
+        return [
+            'status' => 'ok',
+        ];
     }
 }
