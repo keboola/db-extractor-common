@@ -86,6 +86,32 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertTrue($isUserError);
     }
 
+    public function testTestConnection()
+    {
+        $config = $this->getConfig();
+        unset($config['parameters']['tables']);
+        $app = new Application($config);
+        $res = $app->testConnection();
+
+        $this->assertEquals('ok', $res['status']);
+    }
+
+    public function testTestConnectionFailure()
+    {
+        $config = $this->getConfig();
+        unset($config['parameters']['tables']);
+        $config['parameters']['db']['#password'] = 'bullshit';
+        $app = new Application($config);
+        $exceptionThrown = false;
+        try {
+            $app->testConnection();
+        } catch (\Keboola\DbExtractor\Exception\UserException $e) {
+            $exceptionThrown = true;
+        }
+
+        $this->assertTrue($exceptionThrown);
+    }
+
     protected function runApp(Application $app)
     {
         $result = $app->run();

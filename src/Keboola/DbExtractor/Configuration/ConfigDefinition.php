@@ -49,7 +49,6 @@ class ConfigDefinition implements ConfigurationInterface
                     ->end()
                 ->end()
                 ->arrayNode('tables')
-                    ->isRequired()
                     ->prototype('array')
                         ->children()
                             ->integerNode('id')

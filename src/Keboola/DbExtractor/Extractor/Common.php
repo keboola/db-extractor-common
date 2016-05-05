@@ -35,4 +35,9 @@ class Common extends Extractor
 
         return $pdo;
     }
+
+    public function testConnection()
+    {
+        $this->db->query("SELECT 1");
+    }
 }

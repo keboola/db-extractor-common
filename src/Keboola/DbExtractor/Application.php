@@ -85,4 +85,16 @@ class Application extends Container
             throw new UserException($e->getMessage(), 0, $e);
         }
     }
+
+    public function testConnection()
+    {
+        $this['parameters'] = $this->validateParameters($this['parameters']);
+        try {
+            $this['extractor']->testConnection();
+        } catch (\Exception $e) {
+            throw new UserException(sprintf("Connection failed: '%s'", $e->getMessage()), 0, $e);
+        }
+
+        return ['status' => 'ok'];
+    }
 }
