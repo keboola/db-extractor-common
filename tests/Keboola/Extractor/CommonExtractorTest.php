@@ -114,6 +114,22 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertTrue($exceptionThrown);
     }
 
+    public function testNonExistingAction()
+    {
+        $config = $this->getConfig();
+        $config['action'] = 'sample';
+        unset($config['parameters']['tables']);
+
+        try {
+            $app = new Application($config);
+            $app->run();
+
+            $this->fail('Running non-existing actions should fail with UserException');
+        } catch (\Keboola\DbExtractor\Exception\UserException $e) {
+
+        }
+    }
+
     protected function runApp(Application $app)
     {
         $result = $app->run();
