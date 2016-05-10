@@ -93,7 +93,7 @@ class Application extends Container
         }
 
         return [
-            'status' => 'ok',
+            'status' => 'success',
             'imported' => $imported
         ];
     }
@@ -107,7 +107,7 @@ class Application extends Container
         }
 
         return [
-            'status' => 'ok',
+            'status' => 'success',
         ];
     }
 }
