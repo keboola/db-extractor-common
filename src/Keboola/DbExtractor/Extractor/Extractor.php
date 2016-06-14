@@ -117,6 +117,7 @@ abstract class Extractor
             $exception = null;
             try {
                 $this->executeQuery($query, $csv);
+                break;
             } catch (\PDOException $e) {
                 $exception = new UserException("DB query failed: " . $e->getMessage(), 0, $e);
             } catch (CsvException $e) {
