@@ -94,7 +94,7 @@ class CommonExtractorTest extends ExtractorTest
         $app = new Application($config);
         $res = $app->run();
 
-        $this->assertEquals('ok', $res['status']);
+        $this->assertEquals('success', $res['status']);
     }
 
     public function testTestConnectionFailure()
@@ -114,6 +114,22 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertTrue($exceptionThrown);
     }
 
+    public function testNonExistingAction()
+    {
+        $config = $this->getConfig();
+        $config['action'] = 'sample';
+        unset($config['parameters']['tables']);
+
+        try {
+            $app = new Application($config);
+            $app->run();
+
+            $this->fail('Running non-existing actions should fail with UserException');
+        } catch (\Keboola\DbExtractor\Exception\UserException $e) {
+
+        }
+    }
+
     protected function runApp(Application $app)
     {
         $result = $app->run();
@@ -121,7 +137,7 @@ class CommonExtractorTest extends ExtractorTest
         $outputCsvFile = $this->dataDir . '/out/tables/' . $result['imported'][0] . '.csv';
         $outputManifestFile = $this->dataDir . '/out/tables/' . $result['imported'][0] . '.csv.manifest';
 
-        $this->assertEquals('ok', $result['status']);
+        $this->assertEquals('success', $result['status']);
         $this->assertFileExists($outputCsvFile);
         $this->assertFileExists($outputManifestFile);
         $this->assertEquals(file_get_contents($expectedCsvFile), file_get_contents($outputCsvFile));

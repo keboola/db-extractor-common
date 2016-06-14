@@ -51,7 +51,7 @@ class Application extends Container
 
         $actionMethod = $this['action'] . 'Action';
         if (!method_exists($this, $actionMethod)) {
-            throw new UserException(sprintf("Action '%s' does not exist."));
+            throw new UserException(sprintf("Action '%s' does not exist.", $this['action']));
         }
 
         return $this->$actionMethod();
@@ -93,7 +93,7 @@ class Application extends Container
         }
 
         return [
-            'status' => 'ok',
+            'status' => 'success',
             'imported' => $imported
         ];
     }
@@ -107,7 +107,7 @@ class Application extends Container
         }
 
         return [
-            'status' => 'ok',
+            'status' => 'success',
         ];
     }
 }
