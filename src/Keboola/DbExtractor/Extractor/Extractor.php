@@ -10,6 +10,7 @@
 namespace Keboola\DbExtractor\Extractor;
 
 use Keboola\Csv\CsvFile;
+use Keboola\Csv\Exception as CsvException;
 use Keboola\DbExtractor\Exception\ApplicationException;
 use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractor\Logger;
@@ -108,7 +109,7 @@ abstract class Extractor
 
         $query = $table['query'];
 
-        $maxTries = (isset($table['retries']) && $table['retries'])?$table['retries']:1;
+        $maxTries = (isset($table['retries']) && $table['retries'])?$table['retries']:3;
         $tries = 0;
         $exception = null;
 
@@ -118,6 +119,8 @@ abstract class Extractor
                 $this->executeQuery($query, $csv);
             } catch (\PDOException $e) {
                 $exception = new UserException("DB query failed: " . $e->getMessage(), 0, $e);
+            } catch (CsvException $e) {
+                $exception = new ApplicationException("Write to CSV failed: " . $e->getMessage(), 0, $e);
             }
             sleep(pow($tries, 2));
             $tries++;
