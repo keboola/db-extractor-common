@@ -25,6 +25,7 @@ abstract class Extractor
     protected $logger;
 
     protected $dataDir;
+    private $dbParameters;
 
     public function __construct($parameters, Logger $logger)
     {
@@ -34,9 +35,10 @@ abstract class Extractor
         if (isset($parameters['db']['ssh']['enabled']) && $parameters['db']['ssh']['enabled']) {
             $parameters['db'] = $this->createSshTunnel($parameters['db']);
         }
+        $this->dbParameters = $parameters['db'];
 
         try {
-            $this->db = $this->createConnection($parameters['db']);
+            $this->db = $this->createConnection($this->dbParameters);
         } catch (\Exception $e) {
             if (strstr(strtolower($e->getMessage()), 'could not find driver')) {
                 throw new ApplicationException("Missing driver: " . $e->getMessage());
@@ -96,9 +98,9 @@ abstract class Extractor
         return $dbConfig;
     }
 
-    public abstract function createConnection($params);
+    abstract public function createConnection($params);
 
-    public abstract function testConnection();
+    abstract public function testConnection();
 
     public function export(array $table)
     {
@@ -120,6 +122,10 @@ abstract class Extractor
                 break;
             } catch (\PDOException $e) {
                 $exception = new UserException("DB query failed: " . $e->getMessage(), 0, $e);
+                try {
+                    $this->db = $this->createConnection($this->dbParameters);
+                } catch (\Exception $e) {
+                };
             } catch (CsvException $e) {
                 $exception = new ApplicationException("Write to CSV failed: " . $e->getMessage(), 0, $e);
             }
@@ -142,9 +148,9 @@ abstract class Extractor
 
     protected function executeQuery($query, CsvFile $csv)
     {
-        $stmt = $this->db->prepare($query);
-        $stmt->execute();
-        $resultRow = $stmt->fetch(\PDO::FETCH_ASSOC);
+        $stmt = @$this->db->prepare($query);
+        @$stmt->execute();
+        $resultRow = @$stmt->fetch(\PDO::FETCH_ASSOC);
 
         if (is_array($resultRow) && !empty($resultRow)) {
             // write header and first line
@@ -182,6 +188,6 @@ abstract class Extractor
             $manifestData['primary_key'] = $table['primaryKey'];
         }
 
-        return file_put_contents($outFilename , Yaml::dump($manifestData));
+        return file_put_contents($outFilename, Yaml::dump($manifestData));
     }
 }

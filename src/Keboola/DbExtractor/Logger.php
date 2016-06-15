@@ -9,7 +9,7 @@
 
 namespace Keboola\DbExtractor;
 
-use Monolog\Formatter\LineFormatter;
+use Keboola\DbExtractor\Logger\LineFormatter;
 use Monolog\Handler\StreamHandler;
 
 class Logger extends \Monolog\Logger
@@ -36,5 +36,4 @@ class Logger extends \Monolog\Logger
 
         parent::__construct($name, [$errHandler, $handler]);
     }
-
 }
