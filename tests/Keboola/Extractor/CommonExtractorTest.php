@@ -1,4 +1,5 @@
 <?php
+
 use Keboola\DbExtractor\Application;
 use Keboola\DbExtractor\Test\ExtractorTest;
 
@@ -76,14 +77,11 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['db']['host'] = 'somebulshit';
         $config['parameters']['db']['#password'] = 'somecrap';
 
-        $isUserError = false;
         try {
             $this->runApp(new Application($config));
+            $this->fail("Wrong credentials must raise error.");
         } catch (\Keboola\DbExtractor\Exception\UserException $e) {
-            $isUserError = true;
         }
-
-        $this->assertTrue($isUserError);
     }
 
     public function testTestConnection()
@@ -95,6 +93,22 @@ class CommonExtractorTest extends ExtractorTest
         $res = $app->run();
 
         $this->assertEquals('success', $res['status']);
+    }
+
+    public function testTestConnectionFailInTheMiddle()
+    {
+        $config = $this->getConfig();
+        $config['parameters']['tables'][] = [
+            'id' => 10,
+            'name' => 'bad',
+            'query' => 'KILL CONNECTION_ID();',
+            'outputTable' => 'dummy'
+        ];
+        try {
+            $this->runApp(new Application($config));
+            $this->fail("Failing query must raise exception.");
+        } catch (\Keboola\DbExtractor\Exception\UserException $e) {
+        }
     }
 
     public function testTestConnectionFailure()
@@ -114,6 +128,19 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertTrue($exceptionThrown);
     }
 
+    /*
+    public function testTestConnectionReconnect()
+    {
+        // TODO: kill connection to the server in the middle
+        $config = $this->getConfig();
+        $t = $config['parameters']['tables'][0];
+        for ($i = 1; $i < 10; $i++) {
+            $config['parameters']['tables'][] = $t;
+        }
+        $this->runApp(new Application($config));
+    }
+    */
+
     public function testNonExistingAction()
     {
         $config = $this->getConfig();
@@ -126,7 +153,6 @@ class CommonExtractorTest extends ExtractorTest
 
             $this->fail('Running non-existing actions should fail with UserException');
         } catch (\Keboola\DbExtractor\Exception\UserException $e) {
-
         }
     }
 
