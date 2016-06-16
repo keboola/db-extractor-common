@@ -111,7 +111,7 @@ abstract class Extractor
 
         $query = $table['query'];
 
-        $maxTries = (isset($table['retries']) && $table['retries'])?$table['retries']:3;
+        $maxTries = (isset($table['retries']) && $table['retries'])?$table['retries']:5;
         $tries = 0;
         $exception = null;
 
