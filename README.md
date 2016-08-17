@@ -7,7 +7,7 @@ Common classes for creating vendor specific database extractors.
 - [MySQL](https://github.com/keboola/db-extractor-mysql)
 - [MSSQL](https://github.com/keboola/db-extractor-mssql)
 - [PgSQL](https://github.com/keboola/db-extractor-pgsql)
-- [Oracle](https://github.com/keboola/db-extractor-oracle)
+- [Oracle](https://github.com/keboola/db-extractor-oracle) (private repository)
 - [Impala](https://github.com/keboola/db-extractor-impala)
 - [Firebird](https://github.com/keboola/db-extractor-firebird)
 - [DB2](https://github.com/keboola/db-extractor-db2)
