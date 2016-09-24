@@ -14,7 +14,7 @@ use Keboola\Csv\Exception as CsvException;
 use Keboola\DbExtractor\Exception\ApplicationException;
 use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractor\Logger;
-use Keboola\DbExtractor\SSH;
+use Keboola\SSHTunnel\SSH;
 use Symfony\Component\Yaml\Yaml;
 
 abstract class Extractor
@@ -47,7 +47,7 @@ abstract class Extractor
         }
     }
 
-    protected function createSshTunnel($dbConfig)
+    public function createSshTunnel($dbConfig)
     {
         $sshConfig = $dbConfig['ssh'];
         // check params
@@ -56,42 +56,27 @@ abstract class Extractor
                 throw new UserException(sprintf("Parameter %s is missing.", $k));
             }
         }
-
         if (empty($sshConfig['user'])) {
             $sshConfig['user'] = $dbConfig['user'];
         }
-
-        if (empty($sshConfig['localPort'])) {
-            $sshConfig['localPort'] = 33006;
-        }
-
         if (empty($sshConfig['remoteHost'])) {
             $sshConfig['remoteHost'] = $dbConfig['host'];
         }
-
         if (empty($sshConfig['remotePort'])) {
             $sshConfig['remotePort'] = $dbConfig['port'];
         }
-
         if (empty($sshConfig['sshPort'])) {
             $sshConfig['sshPort'] = 22;
         }
-
-        $privateKey = isset($sshConfig['keys']['#private'])
+        $sshConfig['privateKey'] = isset($sshConfig['keys']['#private'])
             ?$sshConfig['keys']['#private']
             :$sshConfig['keys']['private'];
-
+        $tunnelParams = array_intersect_key($sshConfig, array_flip([
+            'user', 'sshHost', 'sshPort', 'localPort', 'remoteHost', 'remotePort', 'privateKey'
+        ]));
+        $this->logger->info("Creating SSH tunnel to '" . $tunnelParams['sshHost'] . "'");
         $ssh = new SSH();
-        $ssh->openTunnel(
-            $sshConfig['user'],
-            $sshConfig['sshHost'],
-            $sshConfig['localPort'],
-            $sshConfig['remoteHost'],
-            $sshConfig['remotePort'],
-            $privateKey,
-            $sshConfig['sshPort']
-        );
-
+        $ssh->openTunnel($tunnelParams);
         $dbConfig['host'] = '127.0.0.1';
         $dbConfig['port'] = $sshConfig['localPort'];
 
