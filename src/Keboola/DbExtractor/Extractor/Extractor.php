@@ -59,6 +59,9 @@ abstract class Extractor
         if (empty($sshConfig['user'])) {
             $sshConfig['user'] = $dbConfig['user'];
         }
+        if (empty($sshConfig['localPort'])) {
+            $sshConfig['localPort'] = 33006;
+        }
         if (empty($sshConfig['remoteHost'])) {
             $sshConfig['remoteHost'] = $dbConfig['host'];
         }
