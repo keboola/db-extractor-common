@@ -15,6 +15,7 @@ use Keboola\DbExtractor\Exception\ApplicationException;
 use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractor\Logger;
 use Keboola\SSHTunnel\SSH;
+use Keboola\SSHTunnel\SSHException;
 use Symfony\Component\Yaml\Yaml;
 
 abstract class Extractor
@@ -78,8 +79,13 @@ abstract class Extractor
             'user', 'sshHost', 'sshPort', 'localPort', 'remoteHost', 'remotePort', 'privateKey'
         ]));
         $this->logger->info("Creating SSH tunnel to '" . $tunnelParams['sshHost'] . "'");
-        $ssh = new SSH();
-        $ssh->openTunnel($tunnelParams);
+        try {
+            $ssh = new SSH();
+            $ssh->openTunnel($tunnelParams);
+        } catch (SSHException $e) {
+            throw new UserException($e->getMessage(), 0, $e);
+        }
+
         $dbConfig['host'] = '127.0.0.1';
         $dbConfig['port'] = $sshConfig['localPort'];
 

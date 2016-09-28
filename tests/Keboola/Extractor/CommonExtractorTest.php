@@ -71,6 +71,26 @@ class CommonExtractorTest extends ExtractorTest
         $this->runApp(new Application($config));
     }
 
+    public function testRunWithSSHUserException()
+    {
+        $this->setExpectedException('Keboola\DbExtractor\Exception\UserException');
+
+        $config = $this->getConfig();
+        $config['parameters']['db']['ssh'] = [
+            'enabled' => true,
+            'keys' => [
+                '#private' => $this->getEnv('common', 'DB_SSH_KEY_PRIVATE'),
+                'public' => $this->getEnv('common', 'DB_SSH_KEY_PUBLIC')
+            ],
+            'sshHost' => 'wronghost',
+            'localPort' => '33306',
+            'remoteHost' => 'mysql',
+            'remotePort' => '3306',
+        ];
+
+        (new Application($config))->run();
+    }
+
     public function testRunWithWrongCredentials()
     {
         $config = $this->getConfig();
