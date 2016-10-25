@@ -13,7 +13,14 @@ use Symfony\Component\Yaml\Yaml;
 
 class ExtractorTest extends \PHPUnit_Framework_TestCase
 {
-    protected $dataDir = ROOT_PATH . "/tests/data";
+    protected $dataDir;
+
+    protected function setUp()
+    {
+        parent::setUp();
+
+        $this->dataDir = ROOT_PATH . "/tests/data";
+    }
 
     protected function getConfig($driver)
     {

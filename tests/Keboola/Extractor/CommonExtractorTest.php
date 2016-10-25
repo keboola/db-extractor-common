@@ -13,6 +13,8 @@ class CommonExtractorTest extends ExtractorTest
 {
     public function setUp()
     {
+        parent::setUp();
+
         if (!defined('APP_NAME')) {
             define('APP_NAME', 'ex-db-common');
         }

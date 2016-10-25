@@ -17,6 +17,7 @@ class DataLoader
     {
         $dsn = sprintf("mysql:host=%s;port=%s;dbname=%s;charset=utf8", $host, $port, $dbname);
         $this->pdo = new \PDO($dsn, $user, $pass, [
+            \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
             \PDO::MYSQL_ATTR_LOCAL_INFILE => true
         ]);
     }
