@@ -104,6 +104,23 @@ class CommonExtractorTest extends ExtractorTest
         }
     }
 
+    public function testRunEmptyQuery()
+    {
+        $outputCsvFile = $this->dataDir . '/out/tables/in.c-main.escaping.csv';
+        $outputManifestFile = $this->dataDir . '/out/tables/in.c-main.escaping.csv.manifest';
+        @unlink($outputCsvFile);
+        @unlink($outputManifestFile);
+
+        $config = $this->getConfig();
+        $config['parameters']['tables'][0]['query'] = "SELECT * FROM escaping WHERE col1 = '123'";
+
+        $result = (new Application($config))->run();
+
+        $this->assertEquals('success', $result['status']);
+        $this->assertFileNotExists($outputCsvFile);
+        $this->assertFileNotExists($outputManifestFile);
+    }
+
     public function testTestConnection()
     {
         $config = $this->getConfig();
