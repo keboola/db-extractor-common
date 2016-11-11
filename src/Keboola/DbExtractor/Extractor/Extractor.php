@@ -108,11 +108,12 @@ abstract class Extractor
         $maxTries = (isset($table['retries']) && $table['retries'])?$table['retries']:5;
         $tries = 0;
         $exception = null;
+        $rows = 0;
 
         while ($tries < $maxTries) {
             $exception = null;
             try {
-                $this->executeQuery($query, $csv);
+                $rows = $this->executeQuery($query, $csv);
                 break;
             } catch (\PDOException $e) {
                 $exception = new UserException("DB query failed: " . $e->getMessage(), 0, $e);
@@ -131,10 +132,8 @@ abstract class Extractor
             throw $exception;
         }
 
-        if ($this->createManifest($table) === false) {
-            throw new ApplicationException("Unable to create manifest", 0, null, [
-                'table' => $table
-            ]);
+        if ($rows > 0) {
+            $this->createManifest($table);
         }
 
         return $outputTable;
@@ -152,12 +151,15 @@ abstract class Extractor
             $csv->writeRow($resultRow);
 
             // write the rest
+            $cnt=1;
             while ($resultRow = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                 $csv->writeRow($resultRow);
+                $cnt++;
             }
-        } else {
-            $this->logger->warn("Query returned empty result. Nothing was imported.");
+            return $cnt;
         }
+        $this->logger->warn("Query returned empty result. Nothing was imported.");
+        return 0;
     }
 
     protected function createOutputCsv($outputTable)
