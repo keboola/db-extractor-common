@@ -158,7 +158,7 @@ abstract class Extractor
 
             // write the rest
             $numRows = 1;
-            while ($resultRow = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+            while ($resultRow = @$stmt->fetch(\PDO::FETCH_ASSOC)) {
                 $csv->writeRow($resultRow);
                 $numRows++;
             }
