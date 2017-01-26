@@ -23,9 +23,11 @@ abstract class Extractor
     /** @var \PDO */
     protected $db;
 
+    /** @var Logger */
     protected $logger;
 
     protected $dataDir;
+
     private $dbParameters;
 
     public function __construct($parameters, Logger $logger)
@@ -116,7 +118,9 @@ abstract class Extractor
                 $rows = $this->executeQuery($query, $csv);
                 break;
             } catch (\PDOException $e) {
-                $exception = new UserException("DB query failed: " . $e->getMessage(), 0, $e);
+                $message = sprintf('DB query failed: %s', $e->getMessage());
+                $exception = new UserException($message, 0, $e);
+                $this->logger->info(sprintf('%s. Retrying... [%dx]', $message, $tries+1));
                 try {
                     $this->db = $this->createConnection($this->dbParameters);
                 } catch (\Exception $e) {
