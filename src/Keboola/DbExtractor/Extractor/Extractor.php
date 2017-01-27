@@ -118,13 +118,11 @@ abstract class Extractor
                 $rows = $this->executeQuery($query, $csv);
                 break;
             } catch (\PDOException $e) {
-                $message = sprintf('DB query failed: %s', $e->getMessage());
-                $exception = new UserException($message, 0, $e);
-                $this->logger->info(sprintf('%s. Retrying... [%dx]', $message, $tries+1));
-                try {
-                    $this->db = $this->createConnection($this->dbParameters);
-                } catch (\Exception $e) {
-                };
+                $exception = $this->handleDbError($e);
+                $this->logger->info(sprintf('%s. Retrying... [%dx]', $exception->getMessage(), $tries + 1));
+            } catch (\ErrorException $e) {
+                $exception = $this->handleDbError($e);
+                $this->logger->info(sprintf('%s. Retrying... [%dx]', $exception->getMessage(), $tries + 1));
             } catch (CsvException $e) {
                 $exception = new ApplicationException("Write to CSV failed: " . $e->getMessage(), 0, $e);
             }
@@ -141,6 +139,18 @@ abstract class Extractor
         }
 
         return $outputTable;
+    }
+
+    private function handleDbError(\Exception $e)
+    {
+        $message = sprintf('DB query failed: %s', $e->getMessage());
+        $exception = new UserException($message, 0, $e);
+
+        try {
+            $this->db = $this->createConnection($this->dbParameters);
+        } catch (\Exception $e) {
+        };
+        return $exception;
     }
 
     /**
@@ -162,7 +172,7 @@ abstract class Extractor
 
             // write the rest
             $numRows = 1;
-            while ($resultRow = @$stmt->fetch(\PDO::FETCH_ASSOC)) {
+            while ($resultRow = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                 $csv->writeRow($resultRow);
                 $numRows++;
             }
