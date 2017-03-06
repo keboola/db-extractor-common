@@ -51,10 +51,24 @@ class CommonExtractorTest extends ExtractorTest
 
     public function testRun()
     {
-        $this->runApp(new Application($this->getConfig()));
+        $this->assertRunResult((new Application($this->getConfig()))->run());
     }
 
     public function testRunWithSSH()
+    {
+        $config = $this->getConfig();
+        $config['parameters']['db']['ssh'] = [
+            'enabled' => true,
+            'keys' => [
+                '#private' => $this->getEnv('common', 'DB_SSH_KEY_PRIVATE'),
+                'public' => $this->getEnv('common', 'DB_SSH_KEY_PUBLIC')
+            ],
+            'sshHost' => 'sshproxy'
+        ];
+        $this->assertRunResult((new Application($config))->run());
+    }
+
+    public function testRunWithSSHDeprecated()
     {
         $config = $this->getConfig();
         $config['parameters']['db']['ssh'] = [
@@ -68,7 +82,11 @@ class CommonExtractorTest extends ExtractorTest
             'remoteHost' => 'mysql',
             'remotePort' => '3306',
         ];
-        $this->runApp(new Application($config));
+
+        $result = (new Application($config))->run();
+        $this->assertRunResult($result);
+        $this->assertContains("Parameter 'remoteHost' is deprecated and has no effect.", $result);
+        $this->assertContains("Parameter 'remotePort' is deprecated and has no effect.", $result);
     }
 
     public function testRunWithSSHUserException()
@@ -98,7 +116,7 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['db']['#password'] = 'somecrap';
 
         try {
-            $this->runApp(new Application($config));
+            $this->assertRunResult(new Application($config));
             $this->fail("Wrong credentials must raise error.");
         } catch (\Keboola\DbExtractor\Exception\UserException $e) {
         }
@@ -142,7 +160,7 @@ class CommonExtractorTest extends ExtractorTest
             'outputTable' => 'dummy'
         ];
         try {
-            $this->runApp(new Application($config));
+            $this->assertRunResult(new Application($config));
             $this->fail("Failing query must raise exception.");
         } catch (\Keboola\DbExtractor\Exception\UserException $e) {
         }
@@ -165,19 +183,6 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertTrue($exceptionThrown);
     }
 
-    /*
-    public function testTestConnectionReconnect()
-    {
-        // TODO: kill connection to the server in the middle
-        $config = $this->getConfig();
-        $t = $config['parameters']['tables'][0];
-        for ($i = 1; $i < 10; $i++) {
-            $config['parameters']['tables'][] = $t;
-        }
-        $this->runApp(new Application($config));
-    }
-    */
-
     public function testNonExistingAction()
     {
         $config = $this->getConfig();
@@ -193,9 +198,8 @@ class CommonExtractorTest extends ExtractorTest
         }
     }
 
-    protected function runApp(Application $app)
+    protected function assertRunResult($result)
     {
-        $result = $app->run();
         $expectedCsvFile = ROOT_PATH . '/tests/data/escaping.csv';
         $outputCsvFile = $this->dataDir . '/out/tables/' . $result['imported'][0] . '.csv';
         $outputManifestFile = $this->dataDir . '/out/tables/' . $result['imported'][0] . '.csv.manifest';

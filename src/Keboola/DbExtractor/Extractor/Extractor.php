@@ -56,7 +56,12 @@ abstract class Extractor
         // check params
         foreach (['keys', 'sshHost'] as $k) {
             if (empty($sshConfig[$k])) {
-                throw new UserException(sprintf("Parameter %s is missing.", $k));
+                throw new UserException(sprintf("Parameter '%s' is missing.", $k));
+            }
+        }
+        foreach (['remoteHost', 'remotePort'] as $k) {
+            if (!empty($sshConfig[$k])) {
+                $this->logger->warning(sprintf("Parameter '%s' is deprecated and has no effect.", $k));
             }
         }
         $sshConfig['remoteHost'] = $dbConfig['host'];
