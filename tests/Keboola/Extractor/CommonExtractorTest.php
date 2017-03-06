@@ -85,8 +85,6 @@ class CommonExtractorTest extends ExtractorTest
 
         $result = (new Application($config))->run();
         $this->assertRunResult($result);
-        $this->assertContains("Parameter 'remoteHost' is deprecated and has no effect.", $result);
-        $this->assertContains("Parameter 'remotePort' is deprecated and has no effect.", $result);
     }
 
     public function testRunWithSSHUserException()
