@@ -114,7 +114,7 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['db']['#password'] = 'somecrap';
 
         try {
-            $this->assertRunResult(new Application($config));
+            (new Application($config))->run();
             $this->fail("Wrong credentials must raise error.");
         } catch (\Keboola\DbExtractor\Exception\UserException $e) {
         }
@@ -158,7 +158,7 @@ class CommonExtractorTest extends ExtractorTest
             'outputTable' => 'dummy'
         ];
         try {
-            $this->assertRunResult(new Application($config));
+            (new Application($config))->run();
             $this->fail("Failing query must raise exception.");
         } catch (\Keboola\DbExtractor\Exception\UserException $e) {
         }
