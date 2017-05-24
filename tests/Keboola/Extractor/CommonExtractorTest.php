@@ -2,6 +2,7 @@
 
 use Keboola\DbExtractor\Application;
 use Keboola\DbExtractor\Test\ExtractorTest;
+use Symfony\Component\Yaml\Yaml;
 
 /**
  * Created by PhpStorm.
@@ -210,6 +211,29 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertNull($result['tables'][0]['columns'][0]['default']);
         $this->assertArrayHasKey('primary', $result['tables'][0]['columns'][0]);
         $this->assertFalse($result['tables'][0]['columns'][0]['primary']);
+    }
+
+    public function testColumnMetadataManifest()
+    {
+        $config = $this->getConfig();
+        $config['parameters']['tables'][0]['columns'] = ['col1', 'col2'];
+
+        $app = new Application($config);
+
+        $result = $app->run();
+
+        $this->assertRunResult($result);
+
+        $outputManifest = Yaml::parse(
+            file_get_contents($this->dataDir . '/out/tables/' . $result['imported'][0] . '.csv.manifest')
+        );
+
+        $this->assertArrayHasKey('destination', $outputManifest);
+        $this->assertArrayHasKey('incremental', $outputManifest);
+        $this->assertArrayHasKey('columnMetadata', $outputManifest);
+        $this->assertCount(2, $outputManifest['columnMetadata']);
+        $this->assertArrayHasKey('col1', $outputManifest['columnMetadata']);
+        $this->assertArrayHasKey('col2', $outputManifest['columnMetadata']);
     }
 
     public function testNonExistingAction()
