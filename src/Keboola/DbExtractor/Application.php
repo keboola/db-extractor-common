@@ -110,4 +110,18 @@ class Application extends Container
             'status' => 'success',
         ];
     }
+
+    private function showTablesAction()
+    {
+        try {
+            $tables = $this['extractor']->showTables();
+        } catch (\Exception $e) {
+            throw new UserException(sprintf("Failed to show tables: '%s'", $e->getMessage()), 0, $e);
+        }
+
+        return [
+            'tables' => $tables,
+            'status' => 'success'
+        ];
+    }
 }

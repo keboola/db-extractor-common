@@ -96,6 +96,8 @@ abstract class Extractor
 
     abstract public function testConnection();
 
+    abstract public function showTables();
+
     public function export(array $table)
     {
         $outputTable = $table['outputTable'];

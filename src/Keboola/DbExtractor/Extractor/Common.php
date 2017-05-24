@@ -32,12 +32,21 @@ class Common extends Extractor
         $pdo = new \PDO($dsn, $params['user'], $params['password'], $options);
         $pdo->setAttribute(\PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, false);
         $pdo->exec("SET NAMES utf8;");
-
         return $pdo;
     }
 
     public function testConnection()
     {
         $this->db->query("SELECT 1");
+    }
+
+    public function showTables()
+    {
+        $tables = [];
+        $res = $this->db->query("SHOW TABLES");
+        while ($table = $res->fetch(\PDO::FETCH_NUM)) {
+            $tables[] = $table[0];
+        }
+        return $tables;
     }
 }

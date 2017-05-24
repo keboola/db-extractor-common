@@ -181,6 +181,22 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertTrue($exceptionThrown);
     }
 
+    public function testShowTablesAction()
+    {
+        $config = $this->getConfig();
+        $config['action'] = 'showTables';
+        $app = new Application($config);
+
+        $result = $app->run();
+
+        $this->assertArrayHasKey('status', $result);
+        $this->assertArrayHasKey('tables', $result);
+
+        $this->assertEquals('success', $result['status']);
+        $this->assertCount(1, $result['tables']);
+        $this->assertEquals("escaping", $result['tables'][0]);
+    }
+
     public function testNonExistingAction()
     {
         $config = $this->getConfig();
