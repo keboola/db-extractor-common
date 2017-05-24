@@ -40,7 +40,7 @@ class Common extends Extractor
         $this->db->query("SELECT 1");
     }
 
-    public function showTables()
+    public function listTables()
     {
         $tables = [];
         $res = $this->db->query("SHOW TABLES");
@@ -48,5 +48,34 @@ class Common extends Extractor
             $tables[] = $table[0];
         }
         return $tables;
+    }
+
+    public function describeTable($tableName)
+    {
+        $res = $this->db->query(sprintf("SELECT 
+                    COLUMN_NAME, COLUMN_DEFAULT, IS_NULLABLE, DATA_TYPE, 
+                    CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION, NUMERIC_SCALE, COLUMN_KEY
+                    FROM INFORMATION_SCHEMA.COLUMNS
+                    WHERE TABLE_NAME = %s", $this->db->quote($tableName)));
+        $columns = [];
+        while ($column = $res->fetch(\PDO::FETCH_ASSOC)) {
+            $length = ($column['CHARACTER_MAXIMUM_LENGTH']) ? $column['CHARACTER_MAXIMUM_LENGTH'] : null;
+            if (is_null($length) && !is_null($column['NUMERIC_PRECISION'])) {
+                if ($column['NUMERIC_SCALE'] > 0) {
+                    $length = $column['NUMERIC_PRECISION'] . "," . $column['NUMERIC_SCALE'];
+                } else {
+                    $length = $column['NUMERIC_PRECISION'];
+                }
+            }
+            $columns[] = [
+                "name" => $column['COLUMN_NAME'],
+                "type" => $column['DATA_TYPE'],
+                "primary" => ($column['COLUMN_KEY'] === "PRI") ? true : false,
+                "length" => $length,
+                "nullable" => ($column['IS_NULLABLE'] === "NO") ? false : true,
+                "default" => $column['COLUMN_DEFAULT']
+            ];
+        }
+        return $columns;
     }
 }

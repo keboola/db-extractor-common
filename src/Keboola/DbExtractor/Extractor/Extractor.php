@@ -11,6 +11,7 @@ namespace Keboola\DbExtractor\Extractor;
 
 use Keboola\Csv\CsvFile;
 use Keboola\Csv\Exception as CsvException;
+use Keboola\Datatype\Definition\GenericStorage;
 use Keboola\DbExtractor\Exception\ApplicationException;
 use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractor\Logger;
@@ -96,7 +97,9 @@ abstract class Extractor
 
     abstract public function testConnection();
 
-    abstract public function showTables();
+    abstract public function listTables();
+
+    abstract public function describeTable($tableName);
 
     public function export(array $table)
     {
@@ -204,6 +207,16 @@ abstract class Extractor
 
         if (!empty($table['primaryKey'])) {
             $manifestData['primary_key'] = $table['primaryKey'];
+        }
+
+        if (!empty($table['columns'])) {
+            $tableColumns = $this->describeTable($table['name']);
+            $columnMetadata = [];
+            foreach ($tableColumns as $column) {
+                $datatype = new GenericStorage($column['type'], $column);
+                $columnMetadata[$column['name']] = $datatype->toMetadata();
+            }
+            $manifestData['columnMetadata'] = $columnMetadata;
         }
 
         return file_put_contents($outFilename, Yaml::dump($manifestData));

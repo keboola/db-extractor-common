@@ -111,17 +111,22 @@ class Application extends Container
         ];
     }
 
-    private function showTablesAction()
+    private function getTablesAction()
     {
         try {
-            $tables = $this['extractor']->showTables();
+            $output = [];
+            $output['tables'] = [];
+            $tables = $this['extractor']->listTables();
+            foreach ($tables as $table) {
+                $output['tables'][] = [
+                    "name" => $table,
+                    "columns" => $this['extractor']->describeTable($table)
+                ];
+            }
+            $output['status'] = 'success';
         } catch (\Exception $e) {
-            throw new UserException(sprintf("Failed to show tables: '%s'", $e->getMessage()), 0, $e);
+            throw new UserException(sprintf("Failed to get tables: '%s'", $e->getMessage()), 0, $e);
         }
-
-        return [
-            'tables' => $tables,
-            'status' => 'success'
-        ];
+        return $output;
     }
 }

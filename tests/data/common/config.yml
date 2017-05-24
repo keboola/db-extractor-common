@@ -16,4 +16,9 @@ parameters:
             primaryKey:
               -
                 col1
+            columns:
+              -
+                col1
+              -
+                col2
             enabled: true

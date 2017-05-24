@@ -181,10 +181,10 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertTrue($exceptionThrown);
     }
 
-    public function testShowTablesAction()
+    public function testGetTablesAction()
     {
         $config = $this->getConfig();
-        $config['action'] = 'showTables';
+        $config['action'] = 'getTables';
         $app = new Application($config);
 
         $result = $app->run();
@@ -194,7 +194,22 @@ class CommonExtractorTest extends ExtractorTest
 
         $this->assertEquals('success', $result['status']);
         $this->assertCount(1, $result['tables']);
-        $this->assertEquals("escaping", $result['tables'][0]);
+        $this->assertArrayHasKey('name', $result['tables'][0]);
+        $this->assertEquals("escaping", $result['tables'][0]['name']);
+        $this->assertArrayHasKey('columns', $result['tables'][0]);
+        $this->assertCount(2, $result['tables'][0]['columns']);
+        $this->assertArrayHasKey('name', $result['tables'][0]['columns'][0]);
+        $this->assertEquals("col1", $result['tables'][0]['columns'][0]['name']);
+        $this->assertArrayHasKey('type', $result['tables'][0]['columns'][0]);
+        $this->assertEquals("varchar", $result['tables'][0]['columns'][0]['type']);
+        $this->assertArrayHasKey('length', $result['tables'][0]['columns'][0]);
+        $this->assertEquals(255, $result['tables'][0]['columns'][0]['length']);
+        $this->assertArrayHasKey('nullable', $result['tables'][0]['columns'][0]);
+        $this->assertFalse($result['tables'][0]['columns'][0]['nullable']);
+        $this->assertArrayHasKey('default', $result['tables'][0]['columns'][0]);
+        $this->assertNull($result['tables'][0]['columns'][0]['default']);
+        $this->assertArrayHasKey('primary', $result['tables'][0]['columns'][0]);
+        $this->assertFalse($result['tables'][0]['columns'][0]['primary']);
     }
 
     public function testNonExistingAction()
