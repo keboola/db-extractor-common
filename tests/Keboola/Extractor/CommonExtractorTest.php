@@ -230,10 +230,10 @@ class CommonExtractorTest extends ExtractorTest
 
         $this->assertArrayHasKey('destination', $outputManifest);
         $this->assertArrayHasKey('incremental', $outputManifest);
-        $this->assertArrayHasKey('columnMetadata', $outputManifest);
-        $this->assertCount(2, $outputManifest['columnMetadata']);
-        $this->assertArrayHasKey('col1', $outputManifest['columnMetadata']);
-        $this->assertArrayHasKey('col2', $outputManifest['columnMetadata']);
+        $this->assertArrayHasKey('column_metadata', $outputManifest);
+        $this->assertCount(2, $outputManifest['column_metadata']);
+        $this->assertArrayHasKey('col1', $outputManifest['column_metadata']);
+        $this->assertArrayHasKey('col2', $outputManifest['column_metadata']);
     }
 
     public function testNonExistingAction()

@@ -216,7 +216,7 @@ abstract class Extractor
                 $datatype = new GenericStorage($column['type'], $column);
                 $columnMetadata[$column['name']] = $datatype->toMetadata();
             }
-            $manifestData['columnMetadata'] = $columnMetadata;
+            $manifestData['column_metadata'] = $columnMetadata;
         }
 
         return file_put_contents($outFilename, Yaml::dump($manifestData));
