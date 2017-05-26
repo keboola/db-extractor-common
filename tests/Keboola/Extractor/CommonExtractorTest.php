@@ -209,8 +209,8 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertFalse($result['tables'][0]['columns'][0]['nullable']);
         $this->assertArrayHasKey('default', $result['tables'][0]['columns'][0]);
         $this->assertNull($result['tables'][0]['columns'][0]['default']);
-        $this->assertArrayHasKey('primary', $result['tables'][0]['columns'][0]);
-        $this->assertFalse($result['tables'][0]['columns'][0]['primary']);
+        $this->assertArrayHasKey('primaryKey', $result['tables'][0]['columns'][0]);
+        $this->assertFalse($result['tables'][0]['columns'][0]['primaryKey']);
     }
 
     public function testColumnMetadataManifest()
@@ -253,7 +253,7 @@ class CommonExtractorTest extends ExtractorTest
                 case 'KBC.datatype.length':
                     $this->assertEquals('255', $metadata['value']);
                     break;
-                case 'KBC.datatype.primary':
+                case 'KBC.primaryKey':
                     $this->assertFalse($metadata['value']);
                     break;
                 default:

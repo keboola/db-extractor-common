@@ -70,7 +70,7 @@ class Common extends Extractor
             $columns[] = [
                 "name" => $column['COLUMN_NAME'],
                 "type" => $column['DATA_TYPE'],
-                "primary" => ($column['COLUMN_KEY'] === "PRI") ? true : false,
+                "primaryKey" => ($column['COLUMN_KEY'] === "PRI") ? true : false,
                 "length" => $length,
                 "nullable" => ($column['IS_NULLABLE'] === "NO") ? false : true,
                 "default" => $column['COLUMN_DEFAULT']
