@@ -234,6 +234,32 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertCount(2, $outputManifest['column_metadata']);
         $this->assertArrayHasKey('col1', $outputManifest['column_metadata']);
         $this->assertArrayHasKey('col2', $outputManifest['column_metadata']);
+        foreach ($outputManifest['column_metadata']['col1'] as $metadata) {
+            $this->assertArrayHasKey('key', $metadata);
+            $this->assertArrayHasKey('value', $metadata);
+            switch ($metadata['key']) {
+                case 'KBC.datatype.type':
+                    $this->assertEquals('varchar', $metadata['value']);
+                    break;
+                case 'KBC.datatype.basetype':
+                    $this->assertEquals('STRING', $metadata['value']);
+                    break;
+                case 'KBC.datatype.nullable':
+                    $this->assertFalse($metadata['value']);
+                    break;
+                case 'KBC.datatype.default':
+                    $this->assertNull($metadata['value']);
+                    break;
+                case 'KBC.datatype.length':
+                    $this->assertEquals('255', $metadata['value']);
+                    break;
+                case 'KBC.datatype.primary':
+                    $this->assertFalse($metadata['value']);
+                    break;
+                default:
+                    $this->fail("Unnexpected metadata key " . $metadata['key']);
+            }
+        }
     }
 
     public function testNonExistingAction()

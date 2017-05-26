@@ -213,8 +213,21 @@ abstract class Extractor
             $tableColumns = $this->describeTable($table['name']);
             $columnMetadata = [];
             foreach ($tableColumns as $column) {
-                $datatype = new GenericStorage($column['type'], $column);
+                $datatypeKeys = ['type', 'length', 'nullable', 'default', 'format'];
+                $datatype = new GenericStorage(
+                    $column['type'],
+                    array_intersect_key($column, array_flip($datatypeKeys))
+                );
                 $columnMetadata[$column['name']] = $datatype->toMetadata();
+                $nonDatatypeKeys = array_diff_key($column, array_flip($datatypeKeys));
+                foreach ($nonDatatypeKeys as $key => $value) {
+                    if ($key !== 'name') {
+                        $columnMetadata[$column['name']][] = [
+                            'key' => "KBC." . $key,
+                            'value'=> $value
+                        ];
+                    }
+                }
             }
             $manifestData['column_metadata'] = $columnMetadata;
         }
