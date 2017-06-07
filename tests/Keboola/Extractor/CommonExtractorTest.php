@@ -39,8 +39,25 @@ class CommonExtractorTest extends ExtractorTest
 
         $dataLoader->getPdo()->exec("SET NAMES utf8;");
         $dataLoader->getPdo()->exec("DROP TABLE IF EXISTS escaping");
-        $dataLoader->getPdo()->exec("CREATE TABLE escaping (col1 VARCHAR(255) NOT NULL, col2 VARCHAR(255) NOT NULL)");
+        $dataLoader->getPdo()->exec("DROP TABLE IF EXISTS escapingPK");
+        $dataLoader->getPdo()->exec("CREATE TABLE escapingPK (
+                                    col1 VARCHAR(155) DEFAULT NULL, 
+                                    col2 VARCHAR(155) DEFAULT NULL, 
+                                    PRIMARY KEY (col1, col2))");
+
+        try {
+            $dataLoader->getPdo()->exec("CREATE TABLE escaping (
+                                      col1 VARCHAR(155) NOT NULL DEFAULT '', 
+                                      col2 VARCHAR(155) NOT NULL DEFAULT 'abc',
+                                      FOREIGN KEY (col1, col2) REFERENCES escapingPK(col1, col2))");
+        } catch (\PDOException $e) {
+            echo "\nERROR CREATING ESCAPING" . $e->getMessage();
+        }
+
+        $dataLoader->load($inputFile, 'escapingPK');
         $dataLoader->load($inputFile, 'escaping');
+
+        echo "\nSET UP TABLES COMPLETED\n";
     }
 
     public function getConfig($driver = 'common')
@@ -186,6 +203,7 @@ class CommonExtractorTest extends ExtractorTest
     {
         $config = $this->getConfig();
         $config['action'] = 'getTables';
+
         $app = new Application($config);
 
         $result = $app->run();
@@ -194,12 +212,34 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertArrayHasKey('tables', $result);
 
         $this->assertEquals('success', $result['status']);
-        $this->assertCount(1, $result['tables']);
-        $this->assertArrayHasKey('name', $result['tables'][0]);
+        $this->assertCount(2, $result['tables']);
+        foreach ($result['tables'] as $table) {
+            $this->assertArrayHasKey('name', $table);
+            $this->assertArrayHasKey('columns', $table);
+            foreach ($table['columns'] as $column) {
+                $this->assertArrayHasKey('name', $column);
+                $this->assertArrayHasKey('type', $column);
+                $this->assertArrayHasKey('length', $column);
+                $this->assertArrayHasKey('default', $column);
+                $this->assertArrayHasKey('nullable', $column);
+                $this->assertArrayHasKey('primaryKey', $column);
+                $this->assertArrayHasKey('ordinalPosition', $column);
+                switch ($table['name']) {
+                    case 'escaping':
+                        $this->assertArrayHasKey('constraingName', $column);
+                        break;
+                    case 'escapingPK':
+
+                        break;
+                    default:
+                        $this->fail("unexpected table returned");
+                }
+            }
+        }
         $this->assertEquals("escaping", $result['tables'][0]['name']);
-        $this->assertArrayHasKey('columns', $result['tables'][0]);
+
         $this->assertCount(2, $result['tables'][0]['columns']);
-        $this->assertArrayHasKey('name', $result['tables'][0]['columns'][0]);
+
         $this->assertEquals("col1", $result['tables'][0]['columns'][0]['name']);
         $this->assertArrayHasKey('type', $result['tables'][0]['columns'][0]);
         $this->assertEquals("varchar", $result['tables'][0]['columns'][0]['type']);

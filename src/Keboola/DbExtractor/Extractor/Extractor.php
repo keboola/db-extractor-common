@@ -209,10 +209,10 @@ abstract class Extractor
             $manifestData['primary_key'] = $table['primaryKey'];
         }
 
-        if (!empty($table['columns'])) {
-            $tableColumns = $this->describeTable($table['name']);
+        if (isset($table['table']) && !is_null($table['table']) && !empty($table['columns'])) {
+            $tableDetails = $this->describeTable($table['table']);
             $columnMetadata = [];
-            foreach ($tableColumns as $column) {
+            foreach ($tableDetails['columns'] as $column) {
                 $datatypeKeys = ['type', 'length', 'nullable', 'default', 'format'];
                 $datatype = new GenericStorage(
                     $column['type'],
@@ -229,9 +229,15 @@ abstract class Extractor
                     }
                 }
             }
+            unset($table['columns']);
+            foreach ($tableDetails as $key => $value) {
+                $manifestData['metadata'][] = [
+                    "key" => "KBC." . $key,
+                    "value" => "KBC." . $value
+                ];
+            }
             $manifestData['column_metadata'] = $columnMetadata;
         }
-
         return file_put_contents($outFilename, Yaml::dump($manifestData));
     }
 }

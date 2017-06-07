@@ -119,8 +119,10 @@ class Application extends Container
             $tables = $this['extractor']->listTables();
             foreach ($tables as $table) {
                 $output['tables'][] = [
-                    "name" => $table,
-                    "columns" => $this['extractor']->describeTable($table)
+                    "name" => $table['name'],
+                    "schema" => $table['schema'],
+                    "type" => $table['type'],
+                    "columns" => $this['extractor']->describeTable($table['name'], $table['schema'])
                 ];
             }
             $output['status'] = 'success';
