@@ -43,17 +43,28 @@ class Common extends Extractor
 
     public function getTables(array $tables = null)
     {
-        $tables = [];
-        $res = $this->db->query("SELECT * FROM INFORMATION_SCHEMA.TABLES 
+        $sql = "SELECT * FROM INFORMATION_SCHEMA.TABLES 
                                   WHERE TABLE_SCHEMA != 'performance_schema' 
                                   AND TABLE_SCHEMA != 'mysql'
-                                  AND TABLE_SCHEMA != 'information_schema'");
+                                  AND TABLE_SCHEMA != 'information_schema'";
 
-        $arr = $res->fetchAll(\PDO::FETCH_ASSOC);
-        foreach ($arr as $table) {
-            $tables[] = $this->describeTable($table);
+        if (!is_null($tables) && count($tables) > 0) {
+            $sql .= sprintf(
+                " AND TABLE_NAME IN (%s)",
+                implode(',', array_map(function ($table) {
+                    return $this->db->quote($table);
+                }, $tables))
+            );
         }
-        return $tables;
+
+        $res = $this->db->query($sql);
+        $arr = $res->fetchAll(\PDO::FETCH_ASSOC);
+
+        $output = [];
+        foreach ($arr as $table) {
+            $output[] = $this->describeTable($table);
+        }
+        return $output;
     }
 
     protected function describeTable(array $table)

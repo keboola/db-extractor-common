@@ -204,7 +204,6 @@ class CommonExtractorTest extends ExtractorTest
 
         $this->assertArrayHasKey('status', $result);
         $this->assertArrayHasKey('tables', $result);
-
         $this->assertEquals('success', $result['status']);
         $this->assertCount(2, $result['tables']);
         foreach ($result['tables'] as $table) {
@@ -228,7 +227,6 @@ class CommonExtractorTest extends ExtractorTest
                 $this->assertArrayHasKey('ordinalPosition', $column);
                 switch ($table['name']) {
                     case 'escaping':
-
                         $this->assertArrayHasKey('constraintName', $column);
                         $this->assertArrayHasKey('foreignKeyRefColumn', $column);
                         $this->assertArrayHasKey('foreignKeyRefTable', $column);

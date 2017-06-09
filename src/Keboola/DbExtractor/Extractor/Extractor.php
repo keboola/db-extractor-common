@@ -218,6 +218,9 @@ abstract class Extractor
             $tableDetails = $this->getTables([$table['table']])[0];
             $columnMetadata = [];
             foreach ($tableDetails['columns'] as $column) {
+                if (!in_array($column['name'], $table['columns'])) {
+                    continue;
+                }
                 $datatypeKeys = ['type', 'length', 'nullable', 'default', 'format'];
                 $datatype = new GenericStorage(
                     $column['type'],
