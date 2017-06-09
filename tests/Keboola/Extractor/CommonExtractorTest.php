@@ -41,23 +41,17 @@ class CommonExtractorTest extends ExtractorTest
         $dataLoader->getPdo()->exec("DROP TABLE IF EXISTS escaping");
         $dataLoader->getPdo()->exec("DROP TABLE IF EXISTS escapingPK");
         $dataLoader->getPdo()->exec("CREATE TABLE escapingPK (
-                                    col1 VARCHAR(155) DEFAULT NULL, 
-                                    col2 VARCHAR(155) DEFAULT NULL, 
+                                    col1 VARCHAR(155), 
+                                    col2 VARCHAR(155), 
                                     PRIMARY KEY (col1, col2))");
 
-        try {
-            $dataLoader->getPdo()->exec("CREATE TABLE escaping (
-                                      col1 VARCHAR(155) NOT NULL DEFAULT '', 
-                                      col2 VARCHAR(155) NOT NULL DEFAULT 'abc',
-                                      FOREIGN KEY (col1, col2) REFERENCES escapingPK(col1, col2))");
-        } catch (\PDOException $e) {
-            echo "\nERROR CREATING ESCAPING" . $e->getMessage();
-        }
+        $dataLoader->getPdo()->exec("CREATE TABLE escaping (
+                                  col1 VARCHAR(155) NOT NULL DEFAULT 'abc', 
+                                  col2 VARCHAR(155) NOT NULL DEFAULT 'abc',
+                                  FOREIGN KEY (col1, col2) REFERENCES escapingPK(col1, col2))");
 
         $dataLoader->load($inputFile, 'escapingPK');
         $dataLoader->load($inputFile, 'escaping');
-
-        echo "\nSET UP TABLES COMPLETED\n";
     }
 
     public function getConfig($driver = 'common')
@@ -215,53 +209,54 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertCount(2, $result['tables']);
         foreach ($result['tables'] as $table) {
             $this->assertArrayHasKey('name', $table);
+            $this->assertArrayHasKey('schema', $table);
+            $this->assertEquals('testdb', $table['schema']);
+            $this->assertArrayHasKey('type', $table);
+            $this->assertEquals('BASE TABLE', $table['type']);
+            $this->assertArrayHasKey('rowCount', $table);
+            $this->assertEquals(7, $table['rowCount']);
             $this->assertArrayHasKey('columns', $table);
             foreach ($table['columns'] as $column) {
                 $this->assertArrayHasKey('name', $column);
                 $this->assertArrayHasKey('type', $column);
                 $this->assertArrayHasKey('length', $column);
+                $this->assertEquals(155, $column['length']);
                 $this->assertArrayHasKey('default', $column);
                 $this->assertArrayHasKey('nullable', $column);
+                $this->assertFalse($column['nullable']);
                 $this->assertArrayHasKey('primaryKey', $column);
                 $this->assertArrayHasKey('ordinalPosition', $column);
                 switch ($table['name']) {
                     case 'escaping':
-                        $this->assertArrayHasKey('constraingName', $column);
+
+                        $this->assertArrayHasKey('constraintName', $column);
+                        $this->assertArrayHasKey('foreignKeyRefColumn', $column);
+                        $this->assertArrayHasKey('foreignKeyRefTable', $column);
+                        $this->assertArrayHasKey('foreignKeyRefSchema', $column);
+                        $this->assertFalse($column['primaryKey']);
+                        $this->assertEquals("abc", $column["default"]);
                         break;
                     case 'escapingPK':
-
+                        $this->assertArrayHasKey('constraintName', $column);
+                        $this->assertTrue($column['primaryKey']);
+                        $this->assertEquals("", $column['default']);
                         break;
                     default:
                         $this->fail("unexpected table returned");
                 }
             }
         }
-        $this->assertEquals("escaping", $result['tables'][0]['name']);
-
-        $this->assertCount(2, $result['tables'][0]['columns']);
-
-        $this->assertEquals("col1", $result['tables'][0]['columns'][0]['name']);
-        $this->assertArrayHasKey('type', $result['tables'][0]['columns'][0]);
-        $this->assertEquals("varchar", $result['tables'][0]['columns'][0]['type']);
-        $this->assertArrayHasKey('length', $result['tables'][0]['columns'][0]);
-        $this->assertEquals(255, $result['tables'][0]['columns'][0]['length']);
-        $this->assertArrayHasKey('nullable', $result['tables'][0]['columns'][0]);
-        $this->assertFalse($result['tables'][0]['columns'][0]['nullable']);
-        $this->assertArrayHasKey('default', $result['tables'][0]['columns'][0]);
-        $this->assertNull($result['tables'][0]['columns'][0]['default']);
-        $this->assertArrayHasKey('primaryKey', $result['tables'][0]['columns'][0]);
-        $this->assertFalse($result['tables'][0]['columns'][0]['primaryKey']);
     }
 
-    public function testColumnMetadataManifest()
+    public function testMetadataManifest()
     {
         $config = $this->getConfig();
         $config['parameters']['tables'][0]['columns'] = ['col1', 'col2'];
+        $config['parameters']['tables'][0]['table'] = 'escaping';
 
         $app = new Application($config);
 
         $result = $app->run();
-
         $this->assertRunResult($result);
 
         $outputManifest = Yaml::parse(
@@ -270,6 +265,27 @@ class CommonExtractorTest extends ExtractorTest
 
         $this->assertArrayHasKey('destination', $outputManifest);
         $this->assertArrayHasKey('incremental', $outputManifest);
+        $this->assertArrayHasKey('metadata', $outputManifest);
+        foreach ($outputManifest['metadata'] as $i => $metadata) {
+            $this->assertArrayHasKey('key', $metadata);
+            $this->assertArrayHasKey('value', $metadata);
+            switch ($metadata['key']) {
+                case 'KBC.name':
+                    $this->assertEquals('escaping', $metadata['value']);
+                    break;
+                case 'KBC.schema':
+                    $this->assertEquals('testdb', $metadata['value']);
+                    break;
+                case 'KBC.type':
+                    $this->assertEquals('BASE TABLE', $metadata['value']);
+                    break;
+                case 'KBC.rowCount':
+                    $this->assertEquals(7, $metadata['value']);
+                    break;
+                default:
+                    $this->fail('Unknown table metadata key: ' . $metadata['key']);
+            }
+        }
         $this->assertArrayHasKey('column_metadata', $outputManifest);
         $this->assertCount(2, $outputManifest['column_metadata']);
         $this->assertArrayHasKey('col1', $outputManifest['column_metadata']);
@@ -288,13 +304,28 @@ class CommonExtractorTest extends ExtractorTest
                     $this->assertFalse($metadata['value']);
                     break;
                 case 'KBC.datatype.default':
-                    $this->assertNull($metadata['value']);
+                    $this->assertEquals("abc", $metadata['value']);
                     break;
                 case 'KBC.datatype.length':
-                    $this->assertEquals('255', $metadata['value']);
+                    $this->assertEquals('155', $metadata['value']);
                     break;
                 case 'KBC.primaryKey':
                     $this->assertFalse($metadata['value']);
+                    break;
+                case 'KBC.ordinalPosition':
+                    $this->assertEquals(1, $metadata['value']);
+                    break;
+                case 'KBC.foreignKeyRefSchema':
+                    $this->assertEquals('testdb', $metadata['value']);
+                    break;
+                case 'KBC.foreignKeyRefTable':
+                    $this->assertEquals('escapingPK', $metadata['value']);
+                    break;
+                case 'KBC.foreignKeyRefColumn':
+                    $this->assertEquals('col1', $metadata['value']);
+                    break;
+                case 'KBC.constraintName':
+                    $this->assertEquals('escaping_ibfk_1', $metadata['value']);
                     break;
                 default:
                     $this->fail("Unnexpected metadata key " . $metadata['key']);

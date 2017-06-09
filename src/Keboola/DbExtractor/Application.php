@@ -115,16 +115,7 @@ class Application extends Container
     {
         try {
             $output = [];
-            $output['tables'] = [];
-            $tables = $this['extractor']->listTables();
-            foreach ($tables as $table) {
-                $output['tables'][] = [
-                    "name" => $table['name'],
-                    "schema" => $table['schema'],
-                    "type" => $table['type'],
-                    "columns" => $this['extractor']->describeTable($table['name'], $table['schema'])
-                ];
-            }
+            $output['tables'] = $this['extractor']->getTables();
             $output['status'] = 'success';
         } catch (\Exception $e) {
             throw new UserException(sprintf("Failed to get tables: '%s'", $e->getMessage()), 0, $e);

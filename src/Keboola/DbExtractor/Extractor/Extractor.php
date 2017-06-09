@@ -97,9 +97,13 @@ abstract class Extractor
 
     abstract public function testConnection();
 
-    abstract public function listTables();
+    /**
+     * @param array|null $tables - an optional array of table names
+     * @return mixed
+     */
+    abstract public function getTables(array $tables = null);
 
-    abstract public function describeTable($tableName);
+    abstract protected function describeTable(array $table);
 
     public function export(array $table)
     {
@@ -166,6 +170,7 @@ abstract class Extractor
     {
         $stmt = @$this->db->prepare($query);
         @$stmt->execute();
+
         $resultRow = @$stmt->fetch(\PDO::FETCH_ASSOC);
 
         if (is_array($resultRow) && !empty($resultRow)) {
@@ -210,7 +215,7 @@ abstract class Extractor
         }
 
         if (isset($table['table']) && !is_null($table['table']) && !empty($table['columns'])) {
-            $tableDetails = $this->describeTable($table['table']);
+            $tableDetails = $this->getTables([$table['table']])[0];
             $columnMetadata = [];
             foreach ($tableDetails['columns'] as $column) {
                 $datatypeKeys = ['type', 'length', 'nullable', 'default', 'format'];
@@ -229,11 +234,11 @@ abstract class Extractor
                     }
                 }
             }
-            unset($table['columns']);
+            unset($tableDetails['columns']);
             foreach ($tableDetails as $key => $value) {
                 $manifestData['metadata'][] = [
                     "key" => "KBC." . $key,
-                    "value" => "KBC." . $value
+                    "value" => $value
                 ];
             }
             $manifestData['column_metadata'] = $columnMetadata;

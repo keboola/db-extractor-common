@@ -8,6 +8,7 @@
 
 namespace Keboola\DbExtractor\Extractor;
 
+use Keboola\DbExtractor\Exception\ApplicationException;
 use Keboola\DbExtractor\Exception\UserException;
 
 class Common extends Extractor
@@ -40,7 +41,7 @@ class Common extends Extractor
         $this->db->query("SELECT 1");
     }
 
-    public function listTables()
+    public function getTables(array $tables = null)
     {
         $tables = [];
         $res = $this->db->query("SELECT * FROM INFORMATION_SCHEMA.TABLES 
@@ -50,26 +51,30 @@ class Common extends Extractor
 
         $arr = $res->fetchAll(\PDO::FETCH_ASSOC);
         foreach ($arr as $table) {
-            $tables[] = [
-                'name' => $table['TABLE_NAME'],
-                'schema' => $table['TABLE_SCHEMA'],
-                'type' => $table['TABLE_TYPE'],
-                'numRows' => $table['TABLE_ROWS']
-            ];
+            $tables[] = $this->describeTable($table);
         }
         return $tables;
     }
 
-    public function describeTable($tableName, $schemaname = null)
+    protected function describeTable(array $table)
     {
-        $res = $this->db->query(sprintf("SELECT 
-                    c.*, 
-                    CONSTRAINT_NAME, REFERENCED_TABLE_NAME, REFERENCED_COLUMN_NAME, REFERENCED_TABLE_SCHEMA,
+        $tabledef = [
+            'name' => $table['TABLE_NAME'],
+            'schema' => (isset($table['TABLE_SCHEMA'])) ? $table['TABLE_SCHEMA'] : null,
+            'type' => (isset($table['TABLE_TYPE'])) ? $table['TABLE_TYPE'] : null,
+            'rowCount' => (isset($table['TABLE_ROWS'])) ? $table['TABLE_ROWS'] : null
+        ];
+
+        $sql = sprintf("SELECT c.*, 
+                    CONSTRAINT_NAME, REFERENCED_TABLE_NAME, REFERENCED_COLUMN_NAME, REFERENCED_TABLE_SCHEMA
                     FROM INFORMATION_SCHEMA.COLUMNS as c 
                     LEFT OUTER JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE as kcu
                     ON c.TABLE_NAME = kcu.TABLE_NAME AND c.COLUMN_NAME = kcu.COLUMN_NAME
-                    WHERE c.TABLE_NAME = %s", $this->db->quote($tableName)));
+                    WHERE c.TABLE_NAME = %s", $this->db->quote($table['TABLE_NAME']));
+
+        $res = $this->db->query($sql);
         $columns = [];
+
         $rows = $res->fetchAll(\PDO::FETCH_ASSOC);
         foreach ($rows as $i => $column) {
             $length = ($column['CHARACTER_MAXIMUM_LENGTH']) ? $column['CHARACTER_MAXIMUM_LENGTH'] : null;
@@ -91,14 +96,15 @@ class Common extends Extractor
             ];
 
             if (!is_null($column['CONSTRAINT_NAME']) ) {
-                $column[$i]['keyConstraintName'] = $column['CONSTRAINT_NAME'];
+                $columns[$i]['constraintName'] = $column['CONSTRAINT_NAME'];
             }
             if (!is_null($column['REFERENCED_TABLE_NAME'])) {
-                $column[$i]['foreignKeyRefSchema'] = $column['REFERENCED_TABLE_SCHEMA'];
-                $column[$i]['foreignKeyRefTable'] = $column['REFERENCED_TABLE_NAME'];
-                $column[$i]['foreignKeyRefColumn'] = $column['REFERENCED_COLUMN_NAME'];
+                $columns[$i]['foreignKeyRefSchema'] = $column['REFERENCED_TABLE_SCHEMA'];
+                $columns[$i]['foreignKeyRefTable'] = $column['REFERENCED_TABLE_NAME'];
+                $columns[$i]['foreignKeyRefColumn'] = $column['REFERENCED_COLUMN_NAME'];
             }
         }
-        return $columns;
+        $tabledef['columns'] = $columns;
+        return $tabledef;
     }
 }
