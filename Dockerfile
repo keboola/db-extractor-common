@@ -6,7 +6,7 @@ ENV DEBIAN_FRONTEND noninteractive
 
 # Install dependencies
 RUN apt-get update -q \
-  && apt-get install mysql-client ssh -y --no-install-recommends
+  && apt-get install mysql-client ssh git -y --no-install-recommends
 
 RUN docker-php-ext-install pdo_mysql
 
