@@ -252,13 +252,16 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['tables'][0]['columns'] = ['col1', 'col2'];
         $config['parameters']['tables'][0]['table'] = 'escaping';
 
+        $manifestFile = $this->dataDir . '/out/tables/in.c-main.escaping.csv.manifest';
+        @unlink($manifestFile);
+
         $app = new Application($config);
 
         $result = $app->run();
         $this->assertRunResult($result);
 
         $outputManifest = Yaml::parse(
-            file_get_contents($this->dataDir . '/out/tables/' . $result['imported'][0] . '.csv.manifest')
+            file_get_contents($manifestFile)
         );
 
         $this->assertArrayHasKey('destination', $outputManifest);
