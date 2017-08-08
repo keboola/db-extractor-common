@@ -206,13 +206,20 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertArrayHasKey('tables', $result);
         $this->assertEquals('success', $result['status']);
         $this->assertCount(2, $result['tables']);
-        
+
+        $this->assertGreaterThan(5, $result['tables'][0]['rowCount']);
+        $this->assertLessThan(9, $result['tables'][0]['rowCount']);
+        $this->assertGreaterThan(5, $result['tables'][1]['rowCount']);
+        $this->assertLessThan(9, $result['tables'][1]['rowCount']);
+
+        unset($result['tables'][0]['rowCount']);
+        unset($result['tables'][1]['rowCount']);
+
         $expectedData = [
             [
                 "name" => "escaping",
                 "schema" => "testdb",
                 "type" => "BASE TABLE",
-                "rowCount" => "7",
                 "columns" => [
                     [
                         "name" => "col1",
@@ -244,7 +251,6 @@ class CommonExtractorTest extends ExtractorTest
                 "name" => "escapingPK",
                 "schema" => "testdb",
                 "type" => "BASE TABLE",
-                "rowCount" => "7",
                 "columns" => [
                     [
                         "name" => "col1",
@@ -292,11 +298,11 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertArrayHasKey('destination', $outputManifest);
         $this->assertArrayHasKey('incremental', $outputManifest);
         $this->assertArrayHasKey('metadata', $outputManifest);
+
         $expectedMetadata = [
             'KBC.name' => 'escaping',
             'KBC.schema' => 'testdb',
-            'KBC.type' => 'BASE TABLE',
-            'KBC.rowCount' => 7
+            'KBC.type' => 'BASE TABLE'
         ];
         $metadataList = [];
         foreach ($outputManifest['metadata'] as $i => $metadata) {
@@ -304,6 +310,11 @@ class CommonExtractorTest extends ExtractorTest
             $this->assertArrayHasKey('value', $metadata);
             $metadataList[$metadata['key']] = $metadata['value'];
         }
+
+        $this->assertGreaterThan(5, $metadataList['KBC.rowCount']);
+        $this->assertLessThan(9, $metadataList['KBC.rowCount']);
+        unset($metadataList['KBC.rowCount']);
+
         $this->assertEquals($expectedMetadata, $metadataList);
         $this->assertArrayHasKey('column_metadata', $outputManifest);
         $this->assertCount(2, $outputManifest['column_metadata']);
