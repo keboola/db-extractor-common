@@ -2,10 +2,8 @@ version: "2"
 services:
   app:
     build: .
-    volumes:
-        - .:/code
     working_dir: /code
-    command: ./phpunit.sh
+    command: "./phpunit.sh"
     tty: true
     stdin_open: true
     environment:
