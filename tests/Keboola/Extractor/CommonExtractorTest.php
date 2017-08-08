@@ -267,71 +267,45 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertArrayHasKey('destination', $outputManifest);
         $this->assertArrayHasKey('incremental', $outputManifest);
         $this->assertArrayHasKey('metadata', $outputManifest);
+        $expectedMetadata = [
+            'KBC.name' => 'escaping',
+            'KBC.schema' => 'testdb',
+            'KBC.type' => 'BASE TABLE',
+            'KBC.rowCount' => 7
+        ];
+        $metadataList = [];
         foreach ($outputManifest['metadata'] as $i => $metadata) {
             $this->assertArrayHasKey('key', $metadata);
             $this->assertArrayHasKey('value', $metadata);
-            switch ($metadata['key']) {
-                case 'KBC.name':
-                    $this->assertEquals('escaping', $metadata['value']);
-                    break;
-                case 'KBC.schema':
-                    $this->assertEquals('testdb', $metadata['value']);
-                    break;
-                case 'KBC.type':
-                    $this->assertEquals('BASE TABLE', $metadata['value']);
-                    break;
-                case 'KBC.rowCount':
-                    $this->assertEquals(7, $metadata['value']);
-                    break;
-                default:
-                    $this->fail('Unknown table metadata key: ' . $metadata['key']);
-            }
+            $metadataList[$metadata['key']] = $metadata['value'];
         }
+        $this->assertEquals($expectedMetadata, $metadataList);
         $this->assertArrayHasKey('column_metadata', $outputManifest);
         $this->assertCount(2, $outputManifest['column_metadata']);
         $this->assertArrayHasKey('col1', $outputManifest['column_metadata']);
         $this->assertArrayHasKey('col2', $outputManifest['column_metadata']);
+
+        $expectedColumnMetadata = [
+            'KBC.datatype.type' => 'varchar',
+            'KBC.datatype.basetype' => 'STRING',
+            'KBC.datatype.nullable' => false,
+            'KBC.datatype.default' => 'abc',
+            'KBC.datatype.length' => '155',
+            'KBC.primaryKey' => false,
+            'KBC.ordinalPosition' => 1,
+            'KBC.foreignKeyRefSchema' => 'testdb',
+            'KBC.foreignKeyRefTable' => 'escapingPK',
+            'KBC.foreignKeyRefColumn' => 'col1',
+            'KBC.constraintName' => 'escaping_ibfk_1'
+        ];
+
+        $colMetadata = [];
         foreach ($outputManifest['column_metadata']['col1'] as $metadata) {
             $this->assertArrayHasKey('key', $metadata);
             $this->assertArrayHasKey('value', $metadata);
-            switch ($metadata['key']) {
-                case 'KBC.datatype.type':
-                    $this->assertEquals('varchar', $metadata['value']);
-                    break;
-                case 'KBC.datatype.basetype':
-                    $this->assertEquals('STRING', $metadata['value']);
-                    break;
-                case 'KBC.datatype.nullable':
-                    $this->assertFalse($metadata['value']);
-                    break;
-                case 'KBC.datatype.default':
-                    $this->assertEquals("abc", $metadata['value']);
-                    break;
-                case 'KBC.datatype.length':
-                    $this->assertEquals('155', $metadata['value']);
-                    break;
-                case 'KBC.primaryKey':
-                    $this->assertFalse($metadata['value']);
-                    break;
-                case 'KBC.ordinalPosition':
-                    $this->assertEquals(1, $metadata['value']);
-                    break;
-                case 'KBC.foreignKeyRefSchema':
-                    $this->assertEquals('testdb', $metadata['value']);
-                    break;
-                case 'KBC.foreignKeyRefTable':
-                    $this->assertEquals('escapingPK', $metadata['value']);
-                    break;
-                case 'KBC.foreignKeyRefColumn':
-                    $this->assertEquals('col1', $metadata['value']);
-                    break;
-                case 'KBC.constraintName':
-                    $this->assertEquals('escaping_ibfk_1', $metadata['value']);
-                    break;
-                default:
-                    $this->fail("Unnexpected metadata key " . $metadata['key']);
-            }
+            $colMetadata[$metadata['key']] = $metadata['value'];
         }
+        $this->assertEquals($expectedColumnMetadata, $colMetadata);
     }
 
     public function testNonExistingAction()
