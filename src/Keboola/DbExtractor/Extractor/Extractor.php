@@ -11,6 +11,7 @@ namespace Keboola\DbExtractor\Extractor;
 
 use Keboola\Csv\CsvFile;
 use Keboola\Csv\Exception as CsvException;
+use Keboola\Datatype\Definition\GenericStorage;
 use Keboola\DbExtractor\Exception\ApplicationException;
 use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractor\Logger;
@@ -60,8 +61,12 @@ abstract class Extractor
             }
         }
         
-        $sshConfig['remoteHost'] = $dbConfig['host'];
-        $sshConfig['remotePort'] = $dbConfig['port'];
+        if (empty($sshConfig['remoteHost'])) {
+            $sshConfig['remoteHost'] = $dbConfig['host'];
+        }
+        if (empty($sshConfig['remotePort'])) {
+            $sshConfig['remotePort'] = $dbConfig['port'];
+        }
 
         if (empty($sshConfig['user'])) {
             $sshConfig['user'] = $dbConfig['user'];
@@ -95,6 +100,14 @@ abstract class Extractor
     abstract public function createConnection($params);
 
     abstract public function testConnection();
+
+    /**
+     * @param array|null $tables - an optional array of table names
+     * @return mixed
+     */
+    abstract public function getTables(array $tables = null);
+
+    abstract protected function describeTable(array $table);
 
     public function export(array $table)
     {
@@ -161,6 +174,7 @@ abstract class Extractor
     {
         $stmt = @$this->db->prepare($query);
         @$stmt->execute();
+
         $resultRow = @$stmt->fetch(\PDO::FETCH_ASSOC);
 
         if (is_array($resultRow) && !empty($resultRow)) {
@@ -204,6 +218,38 @@ abstract class Extractor
             $manifestData['primary_key'] = $table['primaryKey'];
         }
 
+        if (isset($table['table']) && !is_null($table['table']) && !empty($table['columns'])) {
+            $tableDetails = $this->getTables([$table['table']])[0];
+            $columnMetadata = [];
+            foreach ($tableDetails['columns'] as $column) {
+                if (!in_array($column['name'], $table['columns'])) {
+                    continue;
+                }
+                $datatypeKeys = ['type', 'length', 'nullable', 'default', 'format'];
+                $datatype = new GenericStorage(
+                    $column['type'],
+                    array_intersect_key($column, array_flip($datatypeKeys))
+                );
+                $columnMetadata[$column['name']] = $datatype->toMetadata();
+                $nonDatatypeKeys = array_diff_key($column, array_flip($datatypeKeys));
+                foreach ($nonDatatypeKeys as $key => $value) {
+                    if ($key !== 'name') {
+                        $columnMetadata[$column['name']][] = [
+                            'key' => "KBC." . $key,
+                            'value'=> $value
+                        ];
+                    }
+                }
+            }
+            unset($tableDetails['columns']);
+            foreach ($tableDetails as $key => $value) {
+                $manifestData['metadata'][] = [
+                    "key" => "KBC." . $key,
+                    "value" => $value
+                ];
+            }
+            $manifestData['column_metadata'] = $columnMetadata;
+        }
         return file_put_contents($outFilename, Yaml::dump($manifestData));
     }
 }

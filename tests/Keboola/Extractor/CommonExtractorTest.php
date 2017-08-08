@@ -2,6 +2,7 @@
 
 use Keboola\DbExtractor\Application;
 use Keboola\DbExtractor\Test\ExtractorTest;
+use Symfony\Component\Yaml\Yaml;
 
 /**
  * Created by PhpStorm.
@@ -38,7 +39,18 @@ class CommonExtractorTest extends ExtractorTest
 
         $dataLoader->getPdo()->exec("SET NAMES utf8;");
         $dataLoader->getPdo()->exec("DROP TABLE IF EXISTS escaping");
-        $dataLoader->getPdo()->exec("CREATE TABLE escaping (col1 VARCHAR(255) NOT NULL, col2 VARCHAR(255) NOT NULL)");
+        $dataLoader->getPdo()->exec("DROP TABLE IF EXISTS escapingPK");
+        $dataLoader->getPdo()->exec("CREATE TABLE escapingPK (
+                                    col1 VARCHAR(155), 
+                                    col2 VARCHAR(155), 
+                                    PRIMARY KEY (col1, col2))");
+
+        $dataLoader->getPdo()->exec("CREATE TABLE escaping (
+                                  col1 VARCHAR(155) NOT NULL DEFAULT 'abc', 
+                                  col2 VARCHAR(155) NOT NULL DEFAULT 'abc',
+                                  FOREIGN KEY (col1, col2) REFERENCES escapingPK(col1, col2))");
+
+        $dataLoader->load($inputFile, 'escapingPK');
         $dataLoader->load($inputFile, 'escaping');
     }
 
@@ -179,6 +191,157 @@ class CommonExtractorTest extends ExtractorTest
         }
 
         $this->assertTrue($exceptionThrown);
+    }
+
+    public function testGetTablesAction()
+    {
+        $config = $this->getConfig();
+        $config['action'] = 'getTables';
+
+        $app = new Application($config);
+
+        $result = $app->run();
+
+        $this->assertArrayHasKey('status', $result);
+        $this->assertArrayHasKey('tables', $result);
+        $this->assertEquals('success', $result['status']);
+        $this->assertCount(2, $result['tables']);
+
+        $this->assertGreaterThan(5, $result['tables'][0]['rowCount']);
+        $this->assertLessThan(9, $result['tables'][0]['rowCount']);
+        $this->assertGreaterThan(5, $result['tables'][1]['rowCount']);
+        $this->assertLessThan(9, $result['tables'][1]['rowCount']);
+
+        unset($result['tables'][0]['rowCount']);
+        unset($result['tables'][1]['rowCount']);
+
+        $expectedData = [
+            [
+                "name" => "escaping",
+                "schema" => "testdb",
+                "type" => "BASE TABLE",
+                "columns" => [
+                    [
+                        "name" => "col1",
+                        "type" => "varchar",
+                        "primaryKey" => false,
+                        "length" => "155",
+                        "nullable" => false,
+                        "default" => "abc",
+                        "ordinalPosition" => "1",
+                        "constraintName" => "escaping_ibfk_1",
+                        "foreignKeyRefSchema" => "testdb",
+                        "foreignKeyRefTable" => "escapingPK",
+                        "foreignKeyRefColumn" => "col1"
+                    ],[
+                        "name" => "col2",
+                        "type" => "varchar",
+                        "primaryKey" => false,
+                        "length" => "155",
+                        "nullable" => false,
+                        "default" => "abc",
+                        "ordinalPosition" => "2",
+                        "constraintName" => "escaping_ibfk_1",
+                        "foreignKeyRefSchema" => "testdb",
+                        "foreignKeyRefTable" => "escapingPK",
+                        "foreignKeyRefColumn" => "col2"
+                    ]
+                ]
+            ],[
+                "name" => "escapingPK",
+                "schema" => "testdb",
+                "type" => "BASE TABLE",
+                "columns" => [
+                    [
+                        "name" => "col1",
+                        "type" => "varchar",
+                        "primaryKey" => true,
+                        "length" => "155",
+                        "nullable" => false,
+                        "default" => "",
+                        "ordinalPosition" => "1",
+                        "constraintName" => "PRIMARY"
+                    ], [
+                        "name" => "col2",
+                        "type" => "varchar",
+                        "primaryKey" => true,
+                        "length" => "155",
+                        "nullable" => false,
+                        "default" => "",
+                        "ordinalPosition" => "2",
+                        "constraintName" => "PRIMARY"
+                    ]
+                ]
+            ]
+        ];
+        $this->assertEquals($expectedData, $result['tables']);
+    }
+
+    public function testMetadataManifest()
+    {
+        $config = $this->getConfig();
+        $config['parameters']['tables'][0]['columns'] = ['col1', 'col2'];
+        $config['parameters']['tables'][0]['table'] = 'escaping';
+
+        $manifestFile = $this->dataDir . '/out/tables/in.c-main.escaping.csv.manifest';
+        @unlink($manifestFile);
+
+        $app = new Application($config);
+
+        $result = $app->run();
+        $this->assertRunResult($result);
+
+        $outputManifest = Yaml::parse(
+            file_get_contents($manifestFile)
+        );
+
+        $this->assertArrayHasKey('destination', $outputManifest);
+        $this->assertArrayHasKey('incremental', $outputManifest);
+        $this->assertArrayHasKey('metadata', $outputManifest);
+
+        $expectedMetadata = [
+            'KBC.name' => 'escaping',
+            'KBC.schema' => 'testdb',
+            'KBC.type' => 'BASE TABLE'
+        ];
+        $metadataList = [];
+        foreach ($outputManifest['metadata'] as $i => $metadata) {
+            $this->assertArrayHasKey('key', $metadata);
+            $this->assertArrayHasKey('value', $metadata);
+            $metadataList[$metadata['key']] = $metadata['value'];
+        }
+
+        $this->assertGreaterThan(5, $metadataList['KBC.rowCount']);
+        $this->assertLessThan(9, $metadataList['KBC.rowCount']);
+        unset($metadataList['KBC.rowCount']);
+
+        $this->assertEquals($expectedMetadata, $metadataList);
+        $this->assertArrayHasKey('column_metadata', $outputManifest);
+        $this->assertCount(2, $outputManifest['column_metadata']);
+        $this->assertArrayHasKey('col1', $outputManifest['column_metadata']);
+        $this->assertArrayHasKey('col2', $outputManifest['column_metadata']);
+
+        $expectedColumnMetadata = [
+            'KBC.datatype.type' => 'varchar',
+            'KBC.datatype.basetype' => 'STRING',
+            'KBC.datatype.nullable' => false,
+            'KBC.datatype.default' => 'abc',
+            'KBC.datatype.length' => '155',
+            'KBC.primaryKey' => false,
+            'KBC.ordinalPosition' => 1,
+            'KBC.foreignKeyRefSchema' => 'testdb',
+            'KBC.foreignKeyRefTable' => 'escapingPK',
+            'KBC.foreignKeyRefColumn' => 'col1',
+            'KBC.constraintName' => 'escaping_ibfk_1'
+        ];
+
+        $colMetadata = [];
+        foreach ($outputManifest['column_metadata']['col1'] as $metadata) {
+            $this->assertArrayHasKey('key', $metadata);
+            $this->assertArrayHasKey('value', $metadata);
+            $colMetadata[$metadata['key']] = $metadata['value'];
+        }
+        $this->assertEquals($expectedColumnMetadata, $colMetadata);
     }
 
     public function testNonExistingAction()
