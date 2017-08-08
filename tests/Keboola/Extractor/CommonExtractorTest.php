@@ -2,7 +2,6 @@
 
 use Keboola\DbExtractor\Application;
 use Keboola\DbExtractor\Test\ExtractorTest;
-use Symfony\Component\Yaml\Yaml;
 
 /**
  * Created by PhpStorm.
@@ -39,18 +38,7 @@ class CommonExtractorTest extends ExtractorTest
 
         $dataLoader->getPdo()->exec("SET NAMES utf8;");
         $dataLoader->getPdo()->exec("DROP TABLE IF EXISTS escaping");
-        $dataLoader->getPdo()->exec("DROP TABLE IF EXISTS escapingPK");
-        $dataLoader->getPdo()->exec("CREATE TABLE escapingPK (
-                                    col1 VARCHAR(155), 
-                                    col2 VARCHAR(155), 
-                                    PRIMARY KEY (col1, col2))");
-
-        $dataLoader->getPdo()->exec("CREATE TABLE escaping (
-                                  col1 VARCHAR(155) NOT NULL DEFAULT 'abc', 
-                                  col2 VARCHAR(155) NOT NULL DEFAULT 'abc',
-                                  FOREIGN KEY (col1, col2) REFERENCES escapingPK(col1, col2))");
-
-        $dataLoader->load($inputFile, 'escapingPK');
+        $dataLoader->getPdo()->exec("CREATE TABLE escaping (col1 VARCHAR(255) NOT NULL, col2 VARCHAR(255) NOT NULL)");
         $dataLoader->load($inputFile, 'escaping');
     }
 

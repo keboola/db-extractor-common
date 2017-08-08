@@ -20,3 +20,4 @@ RUN echo "date.timezone = \"Europe/Prague\"" >> /usr/local/etc/php/php.ini
 
 #install
 RUN composer install --no-interaction
+
