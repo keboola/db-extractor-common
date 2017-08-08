@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-composer selfupdate
-composer install -n
 
 export COMMON_DB_SSH_KEY_PRIVATE="-----BEGIN RSA PRIVATE KEY-----
 MIIEogIBAAKCAQEAtrRqT7d6qyPxuEDiXj+5ANooQvVP3GONhjWbnnayqHDRhkAY
