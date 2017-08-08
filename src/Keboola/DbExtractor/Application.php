@@ -110,4 +110,16 @@ class Application extends Container
             'status' => 'success',
         ];
     }
+
+    private function getTablesAction()
+    {
+        try {
+            $output = [];
+            $output['tables'] = $this['extractor']->getTables();
+            $output['status'] = 'success';
+        } catch (\Exception $e) {
+            throw new UserException(sprintf("Failed to get tables: '%s'", $e->getMessage()), 0, $e);
+        }
+        return $output;
+    }
 }
