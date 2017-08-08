@@ -206,44 +206,69 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertArrayHasKey('tables', $result);
         $this->assertEquals('success', $result['status']);
         $this->assertCount(2, $result['tables']);
-        foreach ($result['tables'] as $table) {
-            $this->assertArrayHasKey('name', $table);
-            $this->assertArrayHasKey('schema', $table);
-            $this->assertEquals('testdb', $table['schema']);
-            $this->assertArrayHasKey('type', $table);
-            $this->assertEquals('BASE TABLE', $table['type']);
-            $this->assertArrayHasKey('rowCount', $table);
-            $this->assertEquals(7, $table['rowCount']);
-            $this->assertArrayHasKey('columns', $table);
-            foreach ($table['columns'] as $column) {
-                $this->assertArrayHasKey('name', $column);
-                $this->assertArrayHasKey('type', $column);
-                $this->assertArrayHasKey('length', $column);
-                $this->assertEquals(155, $column['length']);
-                $this->assertArrayHasKey('default', $column);
-                $this->assertArrayHasKey('nullable', $column);
-                $this->assertFalse($column['nullable']);
-                $this->assertArrayHasKey('primaryKey', $column);
-                $this->assertArrayHasKey('ordinalPosition', $column);
-                switch ($table['name']) {
-                    case 'escaping':
-                        $this->assertArrayHasKey('constraintName', $column);
-                        $this->assertArrayHasKey('foreignKeyRefColumn', $column);
-                        $this->assertArrayHasKey('foreignKeyRefTable', $column);
-                        $this->assertArrayHasKey('foreignKeyRefSchema', $column);
-                        $this->assertFalse($column['primaryKey']);
-                        $this->assertEquals("abc", $column["default"]);
-                        break;
-                    case 'escapingPK':
-                        $this->assertArrayHasKey('constraintName', $column);
-                        $this->assertTrue($column['primaryKey']);
-                        $this->assertEquals("", $column['default']);
-                        break;
-                    default:
-                        $this->fail("unexpected table returned");
-                }
-            }
-        }
+        
+        $expectedData = [
+            [
+                "name" => "escaping",
+                "schema" => "testdb",
+                "type" => "BASE TABLE",
+                "rowCount" => "7",
+                "columns" => [
+                    [
+                        "name" => "col1",
+                        "type" => "varchar",
+                        "primaryKey" => false,
+                        "length" => "155",
+                        "nullable" => false,
+                        "default" => "abc",
+                        "ordinalPosition" => "1",
+                        "constraintName" => "escaping_ibfk_1",
+                        "foreignKeyRefSchema" => "testdb",
+                        "foreignKeyRefTable" => "escapingPK",
+                        "foreignKeyRefColumn" => "col1"
+                    ],[
+                        "name" => "col2",
+                        "type" => "varchar",
+                        "primaryKey" => false,
+                        "length" => "155",
+                        "nullable" => false,
+                        "default" => "abc",
+                        "ordinalPosition" => "2",
+                        "constraintName" => "escaping_ibfk_1",
+                        "foreignKeyRefSchema" => "testdb",
+                        "foreignKeyRefTable" => "escapingPK",
+                        "foreignKeyRefColumn" => "col2"
+                    ]
+                ]
+            ],[
+                "name" => "escapingPK",
+                "schema" => "testdb",
+                "type" => "BASE TABLE",
+                "rowCount" => "7",
+                "columns" => [
+                    [
+                        "name" => "col1",
+                        "type" => "varchar",
+                        "primaryKey" => true,
+                        "length" => "155",
+                        "nullable" => false,
+                        "default" => "",
+                        "ordinalPosition" => "1",
+                        "constraintName" => "PRIMARY"
+                    ], [
+                        "name" => "col2",
+                        "type" => "varchar",
+                        "primaryKey" => true,
+                        "length" => "155",
+                        "nullable" => false,
+                        "default" => "",
+                        "ordinalPosition" => "2",
+                        "constraintName" => "PRIMARY"
+                    ]
+                ]
+            ]
+        ];
+        $this->assertEquals($expectedData, $result['tables']);
     }
 
     public function testMetadataManifest()
