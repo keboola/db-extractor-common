@@ -2,6 +2,7 @@ version: "2"
 services:
   app:
     build: .
+    image: keboola/db-extractor-common
     working_dir: /code
     command: "./phpunit.sh"
     tty: true
