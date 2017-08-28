@@ -9,6 +9,7 @@
 
 namespace Keboola\DbExtractor;
 
+use Keboola\Csv\Exception;
 use Keboola\DbExtractor\Configuration\ConfigDefinition;
 use Keboola\DbExtractor\Exception\UserException;
 use Pimple\Container;
@@ -70,6 +71,20 @@ class Application extends Container
                 $this->configDefinition,
                 [$parameters]
             );
+
+            foreach ($processedParameters['tables'] as $table) {
+                if (isset($table['query'])) {
+                    if (isset($table['table'])) {
+                        throw new ConfigException(sprintf(
+                            'Invalid Configuration in "%s". Both table and query cannot be set together.',
+                            $table['name']
+                        ));
+                    }
+                } else if (!isset($table['table'])) {
+                    throw new ConfigException('Invalid Configuration in "%s". One of table or query is required.');
+                }
+            }
+
 
             if (!empty($processedParameters['db']['#password'])) {
                 $processedParameters['db']['password'] = $processedParameters['db']['#password'];

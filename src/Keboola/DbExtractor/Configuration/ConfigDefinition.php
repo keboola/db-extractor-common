@@ -61,8 +61,6 @@ class ConfigDefinition implements ConfigurationInterface
                                 ->cannotBeEmpty()
                             ->end()
                             ->scalarNode('query')
-                                ->isRequired()
-                                ->cannotBeEmpty()
                             ->end()
                             ->scalarNode('table')->end()
                             ->arrayNode('columns')
