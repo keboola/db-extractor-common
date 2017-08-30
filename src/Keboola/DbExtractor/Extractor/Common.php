@@ -41,6 +41,20 @@ class Common extends Extractor
         $this->db->query("SELECT 1");
     }
 
+    public function simpleQuery($table, $columns = array())
+    {
+        if (count($columns) > 0) {
+            return sprintf("SELECT %s FROM %s",
+                implode(', ', array_map(function ($column) {
+                    return $column;
+                }, $columns)),
+                $table
+            );
+        } else {
+            return sprintf("SELECT * FROM %s", $this->db->quote($table));
+        }
+    }
+
     public function getTables(array $tables = null)
     {
         $sql = "SELECT * FROM INFORMATION_SCHEMA.TABLES 

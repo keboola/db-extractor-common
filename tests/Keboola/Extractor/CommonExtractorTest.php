@@ -282,6 +282,7 @@ class CommonExtractorTest extends ExtractorTest
         $config = $this->getConfig();
         $config['parameters']['tables'][0]['columns'] = ['col1', 'col2'];
         $config['parameters']['tables'][0]['table'] = 'escaping';
+        unset($config['parameters']['tables'][0]['query']);
 
         $manifestFile = $this->dataDir . '/out/tables/in.c-main.escaping.csv.manifest';
         @unlink($manifestFile);
@@ -356,6 +357,43 @@ class CommonExtractorTest extends ExtractorTest
 
             $this->fail('Running non-existing actions should fail with UserException');
         } catch (\Keboola\DbExtractor\Exception\UserException $e) {
+        }
+    }
+
+    public function testTableColumnsQuery()
+    {
+        $config = $this->getConfig();
+        unset($config['parameters']['tables'][0]);
+
+        $app = new Application($config);
+        $result = $app->run();
+
+        $this->assertRunResult($result);
+    }
+
+    public function testInvalidConfigurationQueryAndTable()
+    {
+        $config = $this->getConfig();
+        $config['parameters']['tables'][0]['table'] = 'escaping';
+        try {
+            $app = new Application($config);
+            $app->run();
+            $this->fail('table and query parameters cannot both be present');
+        } catch (\Keboola\DbExtractor\Exception\UserException $e) {
+            $this->assertStringStartsWith("Invalid Configuration", $e->getMessage());
+        }
+    }
+
+    public function testInvalidConfigurationQueryNorTable()
+    {
+        $config = $this->getConfig();
+        unset($config['parameters']['tables'][0]['query']);
+        try {
+            $app = new Application($config);
+            $app->run();
+            $this->fail('one of table or query is required');
+        } catch (\Keboola\DbExtractor\Exception\UserException $e) {
+            $this->assertStringStartsWith("Invalid Configuration", $e->getMessage());
         }
     }
 

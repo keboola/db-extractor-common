@@ -17,3 +17,16 @@ parameters:
               -
                 col1
             enabled: true
+        -
+            id: 1
+            name: simple
+            outputTable: in.c-main.simple
+            incremental: false
+            primaryKey: null
+            table: escaping
+            retries: 1
+            columns:
+              -
+                col1
+              -
+                col2

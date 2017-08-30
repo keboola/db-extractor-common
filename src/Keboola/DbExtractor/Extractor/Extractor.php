@@ -105,6 +105,8 @@ abstract class Extractor
 
     abstract protected function describeTable(array $table);
 
+    abstract public function simpleQuery($table, $columns = array());
+
     public function export(array $table)
     {
         $outputTable = $table['outputTable'];
@@ -112,7 +114,11 @@ abstract class Extractor
 
         $this->logger->info("Exporting to " . $outputTable);
 
-        $query = $table['query'];
+        if (array_key_exists('table', $table) && !array_key_exists('query', $table)) {
+            $query = $this->simpleQuery($table['table'], $table['columns']);
+        } else {
+            $query = $table['query'];
+        }
 
         $maxTries = (isset($table['retries']) && $table['retries'])?$table['retries']:5;
         $tries = 0;
