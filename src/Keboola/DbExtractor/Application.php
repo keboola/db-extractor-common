@@ -73,7 +73,7 @@ class Application extends Container
             );
 
             foreach ($processedParameters['tables'] as $table) {
-                if (isset($table['query'])) {
+                if (isset($table['query']) && $table['query'] !== '') {
                     if (isset($table['table'])) {
                         throw new ConfigException(sprintf(
                             'Invalid Configuration in "%s". Both table and query cannot be set together.',

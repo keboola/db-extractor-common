@@ -23,7 +23,9 @@ parameters:
             outputTable: in.c-main.simple
             incremental: false
             primaryKey: null
-            table: escaping
+            table:
+              schema: keboola
+              tableName: escaping
             retries: 1
             columns:
               -
