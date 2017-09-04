@@ -41,17 +41,22 @@ class Common extends Extractor
         $this->db->query("SELECT 1");
     }
 
-    public function simpleQuery($table, $columns = array())
+    public function simpleQuery(array $table, array $columns = array())
     {
         if (count($columns) > 0) {
-            return sprintf("SELECT %s FROM %s",
+            return sprintf("SELECT %s FROM %s.%s",
                 implode(', ', array_map(function ($column) {
-                    return $column;
+                    return $this->quote($column);
                 }, $columns)),
-                $table
+                $this->quote($table['schema']),
+                $this->quote($table['tableName'])
             );
         } else {
-            return sprintf("SELECT * FROM %s", $this->db->quote($table));
+            return sprintf(
+                "SELECT * FROM %s.%s",
+                    $this->quote($table['schema']),
+                    $this->quote($table['tableName'])
+            );
         }
     }
 
@@ -64,9 +69,12 @@ class Common extends Extractor
 
         if (!is_null($tables) && count($tables) > 0) {
             $sql .= sprintf(
-                " AND TABLE_NAME IN (%s)",
+                " AND TABLE_NAME IN (%s) AND TABLE_SCHEMA IN (%s)",
                 implode(',', array_map(function ($table) {
-                    return $this->db->quote($table);
+                    return $this->db->quote($table['tableName']);
+                }, $tables)),
+                implode(',', array_map(function ($table) {
+                    return $this->db->quote($table['schema']);
                 }, $tables))
             );
         }
@@ -85,9 +93,9 @@ class Common extends Extractor
     {
         $tabledef = [
             'name' => $table['TABLE_NAME'],
-            'schema' => (isset($table['TABLE_SCHEMA'])) ? $table['TABLE_SCHEMA'] : null,
-            'type' => (isset($table['TABLE_TYPE'])) ? $table['TABLE_TYPE'] : null,
-            'rowCount' => (isset($table['TABLE_ROWS'])) ? $table['TABLE_ROWS'] : null
+            'schema' => (isset($table['TABLE_SCHEMA'])) ? $table['TABLE_SCHEMA'] : '',
+            'type' => (isset($table['TABLE_TYPE'])) ? $table['TABLE_TYPE'] : '',
+            'rowCount' => (isset($table['TABLE_ROWS'])) ? $table['TABLE_ROWS'] : ''
         ];
 
         $sql = sprintf("SELECT c.*, 
@@ -131,5 +139,9 @@ class Common extends Extractor
         }
         $tabledef['columns'] = $columns;
         return $tabledef;
+    }
+
+    private function quote($obj) {
+        return "`{$obj}`";
     }
 }

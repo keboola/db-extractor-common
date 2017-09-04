@@ -73,7 +73,7 @@ class Application extends Container
             );
 
             foreach ($processedParameters['tables'] as $table) {
-                if (isset($table['query'])) {
+                if (isset($table['query']) && $table['query'] !== '') {
                     if (isset($table['table'])) {
                         throw new ConfigException(sprintf(
                             'Invalid Configuration in "%s". Both table and query cannot be set together.',
@@ -81,7 +81,18 @@ class Application extends Container
                         ));
                     }
                 } else if (!isset($table['table'])) {
-                    throw new ConfigException('Invalid Configuration in "%s". One of table or query is required.');
+                    throw new ConfigException(sprintf(
+                        'Invalid Configuration in "%s". One of table or query is required.',
+                        $table['name']
+                    ));
+                } else if (
+                    !array_key_exists('schema', $table['table']) ||
+                    !array_key_exists('tableName', $table['table']) ||
+                    $table['table']['tableName'] === '') {
+                    throw new ConfigException(sprintf(
+                        'Invalid Configuration in "%s". The table property requires "tableName" and "schema"',
+                        $table['name']
+                    ));
                 }
             }
 
