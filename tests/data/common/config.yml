@@ -24,7 +24,7 @@ parameters:
             incremental: false
             primaryKey: null
             table:
-              schema: keboola
+              schema: testdb
               tableName: escaping
             retries: 1
             columns:

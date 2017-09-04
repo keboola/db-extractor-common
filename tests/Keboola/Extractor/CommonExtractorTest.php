@@ -280,11 +280,9 @@ class CommonExtractorTest extends ExtractorTest
     public function testMetadataManifest()
     {
         $config = $this->getConfig();
-        $config['parameters']['tables'][0]['columns'] = ['col1', 'col2'];
-        $config['parameters']['tables'][0]['table'] = 'escaping';
-        unset($config['parameters']['tables'][0]['query']);
+        unset($config['parameters']['tables'][0]);
 
-        $manifestFile = $this->dataDir . '/out/tables/in.c-main.escaping.csv.manifest';
+        $manifestFile = $this->dataDir . '/out/tables/in.c-main.simple.csv.manifest';
         @unlink($manifestFile);
 
         $app = new Application($config);
@@ -374,7 +372,7 @@ class CommonExtractorTest extends ExtractorTest
     public function testInvalidConfigurationQueryAndTable()
     {
         $config = $this->getConfig();
-        $config['parameters']['tables'][0]['table'] = 'escaping';
+        $config['parameters']['tables'][0]['table'] = ['schema' => 'testdb', 'tableName' => 'escaping'];
         try {
             $app = new Application($config);
             $app->run();
