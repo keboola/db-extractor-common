@@ -28,7 +28,3 @@ parameters:
               tableName: escaping
             retries: 1
             columns:
-              -
-                col1
-              -
-                col2

@@ -220,11 +220,11 @@ abstract class Extractor
             $manifestData['primary_key'] = $table['primaryKey'];
         }
 
-        if (isset($table['table']) && !is_null($table['table']) && !empty($table['columns'])) {
+        if (isset($table['table']) && !is_null($table['table'])) {
             $tableDetails = $this->getTables([$table['table']])[0];
             $columnMetadata = [];
             foreach ($tableDetails['columns'] as $column) {
-                if (!in_array($column['name'], $table['columns'])) {
+                if (count($table['columns']) > 0 && !in_array($column['name'], $table['columns'])) {
                     continue;
                 }
                 $datatypeKeys = ['type', 'length', 'nullable', 'default', 'format'];
