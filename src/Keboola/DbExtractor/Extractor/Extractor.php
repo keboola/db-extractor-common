@@ -221,36 +221,39 @@ abstract class Extractor
         }
 
         if (isset($table['table']) && !is_null($table['table'])) {
-            $tableDetails = $this->getTables([$table['table']])[0];
-            $columnMetadata = [];
-            foreach ($tableDetails['columns'] as $column) {
-                if (count($table['columns']) > 0 && !in_array($column['name'], $table['columns'])) {
-                    continue;
-                }
-                $datatypeKeys = ['type', 'length', 'nullable', 'default', 'format'];
-                $datatype = new GenericStorage(
-                    $column['type'],
-                    array_intersect_key($column, array_flip($datatypeKeys))
-                );
-                $columnMetadata[$column['name']] = $datatype->toMetadata();
-                $nonDatatypeKeys = array_diff_key($column, array_flip($datatypeKeys));
-                foreach ($nonDatatypeKeys as $key => $value) {
-                    if ($key !== 'name') {
-                        $columnMetadata[$column['name']][] = [
-                            'key' => "KBC." . $key,
-                            'value'=> $value
-                        ];
+            $tables = $this->getTables([$table['table']]);
+            if (count($tables) > 0) {
+                $tableDetails = $tables[0];
+                $columnMetadata = [];
+                foreach ($tableDetails['columns'] as $column) {
+                    if (count($table['columns']) > 0 && !in_array($column['name'], $table['columns'])) {
+                        continue;
+                    }
+                    $datatypeKeys = ['type', 'length', 'nullable', 'default', 'format'];
+                    $datatype = new GenericStorage(
+                        $column['type'],
+                        array_intersect_key($column, array_flip($datatypeKeys))
+                    );
+                    $columnMetadata[$column['name']] = $datatype->toMetadata();
+                    $nonDatatypeKeys = array_diff_key($column, array_flip($datatypeKeys));
+                    foreach ($nonDatatypeKeys as $key => $value) {
+                        if ($key !== 'name') {
+                            $columnMetadata[$column['name']][] = [
+                                'key' => "KBC." . $key,
+                                'value'=> $value
+                            ];
+                        }
                     }
                 }
+                unset($tableDetails['columns']);
+                foreach ($tableDetails as $key => $value) {
+                    $manifestData['metadata'][] = [
+                        "key" => "KBC." . $key,
+                        "value" => $value
+                    ];
+                }
+                $manifestData['column_metadata'] = $columnMetadata;
             }
-            unset($tableDetails['columns']);
-            foreach ($tableDetails as $key => $value) {
-                $manifestData['metadata'][] = [
-                    "key" => "KBC." . $key,
-                    "value" => $value
-                ];
-            }
-            $manifestData['column_metadata'] = $columnMetadata;
         }
         return file_put_contents($outFilename, Yaml::dump($manifestData));
     }
