@@ -18,6 +18,7 @@ use Keboola\DbExtractor\Logger;
 use Keboola\SSHTunnel\SSH;
 use Keboola\SSHTunnel\SSHException;
 use Symfony\Component\Yaml\Yaml;
+use Nette\Utils;
 
 abstract class Extractor
 {
@@ -205,12 +206,12 @@ abstract class Extractor
         if (!is_dir($outTablesDir)) {
             mkdir($outTablesDir, 0777, true);
         }
-        return new CsvFile($this->dataDir . '/out/tables/' . $outputTable . '.csv');
+        return new CsvFile($this->getOutputFilename($outputTable));
     }
 
     protected function createManifest($table)
     {
-        $outFilename = $this->dataDir . '/out/tables/' . $table['outputTable'] . '.csv.manifest';
+        $outFilename = $this->getOutputFilename($table['outputTable']) . '.manifest';
 
         $manifestData = [
             'destination' => $table['outputTable'],
@@ -257,5 +258,10 @@ abstract class Extractor
             }
         }
         return file_put_contents($outFilename, Yaml::dump($manifestData));
+    }
+
+    protected function getOutputFilename($outputTableName) {
+        $sanitizedTablename = Utils\Strings::webalize($outputTableName, '_');
+        return $this->dataDir . '/out/tables/' . $sanitizedTablename . '.csv';
     }
 }
