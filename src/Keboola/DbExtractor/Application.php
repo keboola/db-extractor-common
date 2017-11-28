@@ -15,6 +15,7 @@ use Keboola\DbExtractor\Exception\UserException;
 use Pimple\Container;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 use Symfony\Component\Config\Definition\Exception\Exception as ConfigException;
+use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\Config\Definition\Processor;
 
 class Application extends Container
@@ -88,7 +89,8 @@ class Application extends Container
                 } else if (
                     !array_key_exists('schema', $table['table']) ||
                     !array_key_exists('tableName', $table['table']) ||
-                    $table['table']['tableName'] === '') {
+                    $table['table']['tableName'] === ''
+                ) {
                     throw new ConfigException(sprintf(
                         'Invalid Configuration in "%s". The table property requires "tableName" and "schema"',
                         $table['name']

@@ -126,7 +126,7 @@ abstract class Extractor
         while ($tries < $maxTries) {
             $exception = null;
             try {
-                $rows = $this->executeQuery($query, $csv);
+                $rows = $this->executeQuery($query, $csv, $table['name']);
                 break;
             } catch (\PDOException $e) {
                 $exception = $this->handleDbError($e, $table);
@@ -170,7 +170,7 @@ abstract class Extractor
      * @return int Number of rows returned by query
      * @throws CsvException
      */
-    protected function executeQuery($query, CsvFile $csv)
+    protected function executeQuery($query, CsvFile $csv, $tableName)
     {
         $stmt = @$this->db->prepare($query);
         @$stmt->execute();
@@ -191,7 +191,10 @@ abstract class Extractor
 
             return $numRows;
         }
-        $this->logger->warn("Query returned empty result. Nothing was imported.");
+        $this->logger->warn(sprintf(
+            "Query returned empty result. Nothing was imported for table [%s]",
+            $tableName
+        ));
 
         return 0;
     }
