@@ -103,8 +103,6 @@ abstract class Extractor
      */
     abstract public function getTables(array $tables = null);
 
-    abstract protected function describeTable(array $table);
-
     abstract public function simpleQuery(array $table, array $columns = array());
 
     public function export(array $table)
