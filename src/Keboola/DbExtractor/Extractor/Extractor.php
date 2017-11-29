@@ -261,7 +261,7 @@ abstract class Extractor
     }
 
     protected function getOutputFilename($outputTableName) {
-        $sanitizedTablename = Utils\Strings::webalize($outputTableName, '_');
+        $sanitizedTablename = Utils\Strings::webalize($outputTableName, '._');
         return $this->dataDir . '/out/tables/' . $sanitizedTablename . '.csv';
     }
 }
