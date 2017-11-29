@@ -30,6 +30,7 @@ class Logger extends \Monolog\Logger
         }
 
         $errHandler = new StreamHandler('php://stderr', \Monolog\Logger::NOTICE, false);
+        $errHandler->setFormatter($formatter);
         $level = $debug ? \Monolog\Logger::DEBUG : \Monolog\Logger::INFO;
         $handler = new StreamHandler('php://stdout', $level);
         $handler->setFormatter($formatter);

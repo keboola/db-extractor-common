@@ -18,6 +18,7 @@ use Keboola\DbExtractor\Logger;
 use Keboola\SSHTunnel\SSH;
 use Keboola\SSHTunnel\SSHException;
 use Symfony\Component\Yaml\Yaml;
+use Nette\Utils;
 
 abstract class Extractor
 {
@@ -103,8 +104,6 @@ abstract class Extractor
      */
     abstract public function getTables(array $tables = null);
 
-    abstract protected function describeTable(array $table);
-
     abstract public function simpleQuery(array $table, array $columns = array());
 
     public function export(array $table)
@@ -128,7 +127,7 @@ abstract class Extractor
         while ($tries < $maxTries) {
             $exception = null;
             try {
-                $rows = $this->executeQuery($query, $csv);
+                $rows = $this->executeQuery($query, $csv, $table['name']);
                 break;
             } catch (\PDOException $e) {
                 $exception = $this->handleDbError($e, $table);
@@ -172,7 +171,7 @@ abstract class Extractor
      * @return int Number of rows returned by query
      * @throws CsvException
      */
-    protected function executeQuery($query, CsvFile $csv)
+    protected function executeQuery($query, CsvFile $csv, $tableName)
     {
         $stmt = @$this->db->prepare($query);
         @$stmt->execute();
@@ -193,7 +192,10 @@ abstract class Extractor
 
             return $numRows;
         }
-        $this->logger->warn("Query returned empty result. Nothing was imported.");
+        $this->logger->warn(sprintf(
+            "Query returned empty result. Nothing was imported for table [%s]",
+            $tableName
+        ));
 
         return 0;
     }
@@ -204,12 +206,12 @@ abstract class Extractor
         if (!is_dir($outTablesDir)) {
             mkdir($outTablesDir, 0777, true);
         }
-        return new CsvFile($this->dataDir . '/out/tables/' . $outputTable . '.csv');
+        return new CsvFile($this->getOutputFilename($outputTable));
     }
 
     protected function createManifest($table)
     {
-        $outFilename = $this->dataDir . '/out/tables/' . $table['outputTable'] . '.csv.manifest';
+        $outFilename = $this->getOutputFilename($table['outputTable']) . '.manifest';
 
         $manifestData = [
             'destination' => $table['outputTable'],
@@ -256,5 +258,10 @@ abstract class Extractor
             }
         }
         return file_put_contents($outFilename, Yaml::dump($manifestData));
+    }
+
+    protected function getOutputFilename($outputTableName) {
+        $sanitizedTablename = Utils\Strings::webalize($outputTableName, '._');
+        return $this->dataDir . '/out/tables/' . $sanitizedTablename . '.csv';
     }
 }

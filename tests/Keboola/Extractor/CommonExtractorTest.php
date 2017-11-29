@@ -397,6 +397,19 @@ class CommonExtractorTest extends ExtractorTest
         }
     }
 
+    public function testStrangeTableName()
+    {
+        $config = $this->getConfig();
+        $config['parameters']['tables'][0]['outputTable'] = "in.c-main.something/ weird";
+        unset($config['parameters']['tables'][1]);
+        $result = (new Application($config))->run();
+
+        $this->assertEquals('success', $result['status']);
+        $this->assertFileExists($this->dataDir . '/out/tables/in.c-main.something-weird.csv');
+        $this->assertFileExists($this->dataDir . '/out/tables/in.c-main.something-weird.csv.manifest');
+    }
+
+
     protected function assertRunResult($result)
     {
         $expectedCsvFile = ROOT_PATH . '/tests/data/escaping.csv';
