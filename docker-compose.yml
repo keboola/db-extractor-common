@@ -4,9 +4,11 @@ services:
     build: .
     image: keboola/db-extractor-common
     working_dir: /code
-    command: "./phpunit.sh"
+    command: "./vendor/bin/phpunit"
     tty: true
     stdin_open: true
+    env_file:
+      - ssh-keys.env
     environment:
       COMMON_DB_USER: root
       COMMON_DB_PASSWORD: somePassword
