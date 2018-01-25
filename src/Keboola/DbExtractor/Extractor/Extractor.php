@@ -168,6 +168,7 @@ abstract class Extractor
     /**
      * @param $query
      * @param CsvFile $csv
+     * @param string $tableName name of the query
      * @return int Number of rows returned by query
      * @throws CsvException
      */
