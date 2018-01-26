@@ -17,7 +17,6 @@ use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractor\Logger;
 use Keboola\SSHTunnel\SSH;
 use Keboola\SSHTunnel\SSHException;
-use Symfony\Component\Yaml\Yaml;
 use Nette\Utils;
 
 abstract class Extractor
@@ -258,7 +257,7 @@ abstract class Extractor
                 $manifestData['column_metadata'] = $columnMetadata;
             }
         }
-        return file_put_contents($outFilename, Yaml::dump($manifestData));
+        return file_put_contents($outFilename, json_encode($manifestData));
     }
 
     protected function getOutputFilename($outputTableName)
