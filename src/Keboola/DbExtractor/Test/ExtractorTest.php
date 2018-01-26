@@ -17,7 +17,7 @@ class ExtractorTest extends \PHPUnit_Framework_TestCase
 
     protected $config;
 
-    protected $driver;
+    protected $driver = '';
 
     protected function setUp()
     {

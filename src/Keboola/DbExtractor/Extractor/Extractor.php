@@ -11,6 +11,7 @@ namespace Keboola\DbExtractor\Extractor;
 
 use Keboola\Csv\CsvFile;
 use Keboola\Csv\Exception as CsvException;
+use Keboola\Csv\Exception;
 use Keboola\Datatype\Definition\GenericStorage;
 use Keboola\DbExtractor\Exception\ApplicationException;
 use Keboola\DbExtractor\Exception\UserException;
@@ -18,6 +19,10 @@ use Keboola\DbExtractor\Logger;
 use Keboola\SSHTunnel\SSH;
 use Keboola\SSHTunnel\SSHException;
 use Nette\Utils;
+use Retry\BackOff\ExponentialBackOffPolicy;
+use Retry\Policy\SimpleRetryPolicy;
+use Retry\RetryProxy;
+
 
 abstract class Extractor
 {
@@ -118,31 +123,34 @@ abstract class Extractor
             $query = $table['query'];
         }
 
-        $maxTries = (isset($table['retries']) && $table['retries'])?$table['retries']:5;
-        $tries = 0;
-        $exception = null;
-        $rows = 0;
+        $maxTries = (isset($table['retries']) && $table['retries']) ? $table['retries'] : 5;
 
-        while ($tries < $maxTries) {
-            $exception = null;
-            try {
-                $rows = $this->executeQuery($query, $csv, $table['name']);
-                break;
-            } catch (\PDOException $e) {
-                $exception = $this->handleDbError($e, $table);
-                $this->logger->info(sprintf('%s. Retrying... [%dx]', $exception->getMessage(), $tries + 1));
-            } catch (\ErrorException $e) {
-                $exception = $this->handleDbError($e, $table);
-                $this->logger->info(sprintf('%s. Retrying... [%dx]', $exception->getMessage(), $tries + 1));
-            } catch (CsvException $e) {
-                $exception = new ApplicationException("Write to CSV failed: " . $e->getMessage(), 0, $e);
+        $retryPolicy = new SimpleRetryPolicy($maxTries, ['PDOException', 'ErrorException', 'CsvException']);
+        $backOffPolicy = new ExponentialBackOffPolicy(1000);
+        $proxy = new RetryProxy($retryPolicy, $backOffPolicy);
+        $counter = 0;
+        /** @var Exception $lastException */
+        $lastException = null;
+        try {
+            $rows = $proxy->call(function () use ($query, $csv, $table, &$counter, &$lastException) {
+                if ($counter > 0) {
+                    $this->logger->info(sprintf('%s. Retrying... [%dx]', $lastException->getMessage(), $counter));
+                }
+                try {
+                    return $this->executeQuery($query, $csv, $table['name']);
+                } catch (\Exception $e) {
+                    $lastException = $this->handleDbError($e, $table);
+                    $counter++;
+                    throw $e;
+                }
+            });
+        } catch (CsvException $e) {
+            throw new ApplicationException("Write to CSV failed: " . $e->getMessage(), 0, $e);
+        } catch (\Exception $e) {
+            if ($lastException) {
+                throw $lastException;
             }
-            sleep(pow($tries, 2));
-            $tries++;
-        }
-
-        if ($exception) {
-            throw $exception;
+            throw $e;
         }
 
         if ($rows > 0) {

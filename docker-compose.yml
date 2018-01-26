@@ -6,6 +6,7 @@ services:
     image: keboola/db-extractor-common
     tty: true
     stdin_open: true
+    command: vendor/bin/phpunit
     env_file:
       - ssh-keys.env
     environment:
@@ -14,7 +15,7 @@ services:
       COMMON_DB_HOST: mysql
       COMMON_DB_PORT: 3306
       COMMON_DB_DATABASE: testdb
-      APP_NAME: ex-db-common
+      COMMON_APP_NAME: ex-db-common
     links:
       - sshproxy
       - mysql
@@ -35,8 +36,8 @@ services:
       COMMON_DB_HOST: mysql
       COMMON_DB_PORT: 3306
       COMMON_DB_DATABASE: testdb
+      COMMON_APP_NAME: ex-db-common
       ROOT_PATH: /code
-      APP_NAME: ex-db-common
     links:
       - sshproxy
       - mysql

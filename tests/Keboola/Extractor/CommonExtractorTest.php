@@ -6,6 +6,7 @@ use Keboola\DbExtractor\Application;
 use Keboola\DbExtractor\Test\ExtractorTest;
 use Keboola\DbExtractor\Test\DataLoader;
 use Symfony\Component\Yaml\Yaml;
+use Symfony\Component\Process\Process;
 
 /**
  * Created by PhpStorm.
@@ -17,6 +18,9 @@ class CommonExtractorTest extends ExtractorTest
 {
     const DRIVER = 'common';
 
+    /** @var DataLoader */
+    private $dataLoader;
+
     public function setUp()
     {
         parent::setUp();
@@ -25,7 +29,7 @@ class CommonExtractorTest extends ExtractorTest
 
         $inputFile = getenv('ROOT_PATH') . '/tests/data/escaping.csv';
 
-        $dataLoader = new DataLoader(
+        $this->dataLoader = new DataLoader(
             $this->getEnv(self::DRIVER, 'DB_HOST'),
             $this->getEnv(self::DRIVER, 'DB_PORT'),
             $this->getEnv(self::DRIVER, 'DB_DATABASE'),
@@ -33,31 +37,31 @@ class CommonExtractorTest extends ExtractorTest
             $this->getEnv(self::DRIVER, 'DB_PASSWORD')
         );
 
-        $dataLoader->getPdo()->exec(sprintf("DROP DATABASE IF EXISTS `%s`", $this->getEnv(self::DRIVER, 'DB_DATABASE')));
-        $dataLoader->getPdo()->exec(sprintf(
+        $this->dataLoader->getPdo()->exec(sprintf("DROP DATABASE IF EXISTS `%s`", $this->getEnv(self::DRIVER, 'DB_DATABASE')));
+        $this->dataLoader->getPdo()->exec(sprintf(
             "CREATE DATABASE `%s`
             DEFAULT CHARACTER SET utf8
             DEFAULT COLLATE utf8_general_ci",
             $this->getEnv(self::DRIVER, 'DB_DATABASE')
         ));
 
-        $dataLoader->getPdo()->exec("USE " . $this->getEnv(self::DRIVER, 'DB_DATABASE'));
+        $this->dataLoader->getPdo()->exec("USE " . $this->getEnv(self::DRIVER, 'DB_DATABASE'));
 
-        $dataLoader->getPdo()->exec("SET NAMES utf8;");
-        $dataLoader->getPdo()->exec("DROP TABLE IF EXISTS escaping");
-        $dataLoader->getPdo()->exec("DROP TABLE IF EXISTS escapingPK");
-        $dataLoader->getPdo()->exec("CREATE TABLE escapingPK (
+        $this->dataLoader->getPdo()->exec("SET NAMES utf8;");
+        $this->dataLoader->getPdo()->exec("DROP TABLE IF EXISTS escaping");
+        $this->dataLoader->getPdo()->exec("DROP TABLE IF EXISTS escapingPK");
+        $this->dataLoader->getPdo()->exec("CREATE TABLE escapingPK (
                                     col1 VARCHAR(155), 
                                     col2 VARCHAR(155), 
                                     PRIMARY KEY (col1, col2))");
 
-        $dataLoader->getPdo()->exec("CREATE TABLE escaping (
+        $this->dataLoader->getPdo()->exec("CREATE TABLE escaping (
                                   col1 VARCHAR(155) NOT NULL DEFAULT 'abc', 
                                   col2 VARCHAR(155) NOT NULL DEFAULT 'abc',
                                   FOREIGN KEY (col1, col2) REFERENCES escapingPK(col1, col2))");
 
-        $dataLoader->load($inputFile, 'escapingPK');
-        $dataLoader->load($inputFile, 'escaping');
+        $this->dataLoader->load($inputFile, 'escapingPK');
+        $this->dataLoader->load($inputFile, 'escaping');
     }
 
     public function testRun()
@@ -167,6 +171,23 @@ class CommonExtractorTest extends ExtractorTest
         } catch (\Keboola\DbExtractor\Exception\UserException $e) {
             // test that the error message contains the query name
             $this->assertContains('[bad]', $e->getMessage());
+        }
+    }
+
+    // test that a query can succeed after a couple retries
+    public function testRetrySuccessfully()
+    {
+        $this->config['parameters']['tables'][] = [
+            'id' => 10,
+            'name' => 'bad',
+            'query' => 'SELECT * FROM `non_existent_table`;',
+            'outputTable' => 'in.c-main.retry'
+        ];
+        $app = new Application($this->config);
+        try {
+            $app->run();
+        } catch (\Keboola\DbExtractor\Exception\UserException $e) {
+
         }
     }
 
