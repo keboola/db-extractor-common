@@ -66,10 +66,10 @@ class Application extends Container
 
     private function isTableValid($table)
     {
-        if (!array_key_exists('schema', $table['table'])) {
+        if (!array_key_exists('schema', $table)) {
             return false;
         }
-        if (!array_key_exists('tableName', $table['table'])) {
+        if (!array_key_exists('tableName', $table)) {
             return false;
         }
         if ($table['tableName'] === '') {
@@ -100,7 +100,7 @@ class Application extends Container
                         'Invalid Configuration in "%s". One of table or query is required.',
                         $table['name']
                     ));
-                } else if (!$this->isTableValid($table)) {
+                } else if (!$this->isTableValid($table['table'])) {
                     throw new ConfigException(sprintf(
                         'Invalid Configuration in "%s". The table property requires "tableName" and "schema"',
                         $table['name']

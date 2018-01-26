@@ -8,6 +8,7 @@ services:
     stdin_open: true
     env_file:
       - ssh-keys.env
+    command: vendor/bin/phpunit
     environment:
       COMMON_DB_USER: root
       COMMON_DB_PASSWORD: somePassword
