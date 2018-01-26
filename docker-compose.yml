@@ -16,6 +16,7 @@ services:
       COMMON_DB_PORT: 3306
       COMMON_DB_DATABASE: testdb
       COMMON_APP_NAME: ex-db-common
+      ROOT_PATH: /code
     links:
       - sshproxy
       - mysql
