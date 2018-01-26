@@ -18,4 +18,3 @@ $result = $pdo->exec("
     ESCAPED BY ''
     IGNORE 1 LINES
 ");
-

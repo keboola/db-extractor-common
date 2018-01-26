@@ -261,7 +261,8 @@ abstract class Extractor
         return file_put_contents($outFilename, Yaml::dump($manifestData));
     }
 
-    protected function getOutputFilename($outputTableName) {
+    protected function getOutputFilename($outputTableName)
+    {
         $sanitizedTablename = Utils\Strings::webalize($outputTableName, '._');
         return $this->dataDir . '/out/tables/' . $sanitizedTablename . '.csv';
     }

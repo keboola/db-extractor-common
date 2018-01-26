@@ -1,7 +1,8 @@
 <?php
 
+namespace Keboola\DbExtractor\Test;
+
 use Keboola\DbExtractor\Application;
-use Keboola\DbExtractor\Test\ExtractorTest;
 use Symfony\Component\Yaml\Yaml;
 
 /**

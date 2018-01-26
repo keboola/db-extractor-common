@@ -44,7 +44,8 @@ class Common extends Extractor
     public function simpleQuery(array $table, array $columns = array())
     {
         if (count($columns) > 0) {
-            return sprintf("SELECT %s FROM %s.%s",
+            return sprintf(
+                "SELECT %s FROM %s.%s",
                 implode(', ', array_map(function ($column) {
                     return $this->quote($column);
                 }, $columns)),
@@ -54,8 +55,8 @@ class Common extends Extractor
         } else {
             return sprintf(
                 "SELECT * FROM %s.%s",
-                    $this->quote($table['schema']),
-                    $this->quote($table['tableName'])
+                $this->quote($table['schema']),
+                $this->quote($table['tableName'])
             );
         }
     }
@@ -128,7 +129,7 @@ class Common extends Extractor
                 "ordinalPosition" => $column['ORDINAL_POSITION']
             ];
 
-            if (!is_null($column['CONSTRAINT_NAME']) ) {
+            if (!is_null($column['CONSTRAINT_NAME'])) {
                 $columns[$i]['constraintName'] = $column['CONSTRAINT_NAME'];
             }
             if (!is_null($column['REFERENCED_TABLE_NAME'])) {
@@ -141,7 +142,8 @@ class Common extends Extractor
         return $tabledef;
     }
 
-    private function quote($obj) {
+    private function quote($obj)
+    {
         return "`{$obj}`";
     }
 }
