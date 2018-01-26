@@ -9,13 +9,11 @@
 
 namespace Keboola\DbExtractor;
 
-use Keboola\Csv\Exception;
 use Keboola\DbExtractor\Configuration\ConfigDefinition;
 use Keboola\DbExtractor\Exception\UserException;
 use Pimple\Container;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 use Symfony\Component\Config\Definition\Exception\Exception as ConfigException;
-use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\Config\Definition\Processor;
 
 class Application extends Container
@@ -32,15 +30,15 @@ class Application extends Container
 
         $this['parameters'] = $config['parameters'];
 
-        $this['logger'] = function() use ($app) {
-            return new Logger(APP_NAME);
+        $this['logger'] = function () {
+            return new Logger(getenv('APP_NAME'));
         };
 
-        $this['extractor_factory'] = function() use ($app) {
+        $this['extractor_factory'] = function () use ($app) {
             return new ExtractorFactory($app['parameters']);
         };
 
-        $this['extractor'] = function() use ($app) {
+        $this['extractor'] = function () use ($app) {
             return $app['extractor_factory']->create($app['logger']);
         };
 
@@ -62,6 +60,20 @@ class Application extends Container
     public function setConfigDefinition(ConfigurationInterface $definition)
     {
         $this->configDefinition = $definition;
+    }
+
+    private function isTableValid($table)
+    {
+        if (!array_key_exists('schema', $table)) {
+            return false;
+        }
+        if (!array_key_exists('tableName', $table)) {
+            return false;
+        }
+        if ($table['tableName'] === '') {
+            return false;
+        }
+        return true;
     }
 
     private function validateParameters($parameters)
@@ -86,11 +98,7 @@ class Application extends Container
                         'Invalid Configuration in "%s". One of table or query is required.',
                         $table['name']
                     ));
-                } else if (
-                    !array_key_exists('schema', $table['table']) ||
-                    !array_key_exists('tableName', $table['table']) ||
-                    $table['table']['tableName'] === ''
-                ) {
+                } else if (!$this->isTableValid($table['table'])) {
                     throw new ConfigException(sprintf(
                         'Invalid Configuration in "%s". The table property requires "tableName" and "schema"',
                         $table['name']

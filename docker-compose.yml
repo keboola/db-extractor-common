@@ -1,18 +1,44 @@
 version: "2"
 services:
+
   app:
     build: .
     image: keboola/db-extractor-common
-    working_dir: /code
-    command: "./phpunit.sh"
     tty: true
     stdin_open: true
+    command: vendor/bin/phpunit
+    env_file:
+      - ssh-keys.env
     environment:
       COMMON_DB_USER: root
       COMMON_DB_PASSWORD: somePassword
       COMMON_DB_HOST: mysql
       COMMON_DB_PORT: 3306
       COMMON_DB_DATABASE: testdb
+      COMMON_APP_NAME: ex-db-common
+      ROOT_PATH: /code
+    links:
+      - sshproxy
+      - mysql
+
+  dev:
+    image: keboola/db-extractor-common
+    working_dir: /code
+    volumes:
+      - .:/code
+    command: vendor/bin/phpunit
+    tty: true
+    stdin_open: true
+    env_file:
+      - ssh-keys.env
+    environment:
+      COMMON_DB_USER: root
+      COMMON_DB_PASSWORD: somePassword
+      COMMON_DB_HOST: mysql
+      COMMON_DB_PORT: 3306
+      COMMON_DB_DATABASE: testdb
+      COMMON_APP_NAME: ex-db-common
+      ROOT_PATH: /code
     links:
       - sshproxy
       - mysql

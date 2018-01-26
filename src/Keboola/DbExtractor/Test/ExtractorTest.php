@@ -13,20 +13,28 @@ use Symfony\Component\Yaml\Yaml;
 
 class ExtractorTest extends \PHPUnit_Framework_TestCase
 {
-    protected $dataDir = ROOT_PATH . "/tests/data";
+    protected $dataDir;
 
-    protected function getConfig($driver)
+    protected $config;
+
+    protected $driver = '';
+
+    protected function setUp()
     {
-        $config = Yaml::parse(file_get_contents($this->dataDir . '/' .$driver . '/config.yml'));
-        $config['parameters']['data_dir'] = $this->dataDir;
+        $this->dataDir = getenv('ROOT_PATH') . "/tests/data";
+        parent::setUp();
+    }
 
-        $config['parameters']['db']['user'] = $this->getEnv($driver, 'DB_USER', true);
-        $config['parameters']['db']['#password'] = $this->getEnv($driver, 'DB_PASSWORD', true);
-        $config['parameters']['db']['host'] = $this->getEnv($driver, 'DB_HOST');
-        $config['parameters']['db']['port'] = $this->getEnv($driver, 'DB_PORT');
-        $config['parameters']['db']['database'] = $this->getEnv($driver, 'DB_DATABASE');
+    protected function setupConfig($driver)
+    {
+        $this->config = Yaml::parse(file_get_contents($this->dataDir . '/' .$driver . '/config.yml'));
+        $this->config['parameters']['data_dir'] = $this->dataDir;
 
-        return $config;
+        $this->config['parameters']['db']['user'] = $this->getEnv($driver, 'DB_USER', true);
+        $this->config['parameters']['db']['#password'] = $this->getEnv($driver, 'DB_PASSWORD', true);
+        $this->config['parameters']['db']['host'] = $this->getEnv($driver, 'DB_HOST');
+        $this->config['parameters']['db']['port'] = $this->getEnv($driver, 'DB_PORT');
+        $this->config['parameters']['db']['database'] = $this->getEnv($driver, 'DB_DATABASE');
     }
 
     protected function getEnv($driver, $suffix, $required = false)
@@ -38,5 +46,11 @@ class ExtractorTest extends \PHPUnit_Framework_TestCase
             }
         }
         return getenv($env);
+    }
+
+    public function getPrivateKey($driver)
+    {
+        // docker-compose .env file does not support new lines in variables so we have to modify the key https://github.com/moby/moby/issues/12997
+        return str_replace('"', '', str_replace('\n', "\n", $this->getEnv($driver, 'DB_SSH_KEY_PRIVATE')));
     }
 }
