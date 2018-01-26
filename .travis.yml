@@ -8,7 +8,7 @@ before-script:
   - docker-compose run --rm dev /code/vendor/bin/phpcs --standard=psr2 -n --ignore=vendor --extensions=php .
   - docker-compose run --rm dev /code/vendor/bin/phpstan analyse --level=7 ./src ./tests
 script:
-  - docker-compose run --rm app
+  - docker-compose run --rm dev
 notifications:
   slack:
     secure: MzE6RJL83c8fYJhcxLVXQ2gt16HYfHn2HaQt8xKJdFXdfxeKsyWW7DiPv1jlZ8n5I1xEYzQACwcmZEmcG1Wod2nOdk2USbl8N5GZTn8T7gyYcqBweigA4JYwVxtrBhQ0Jv/pVCm4t3OczE/aYtiwa1G3EqnNfBIbVTC43BqDpuD/1J/LHk0VILrsu1yjUOQyZZDw3VcNAG0N36ieeO7smEU8zr36mx0z48VSAkGdk6xkdoqsRGcyu60iUIIQ70+5DdqqCDJCvxImpcye4QWR5LjaOTn+CX6Ym4V0I9OqdSUBkAQzxD+Drn30utQNrNudLRy3ML4RauUmvqJ1qsW+RZ6RqZyL1Keyxaho/vLrdOo2iPIutAs4n+rTI2FXgEh10ZWA4u7OKBxCT6BZdM42LMtHCO1+QF1+91jHs8xs/LiXmRsFHVGsDOf6qZZnM5tf/EwELMNPHcK2rjjwCBHQi2YZWtqVSIXz/bShABa3F9jDDsydJ7YQb+ygbRXQ+6woyr2UeQ99aFWOrK32MpRxbT1rjrJnkok57h7Xmo13nAr//biz4J/iKmiAVG1On/pCuQdolFb74nv/VLy1obih4mzsnBTEIhE3pqHj4YZsy0V3A7z8JbMnfJU5V+4+R1o8wf7/CJxLz8bkRCn6QMT+AsO1WFmw1GV0N2jPIoQyY74=
