@@ -14,6 +14,7 @@ services:
       COMMON_DB_HOST: mysql
       COMMON_DB_PORT: 3306
       COMMON_DB_DATABASE: testdb
+      APP_NAME: ex-db-common
     links:
       - sshproxy
       - mysql
@@ -34,6 +35,8 @@ services:
       COMMON_DB_HOST: mysql
       COMMON_DB_PORT: 3306
       COMMON_DB_DATABASE: testdb
+      ROOT_PATH: /code
+      APP_NAME: ex-db-common
     links:
       - sshproxy
       - mysql
