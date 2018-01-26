@@ -8,7 +8,6 @@
 
 namespace Keboola\DbExtractor\Test;
 
-
 class DataLoader
 {
     private $pdo;
@@ -23,14 +22,15 @@ class DataLoader
 
     public function load($inputFile, $destinationTable)
     {
-        $query = sprintf("
-                LOAD DATA LOCAL INFILE '%s'
+        $query = sprintf(
+            "LOAD DATA LOCAL INFILE '%s'
                 INTO TABLE %s
                 FIELDS TERMINATED BY ','
                 ENCLOSED BY '\"'
                 ESCAPED BY ''
-                IGNORE 1 LINES
-            ", $inputFile, $destinationTable
+                IGNORE 1 LINES",
+            $inputFile,
+            $destinationTable
         );
 
         return $this->pdo->exec($query);
