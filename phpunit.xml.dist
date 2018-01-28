@@ -11,6 +11,6 @@
          bootstrap="bootstrap.php">
 
     <testsuite name="DB Extractor Common Test Suite">
-        <directory>tests/Keboola</directory>
+        <directory>tests</directory>
     </testsuite>
 </phpunit>

@@ -1,9 +1,11 @@
 <?php
 
-namespace Keboola\DbExtractor\Test;
+namespace Keboola\DbExtractor\Tests;
 
 use Keboola\DbExtractor\Application;
 use Symfony\Component\Yaml\Yaml;
+use Keboola\DbExtractor\Test\ExtractorTest;
+use Keboola\DbExtractor\Test\DataLoader;
 
 
 class CommonExtractorTest extends ExtractorTest

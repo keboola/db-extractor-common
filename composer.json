@@ -30,7 +30,7 @@
   },
   "autoload-dev": {
     "psr-4": {
-      "Keboola\\Test\\": "tests/Keboola/"
+      "Keboola\\DbExtractor\\Tests\\": "tests/"
     }
   }
 }
