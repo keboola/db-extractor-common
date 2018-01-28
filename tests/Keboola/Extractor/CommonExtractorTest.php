@@ -5,12 +5,7 @@ namespace Keboola\DbExtractor\Test;
 use Keboola\DbExtractor\Application;
 use Symfony\Component\Yaml\Yaml;
 
-/**
- * Created by PhpStorm.
- * User: miroslavcillik
- * Date: 12/02/16
- * Time: 16:39
- */
+
 class CommonExtractorTest extends ExtractorTest
 {
     const DRIVER = 'common';
@@ -20,10 +15,12 @@ class CommonExtractorTest extends ExtractorTest
         if (!defined('APP_NAME')) {
             define('APP_NAME', 'ex-db-common');
         }
+        $this->initDatabase();
+    }
 
-        $inputFile = ROOT_PATH . '/tests/data/escaping.csv';
-
-        $dataLoader = new \Keboola\DbExtractor\Test\DataLoader(
+    private function initDatabase()
+    {
+        $dataLoader = new DataLoader(
             $this->getEnv(self::DRIVER, 'DB_HOST'),
             $this->getEnv(self::DRIVER, 'DB_PORT'),
             $this->getEnv(self::DRIVER, 'DB_DATABASE'),
@@ -41,8 +38,6 @@ class CommonExtractorTest extends ExtractorTest
         $dataLoader->getPdo()->exec("USE " . $this->getEnv(self::DRIVER, 'DB_DATABASE'));
 
         $dataLoader->getPdo()->exec("SET NAMES utf8;");
-        $dataLoader->getPdo()->exec("DROP TABLE IF EXISTS escaping");
-        $dataLoader->getPdo()->exec("DROP TABLE IF EXISTS escapingPK");
         $dataLoader->getPdo()->exec("CREATE TABLE escapingPK (
                                     col1 VARCHAR(155), 
                                     col2 VARCHAR(155), 
@@ -53,6 +48,7 @@ class CommonExtractorTest extends ExtractorTest
                                   col2 VARCHAR(155) NOT NULL DEFAULT 'abc',
                                   FOREIGN KEY (col1, col2) REFERENCES escapingPK(col1, col2))");
 
+        $inputFile = ROOT_PATH . '/tests/data/escaping.csv';
         $dataLoader->load($inputFile, 'escapingPK');
         $dataLoader->load($inputFile, 'escaping');
     }
