@@ -50,7 +50,5 @@ services:
     volumes:
         - ./tests/env/sshproxy:/code
     working_dir: /code
-    ports:
-      - "2222:22"
     links:
       - mysql
