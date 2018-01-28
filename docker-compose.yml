@@ -21,7 +21,6 @@ services:
 
   dev:
     image: keboola/db-extractor-common
-    working_dir: /code
     volumes:
       - .:/code
     command: vendor/bin/phpunit
