@@ -1,45 +1,45 @@
 <?php
 
-use Keboola\DbExtractor\Application;
-use Keboola\DbExtractor\Test\ExtractorTest;
-use Symfony\Component\Yaml\Yaml;
+namespace Keboola\DbExtractor\Tests;
 
-/**
- * Created by PhpStorm.
- * User: miroslavcillik
- * Date: 12/02/16
- * Time: 16:39
- */
+use Keboola\DbExtractor\Application;
+use Symfony\Component\Yaml\Yaml;
+use Keboola\DbExtractor\Test\ExtractorTest;
+use Keboola\DbExtractor\Test\DataLoader;
+
+
 class CommonExtractorTest extends ExtractorTest
 {
+    const DRIVER = 'common';
+
     public function setUp()
     {
         if (!defined('APP_NAME')) {
             define('APP_NAME', 'ex-db-common');
         }
+        $this->initDatabase();
+    }
 
-        $inputFile = ROOT_PATH . '/tests/data/escaping.csv';
-
-        $dataLoader = new \Keboola\DbExtractor\Test\DataLoader(
-            $this->getEnv('common', 'DB_HOST'),
-            $this->getEnv('common', 'DB_PORT'),
-            $this->getEnv('common', 'DB_DATABASE'),
-            $this->getEnv('common', 'DB_USER'),
-            $this->getEnv('common', 'DB_PASSWORD')
+    private function initDatabase()
+    {
+        $dataLoader = new DataLoader(
+            $this->getEnv(self::DRIVER, 'DB_HOST'),
+            $this->getEnv(self::DRIVER, 'DB_PORT'),
+            $this->getEnv(self::DRIVER, 'DB_DATABASE'),
+            $this->getEnv(self::DRIVER, 'DB_USER'),
+            $this->getEnv(self::DRIVER, 'DB_PASSWORD')
         );
 
-        $dataLoader->getPdo()->exec(sprintf("DROP DATABASE IF EXISTS `%s`", $this->getEnv('common', 'DB_DATABASE')));
+        $dataLoader->getPdo()->exec(sprintf("DROP DATABASE IF EXISTS `%s`", $this->getEnv(self::DRIVER, 'DB_DATABASE')));
         $dataLoader->getPdo()->exec(sprintf("
             CREATE DATABASE `%s`
             DEFAULT CHARACTER SET utf8
             DEFAULT COLLATE utf8_general_ci
-        ", $this->getEnv('common', 'DB_DATABASE')));
+        ", $this->getEnv(self::DRIVER, 'DB_DATABASE')));
 
-        $dataLoader->getPdo()->exec("USE " . $this->getEnv('common', 'DB_DATABASE'));
+        $dataLoader->getPdo()->exec("USE " . $this->getEnv(self::DRIVER, 'DB_DATABASE'));
 
         $dataLoader->getPdo()->exec("SET NAMES utf8;");
-        $dataLoader->getPdo()->exec("DROP TABLE IF EXISTS escaping");
-        $dataLoader->getPdo()->exec("DROP TABLE IF EXISTS escapingPK");
         $dataLoader->getPdo()->exec("CREATE TABLE escapingPK (
                                     col1 VARCHAR(155), 
                                     col2 VARCHAR(155), 
@@ -50,11 +50,12 @@ class CommonExtractorTest extends ExtractorTest
                                   col2 VARCHAR(155) NOT NULL DEFAULT 'abc',
                                   FOREIGN KEY (col1, col2) REFERENCES escapingPK(col1, col2))");
 
+        $inputFile = ROOT_PATH . '/tests/data/escaping.csv';
         $dataLoader->load($inputFile, 'escapingPK');
         $dataLoader->load($inputFile, 'escaping');
     }
 
-    public function getConfig($driver = 'common')
+    public function getConfig($driver = self::DRIVER)
     {
         $config = parent::getConfig($driver);
         $config['parameters']['extractor_class'] = 'Common';
@@ -72,8 +73,8 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['db']['ssh'] = [
             'enabled' => true,
             'keys' => [
-                '#private' => $this->getEnv('common', 'DB_SSH_KEY_PRIVATE'),
-                'public' => $this->getEnv('common', 'DB_SSH_KEY_PUBLIC')
+                '#private' => $this->getPrivateKey(self::DRIVER),
+                'public' => $this->getEnv(self::DRIVER, 'DB_SSH_KEY_PUBLIC')
             ],
             'sshHost' => 'sshproxy'
         ];
@@ -86,8 +87,8 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['db']['ssh'] = [
             'enabled' => true,
             'keys' => [
-                '#private' => $this->getEnv('common', 'DB_SSH_KEY_PRIVATE'),
-                'public' => $this->getEnv('common', 'DB_SSH_KEY_PUBLIC')
+                '#private' => $this->getPrivateKey(self::DRIVER),
+                'public' => $this->getEnv(self::DRIVER, 'DB_SSH_KEY_PUBLIC')
             ],
             'sshHost' => 'sshproxy',
             'localPort' => '33306',
@@ -107,8 +108,8 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['db']['ssh'] = [
             'enabled' => true,
             'keys' => [
-                '#private' => $this->getEnv('common', 'DB_SSH_KEY_PRIVATE'),
-                'public' => $this->getEnv('common', 'DB_SSH_KEY_PUBLIC')
+                '#private' => $this->getPrivateKey(self::DRIVER),
+                'public' => $this->getEnv(self::DRIVER, 'DB_SSH_KEY_PUBLIC')
             ],
             'sshHost' => 'wronghost',
             'localPort' => '33306',
