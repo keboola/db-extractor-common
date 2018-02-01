@@ -55,13 +55,6 @@ class CommonExtractorTest extends ExtractorTest
         $dataLoader->load($inputFile, 'escaping');
     }
 
-    public function getConfig($driver = self::DRIVER)
-    {
-        $config = parent::getConfig($driver);
-        $config['parameters']['extractor_class'] = 'Common';
-        return $config;
-    }
-
     public function testRun()
     {
         $this->assertRunResult((new Application($this->getConfig()))->run());
@@ -409,7 +402,6 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertFileExists($this->dataDir . '/out/tables/in.c-main.something-weird.csv');
         $this->assertFileExists($this->dataDir . '/out/tables/in.c-main.something-weird.csv.manifest');
     }
-
 
     protected function assertRunResult($result)
     {
