@@ -9,7 +9,6 @@
 
 namespace Keboola\DbExtractor;
 
-use JsonSchema\Exception\InvalidConfigException;
 use Keboola\DbExtractor\Configuration\ConfigDefinition;
 use Keboola\DbExtractor\Configuration\ConfigRowDefinition;
 use Keboola\DbExtractor\Exception\UserException;
