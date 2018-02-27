@@ -24,6 +24,8 @@ use Retry\RetryProxy;
 
 abstract class Extractor
 {
+    const DEFAULT_MAX_TRIES = 5;
+
     /** @var \PDO */
     protected $db;
 
@@ -123,7 +125,10 @@ abstract class Extractor
 
         try {
             /** @var \PDOStatement $stmt */
-            $stmt = $this->executeQuery($query);
+            $stmt = $this->executeQuery(
+                $query,
+                isset($table['retries']) ? (int) $table['retries'] : self::DEFAULT_MAX_TRIES
+            );
         } catch (\Exception $e) {
             throw $this->handleDbError($e, $table);
         }
@@ -163,9 +168,8 @@ abstract class Extractor
      * @return int Number of rows returned by query
      * @throws \PDOException|\ErrorException
      */
-    protected function executeQuery($query)
+    protected function executeQuery($query, int $maxTries)
     {
-        $maxTries = (isset($table['retries']) && $table['retries']) ? $table['retries'] : 5;
         $retryPolicy = new SimpleRetryPolicy($maxTries, ['PDOException', 'ErrorException']);
         $backOffPolicy = new ExponentialBackOffPolicy(1000);
         $proxy = new RetryProxy($retryPolicy, $backOffPolicy);
