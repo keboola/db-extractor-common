@@ -3,10 +3,10 @@
 namespace Keboola\DbExtractor\Tests;
 
 use Keboola\DbExtractor\Application;
+use Keboola\DbExtractor\Exception\UserException;
 use Symfony\Component\Yaml\Yaml;
 use Keboola\DbExtractor\Test\ExtractorTest;
 use Keboola\DbExtractor\Test\DataLoader;
-
 
 class CommonExtractorTest extends ExtractorTest
 {
@@ -55,21 +55,14 @@ class CommonExtractorTest extends ExtractorTest
         $dataLoader->load($inputFile, 'escaping');
     }
 
-    public function getConfig($driver = self::DRIVER)
-    {
-        $config = parent::getConfig($driver);
-        $config['parameters']['extractor_class'] = 'Common';
-        return $config;
-    }
-
     public function testRun()
     {
-        $this->assertRunResult((new Application($this->getConfig()))->run());
+        $this->assertRunResult((new Application($this->getConfig(self::DRIVER)))->run());
     }
 
     public function testRunWithSSH()
     {
-        $config = $this->getConfig();
+        $config = $this->getConfig(self::DRIVER);
         $config['parameters']['db']['ssh'] = [
             'enabled' => true,
             'keys' => [
@@ -83,7 +76,7 @@ class CommonExtractorTest extends ExtractorTest
 
     public function testRunWithSSHDeprecated()
     {
-        $config = $this->getConfig();
+        $config = $this->getConfig(self::DRIVER);
         $config['parameters']['db']['ssh'] = [
             'enabled' => true,
             'keys' => [
@@ -104,7 +97,7 @@ class CommonExtractorTest extends ExtractorTest
     {
         $this->setExpectedException('Keboola\DbExtractor\Exception\UserException');
 
-        $config = $this->getConfig();
+        $config = $this->getConfig(self::DRIVER);
         $config['parameters']['db']['ssh'] = [
             'enabled' => true,
             'keys' => [
@@ -122,7 +115,7 @@ class CommonExtractorTest extends ExtractorTest
 
     public function testRunWithWrongCredentials()
     {
-        $config = $this->getConfig();
+        $config = $this->getConfig(self::DRIVER);
         $config['parameters']['db']['host'] = 'somebulshit';
         $config['parameters']['db']['#password'] = 'somecrap';
 
@@ -133,6 +126,19 @@ class CommonExtractorTest extends ExtractorTest
         }
     }
 
+    public function testRetries()
+    {
+        $config = $this->getConfig(self::DRIVER);
+        $config['parameters']['tables'][0]['query'] = "SELECT * FROM `table_that_does_not_exist`";
+        $config['parameters']['tables'][0]['retries'] = 3;
+
+        try {
+            (new Application($config))->run();
+        } catch (UserException $e) {
+            $this->assertContains('Tried 3 times', $e->getMessage());
+        }
+    }
+
     public function testRunEmptyQuery()
     {
         $outputCsvFile = $this->dataDir . '/out/tables/in.c-main.escaping.csv';
@@ -140,7 +146,7 @@ class CommonExtractorTest extends ExtractorTest
         @unlink($outputCsvFile);
         @unlink($outputManifestFile);
 
-        $config = $this->getConfig();
+        $config = $this->getConfig(self::DRIVER);
         $config['parameters']['tables'][0]['query'] = "SELECT * FROM escaping WHERE col1 = '123'";
 
         $result = (new Application($config))->run();
@@ -152,7 +158,7 @@ class CommonExtractorTest extends ExtractorTest
 
     public function testTestConnection()
     {
-        $config = $this->getConfig();
+        $config = $this->getConfig(self::DRIVER);
         $config['action'] = 'testConnection';
         unset($config['parameters']['tables']);
         $app = new Application($config);
@@ -163,7 +169,7 @@ class CommonExtractorTest extends ExtractorTest
 
     public function testTestConnectionFailInTheMiddle()
     {
-        $config = $this->getConfig();
+        $config = $this->getConfig(self::DRIVER);
         $config['parameters']['tables'][] = [
             'id' => 10,
             'name' => 'bad',
@@ -181,7 +187,7 @@ class CommonExtractorTest extends ExtractorTest
 
     public function testTestConnectionFailure()
     {
-        $config = $this->getConfig();
+        $config = $this->getConfig(self::DRIVER);
         $config['action'] = 'testConnection';
         unset($config['parameters']['tables']);
         $config['parameters']['db']['#password'] = 'bullshit';
@@ -198,7 +204,7 @@ class CommonExtractorTest extends ExtractorTest
 
     public function testGetTablesAction()
     {
-        $config = $this->getConfig();
+        $config = $this->getConfig(self::DRIVER);
         $config['action'] = 'getTables';
 
         $app = new Application($config);
@@ -282,7 +288,7 @@ class CommonExtractorTest extends ExtractorTest
 
     public function testMetadataManifest()
     {
-        $config = $this->getConfig();
+        $config = $this->getConfig(self::DRIVER);
         unset($config['parameters']['tables'][0]);
 
         $manifestFile = $this->dataDir . '/out/tables/in.c-main.simple.csv.manifest';
@@ -348,7 +354,7 @@ class CommonExtractorTest extends ExtractorTest
 
     public function testNonExistingAction()
     {
-        $config = $this->getConfig();
+        $config = $this->getConfig(self::DRIVER);
         $config['action'] = 'sample';
         unset($config['parameters']['tables']);
 
@@ -363,7 +369,7 @@ class CommonExtractorTest extends ExtractorTest
 
     public function testTableColumnsQuery()
     {
-        $config = $this->getConfig();
+        $config = $this->getConfig(self::DRIVER);
         unset($config['parameters']['tables'][0]);
 
         $app = new Application($config);
@@ -374,7 +380,7 @@ class CommonExtractorTest extends ExtractorTest
 
     public function testInvalidConfigurationQueryAndTable()
     {
-        $config = $this->getConfig();
+        $config = $this->getConfig(self::DRIVER);
         $config['parameters']['tables'][0]['table'] = ['schema' => 'testdb', 'tableName' => 'escaping'];
         try {
             $app = new Application($config);
@@ -387,7 +393,7 @@ class CommonExtractorTest extends ExtractorTest
 
     public function testInvalidConfigurationQueryNorTable()
     {
-        $config = $this->getConfig();
+        $config = $this->getConfig(self::DRIVER);
         unset($config['parameters']['tables'][0]['query']);
         try {
             $app = new Application($config);
@@ -400,7 +406,7 @@ class CommonExtractorTest extends ExtractorTest
 
     public function testStrangeTableName()
     {
-        $config = $this->getConfig();
+        $config = $this->getConfig(self::DRIVER);
         $config['parameters']['tables'][0]['outputTable'] = "in.c-main.something/ weird";
         unset($config['parameters']['tables'][1]);
         $result = (new Application($config))->run();
@@ -409,7 +415,6 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertFileExists($this->dataDir . '/out/tables/in.c-main.something-weird.csv');
         $this->assertFileExists($this->dataDir . '/out/tables/in.c-main.something-weird.csv.manifest');
     }
-
 
     protected function assertRunResult($result)
     {

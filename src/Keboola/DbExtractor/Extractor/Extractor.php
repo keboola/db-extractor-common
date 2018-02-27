@@ -17,11 +17,15 @@ use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractor\Logger;
 use Keboola\SSHTunnel\SSH;
 use Keboola\SSHTunnel\SSHException;
-use Symfony\Component\Yaml\Yaml;
 use Nette\Utils;
+use Retry\BackOff\ExponentialBackOffPolicy;
+use Retry\Policy\SimpleRetryPolicy;
+use Retry\RetryProxy;
 
 abstract class Extractor
 {
+    const DEFAULT_MAX_TRIES = 5;
+
     /** @var \PDO */
     protected $db;
 
@@ -119,64 +123,99 @@ abstract class Extractor
             $query = $table['query'];
         }
 
-        $maxTries = (isset($table['retries']) && $table['retries'])?$table['retries']:5;
-        $tries = 0;
-        $exception = null;
-        $rows = 0;
-
-        while ($tries < $maxTries) {
-            $exception = null;
-            try {
-                $rows = $this->executeQuery($query, $csv, $table['name']);
-                break;
-            } catch (\PDOException $e) {
-                $exception = $this->handleDbError($e, $table);
-                $this->logger->info(sprintf('%s. Retrying... [%dx]', $exception->getMessage(), $tries + 1));
-            } catch (\ErrorException $e) {
-                $exception = $this->handleDbError($e, $table);
-                $this->logger->info(sprintf('%s. Retrying... [%dx]', $exception->getMessage(), $tries + 1));
-            } catch (CsvException $e) {
-                $exception = new ApplicationException("Write to CSV failed: " . $e->getMessage(), 0, $e);
-            }
-            sleep(pow($tries, 2));
-            $tries++;
+        try {
+            /** @var \PDOStatement $stmt */
+            $stmt = $this->executeQuery(
+                $query,
+                isset($table['retries']) ? (int) $table['retries'] : self::DEFAULT_MAX_TRIES
+            );
+        } catch (\Exception $e) {
+            throw $this->handleDbError($e, $table);
         }
 
-        if ($exception) {
-            throw $exception;
+        try {
+            $rows = $this->writeToCsv($stmt, $csv);
+        } catch (CsvException $e) {
+             throw new ApplicationException("Write to CSV failed: " . $e->getMessage(), 0, $e);
         }
+
 
         if ($rows > 0) {
             $this->createManifest($table);
+        } else {
+            $this->logger->warn(sprintf(
+                "Query returned empty result. Nothing was imported for table [%s]",
+                $table['name']
+            ));
         }
 
         return $outputTable;
     }
 
-    private function handleDbError(\Exception $e, $table)
+    private function handleDbError(\Exception $e, array $table = null, int $counter = null) : UserException
     {
-        $message = sprintf('DB query [' . $table['name'] . '] failed: %s', $e->getMessage());
+        $message = "";
+        if ($table) {
+            $message = sprintf("[%s]: ", $table['name']);
+        }
+        $message .= sprintf('DB query failed: %s', $e->getMessage());
+        if ($counter) {
+            $message .= sprintf(' Tried %d times.', $counter);
+        }
         $exception = new UserException($message, 0, $e);
-
-        try {
-            $this->db = $this->createConnection($this->dbParameters);
-        } catch (\Exception $e) {
-        };
         return $exception;
     }
 
     /**
      * @param $query
-     * @param CsvFile $csv
-     * @param string $tableName name of the query
      * @return int Number of rows returned by query
+     * @throws \PDOException|\ErrorException
+     */
+    protected function executeQuery($query, int $maxTries)
+    {
+        $retryPolicy = new SimpleRetryPolicy($maxTries, ['PDOException', 'ErrorException']);
+        $backOffPolicy = new ExponentialBackOffPolicy(1000);
+        $proxy = new RetryProxy($retryPolicy, $backOffPolicy);
+        $counter = 0;
+        /** @var \Exception $lastException */
+        $lastException = null;
+        try {
+            $stmt = $proxy->call(function () use ($query, &$counter, &$lastException) {
+                if ($counter > 0) {
+                    $this->logger->info(sprintf('%s. Retrying... [%dx]', $lastException->getMessage(), $counter));
+                    try {
+                        $this->db = $this->createConnection($this->dbParameters);
+                    } catch (\Exception $e) {
+                    };
+                }
+                try {
+                    /** @var \PDOStatement $stmt */
+                    $stmt = @$this->db->prepare($query);
+                    @$stmt->execute();
+                    return $stmt;
+                } catch (\Exception $e) {
+                    $lastException = $this->handleDbError($e, null, $counter + 1);
+                    $counter++;
+                    throw $e;
+                }
+            });
+        } catch (\Exception $e) {
+            if ($lastException) {
+                throw $lastException;
+            }
+            throw $e;
+        }
+        return $stmt;
+    }
+
+    /**
+     * @param \PDOStatement $stmt
+     * @param CsvFile $csv
+     * @return int number of rows written to output file
      * @throws CsvException
      */
-    protected function executeQuery($query, CsvFile $csv, $tableName)
+    protected function writeToCsv(\PDOStatement $stmt, CsvFile $csv)
     {
-        $stmt = @$this->db->prepare($query);
-        @$stmt->execute();
-
         $resultRow = @$stmt->fetch(\PDO::FETCH_ASSOC);
 
         if (is_array($resultRow) && !empty($resultRow)) {
@@ -193,11 +232,6 @@ abstract class Extractor
 
             return $numRows;
         }
-        $this->logger->warn(sprintf(
-            "Query returned empty result. Nothing was imported for table [%s]",
-            $tableName
-        ));
-
         return 0;
     }
 
@@ -258,7 +292,7 @@ abstract class Extractor
                 $manifestData['column_metadata'] = $columnMetadata;
             }
         }
-        return file_put_contents($outFilename, Yaml::dump($manifestData));
+        return file_put_contents($outFilename, json_encode($manifestData));
     }
 
     protected function getOutputFilename($outputTableName)

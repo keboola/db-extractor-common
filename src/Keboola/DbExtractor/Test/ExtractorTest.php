@@ -26,6 +26,8 @@ class ExtractorTest extends \PHPUnit_Framework_TestCase
         $config['parameters']['db']['port'] = $this->getEnv($driver, 'DB_PORT');
         $config['parameters']['db']['database'] = $this->getEnv($driver, 'DB_DATABASE');
 
+        $config['parameters']['extractor_class'] = ucfirst($driver);
+        
         return $config;
     }
 

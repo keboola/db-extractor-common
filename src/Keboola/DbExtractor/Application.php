@@ -9,13 +9,11 @@
 
 namespace Keboola\DbExtractor;
 
-use Keboola\Csv\Exception;
 use Keboola\DbExtractor\Configuration\ConfigDefinition;
 use Keboola\DbExtractor\Exception\UserException;
 use Pimple\Container;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 use Symfony\Component\Config\Definition\Exception\Exception as ConfigException;
-use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\Config\Definition\Processor;
 
 class Application extends Container
