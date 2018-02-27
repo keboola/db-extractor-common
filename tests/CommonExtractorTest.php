@@ -3,10 +3,10 @@
 namespace Keboola\DbExtractor\Tests;
 
 use Keboola\DbExtractor\Application;
+use Keboola\DbExtractor\Exception\UserException;
 use Symfony\Component\Yaml\Yaml;
 use Keboola\DbExtractor\Test\ExtractorTest;
 use Keboola\DbExtractor\Test\DataLoader;
-
 
 class CommonExtractorTest extends ExtractorTest
 {
@@ -123,6 +123,19 @@ class CommonExtractorTest extends ExtractorTest
             (new Application($config))->run();
             $this->fail("Wrong credentials must raise error.");
         } catch (\Keboola\DbExtractor\Exception\UserException $e) {
+        }
+    }
+
+    public function testRetries()
+    {
+        $config = $this->getConfig(self::DRIVER);
+        $config['parameters']['tables'][0]['query'] = "SELECT * FROM `table_that_does_not_exist`";
+        $config['parameters']['tables'][0]['retries'] = 3;
+
+        try {
+            (new Application($config))->run();
+        } catch (UserException $e) {
+            $this->assertContains('Tried 3 times', $e->getMessage());
         }
     }
 

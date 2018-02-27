@@ -152,13 +152,16 @@ abstract class Extractor
         return $outputTable;
     }
 
-    private function handleDbError(\Exception $e, $table = null)
+    private function handleDbError(\Exception $e, array $table = null, int $counter = null) : UserException
     {
         $message = "";
         if ($table) {
             $message = sprintf("[%s]: ", $table['name']);
         }
         $message .= sprintf('DB query failed: %s', $e->getMessage());
+        if ($counter) {
+            $message .= sprintf(' Tried %d times.', $counter);
+        }
         $exception = new UserException($message, 0, $e);
         return $exception;
     }
@@ -191,7 +194,7 @@ abstract class Extractor
                     @$stmt->execute();
                     return $stmt;
                 } catch (\Exception $e) {
-                    $lastException = $this->handleDbError($e);
+                    $lastException = $this->handleDbError($e, null, $counter + 1);
                     $counter++;
                     throw $e;
                 }
