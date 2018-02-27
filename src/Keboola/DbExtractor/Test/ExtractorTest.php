@@ -15,9 +15,18 @@ class ExtractorTest extends \PHPUnit_Framework_TestCase
 {
     protected $dataDir = ROOT_PATH . "/tests/data";
 
-    protected function getConfig($driver)
+    /**
+     * @param $driver
+     * @param string $format (yaml or json)
+     * @return mixed
+     */
+    protected function getConfig($driver, $format = 'yaml')
     {
-        $config = Yaml::parse(file_get_contents($this->dataDir . '/' .$driver . '/config.yml'));
+        if ($format === 'json') {
+            $config = json_decode(file_get_contents($this->dataDir . '/' .$driver . '/config.json'), true);
+        } else {
+            $config = Yaml::parse(file_get_contents($this->dataDir . '/' .$driver . '/config.yml'));
+        }
         $config['parameters']['data_dir'] = $this->dataDir;
 
         $config['parameters']['db']['user'] = $this->getEnv($driver, 'DB_USER', true);

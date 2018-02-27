@@ -60,6 +60,11 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertRunResult((new Application($this->getConfig(self::DRIVER)))->run());
     }
 
+    public function testRunJsonConfig()
+    {
+        $this->assertRunResult((new Application($this->getConfig(self::DRIVER, 'json')))->run());
+    }
+
     public function testRunWithSSH()
     {
         $config = $this->getConfig(self::DRIVER);
