@@ -10,6 +10,7 @@
 namespace Keboola\DbExtractor;
 
 use Keboola\DbExtractor\Configuration\ConfigDefinition;
+use Keboola\DbExtractor\Configuration\ConfigRowDefinition;
 use Keboola\DbExtractor\Exception\UserException;
 use Pimple\Container;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
@@ -41,8 +42,11 @@ class Application extends Container
         $this['extractor'] = function () use ($app) {
             return $app['extractor_factory']->create($app['logger']);
         };
-
-        $this->configDefinition = new ConfigDefinition();
+        if (isset($this['parameters']['tables'])) {
+            $this->configDefinition = new ConfigDefinition();
+        } else {
+            $this->configDefinition = new ConfigRowDefinition();
+        }
     }
 
     public function run()
@@ -76,6 +80,28 @@ class Application extends Container
         return true;
     }
 
+    private function validateTableParameters(array $table)
+    {
+        if (isset($table['query']) && $table['query'] !== '') {
+            if (isset($table['table'])) {
+                throw new ConfigException(sprintf(
+                    'Invalid Configuration in "%s". Both table and query cannot be set together.',
+                    $table['name']
+                ));
+            }
+        } else if (!isset($table['table'])) {
+            throw new ConfigException(sprintf(
+                'Invalid Configuration in "%s". One of table or query is required.',
+                $table['name']
+            ));
+        } else if (!$this->isTableValid($table['table'])) {
+            throw new ConfigException(sprintf(
+                'Invalid Configuration in "%s". The table property requires "tableName" and "schema"',
+                $table['name']
+            ));
+        }
+    }
+
     private function validateParameters($parameters)
     {
         try {
@@ -85,27 +111,13 @@ class Application extends Container
                 [$parameters]
             );
 
-            foreach ($processedParameters['tables'] as $table) {
-                if (isset($table['query']) && $table['query'] !== '') {
-                    if (isset($table['table'])) {
-                        throw new ConfigException(sprintf(
-                            'Invalid Configuration in "%s". Both table and query cannot be set together.',
-                            $table['name']
-                        ));
-                    }
-                } else if (!isset($table['table'])) {
-                    throw new ConfigException(sprintf(
-                        'Invalid Configuration in "%s". One of table or query is required.',
-                        $table['name']
-                    ));
-                } else if (!$this->isTableValid($table['table'])) {
-                    throw new ConfigException(sprintf(
-                        'Invalid Configuration in "%s". The table property requires "tableName" and "schema"',
-                        $table['name']
-                    ));
+            if (isset($processedParameters['tables'])) {
+                foreach ($processedParameters['tables'] as $table) {
+                    $this->validateTableParameters($table);
                 }
+            } else {
+                $this->validateTableParameters($processedParameters);
             }
-
 
             if (!empty($processedParameters['db']['#password'])) {
                 $processedParameters['db']['password'] = $processedParameters['db']['#password'];
@@ -120,9 +132,13 @@ class Application extends Container
     private function runAction()
     {
         $imported = [];
-        $tables = array_filter($this['parameters']['tables'], function ($table) {
-            return ($table['enabled']);
-        });
+        if (isset($this['parameters']['tables'])) {
+            $tables = array_filter($this['parameters']['tables'], function ($table) {
+                return ($table['enabled']);
+            });
+        } else {
+            $tables = [$this['parameters']];
+        }
 
         foreach ($tables as $table) {
             $imported[] = $this['extractor']->export($table);

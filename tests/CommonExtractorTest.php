@@ -65,6 +65,11 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertRunResult((new Application($this->getConfig(self::DRIVER, 'json')))->run());
     }
 
+    public function testRunConfigRow()
+    {
+        $this->assertRunResult((new Application($this->getConfigRow(self::DRIVER)))->run());
+    }
+
     public function testRunWithSSH()
     {
         $config = $this->getConfig(self::DRIVER);
@@ -165,7 +170,7 @@ class CommonExtractorTest extends ExtractorTest
     {
         $config = $this->getConfig(self::DRIVER);
         $config['action'] = 'testConnection';
-        unset($config['parameters']['tables']);
+        $config['parameters']['tables'] = [];
         $app = new Application($config);
         $res = $app->run();
 
@@ -194,7 +199,7 @@ class CommonExtractorTest extends ExtractorTest
     {
         $config = $this->getConfig(self::DRIVER);
         $config['action'] = 'testConnection';
-        unset($config['parameters']['tables']);
+        $config['parameters']['tables'] = [];
         $config['parameters']['db']['#password'] = 'bullshit';
         $app = new Application($config);
         $exceptionThrown = false;
@@ -361,7 +366,7 @@ class CommonExtractorTest extends ExtractorTest
     {
         $config = $this->getConfig(self::DRIVER);
         $config['action'] = 'sample';
-        unset($config['parameters']['tables']);
+        $config['parameters']['tables'] = [];
 
         try {
             $app = new Application($config);

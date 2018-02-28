@@ -1,0 +1,18 @@
+{
+  "parameters": {
+    "db": {
+      "host": "localhost",
+      "database": "test",
+      "user": "travis",
+      "password": "",
+      "port": 3306
+    },
+    "id": 0,
+    "name": "escaping",
+    "query": "SELECT * FROM escaping",
+    "outputTable": "in.c-main.escaping",
+    "incremental": false,
+    "primaryKey": ["col1"],
+    "enabled": true
+  }
+}
