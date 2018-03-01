@@ -21,7 +21,7 @@ class Application extends Container
 {
     private $configDefinition;
 
-    public function __construct($config)
+    public function __construct(array $config, array $state = [])
     {
         parent::__construct();
 
@@ -31,12 +31,14 @@ class Application extends Container
 
         $this['parameters'] = $config['parameters'];
 
+        $this['state'] = $state;
+
         $this['logger'] = function () use ($app) {
             return new Logger(APP_NAME);
         };
 
         $this['extractor_factory'] = function () use ($app) {
-            return new ExtractorFactory($app['parameters']);
+            return new ExtractorFactory($app['parameters'], $app['state']);
         };
 
         $this['extractor'] = function () use ($app) {
@@ -47,6 +49,8 @@ class Application extends Container
         } else {
             $this->configDefinition = new ConfigRowDefinition();
         }
+
+
     }
 
     public function run()
