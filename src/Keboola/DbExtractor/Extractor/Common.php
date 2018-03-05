@@ -13,6 +13,8 @@ use Keboola\DbExtractor\Exception\UserException;
 
 class Common extends Extractor
 {
+    protected $database;
+
     public function createConnection($params)
     {
         // convert errors to PDOExceptions
@@ -26,6 +28,8 @@ class Common extends Extractor
                 throw new UserException(sprintf("Parameter %s is missing.", $r));
             }
         }
+
+        $this->database = $params['database'];
 
         $port = isset($params['port']) ? $params['port'] : '3306';
         $dsn = sprintf("mysql:host=%s;port=%s;dbname=%s;charset=utf8", $params['host'], $port, $params['database']);
@@ -43,8 +47,21 @@ class Common extends Extractor
 
     public function simpleQuery(array $table, array $columns = array())
     {
+        $incrementalAddons = [];
+        if ($this->incrementalFetching && isset($this->state['lastFetchedRow'])) {
+            if (isset($this->state['lastFetchedRow']['autoIncrement'])) {
+                $autoIncColumn = $this->incrementalFetching['autoIncrementColumn'];
+                $autoIncValue = $this->state['lastFetchedRow']['autoIncrement'];
+                $incrementalAddons[] = sprintf(' %s > %d', $this->quote($autoIncColumn), (int) $autoIncValue);
+            }
+            if (isset($this->state['lastFetchedRow']['timestamp'])) {
+                $updateTimestampColumn = $this->incrementalFetching['timestampColumn'];
+                $updateTimestampValue = $this->state['lastFetchedRow']['timestamp'];
+                $incrementalAddons[] = sprintf(" %s > '%s'", $this->quote($updateTimestampColumn), $updateTimestampValue);
+            }
+        }
         if (count($columns) > 0) {
-            return sprintf(
+            $query = sprintf(
                 "SELECT %s FROM %s.%s",
                 implode(', ', array_map(function ($column) {
                     return $this->quote($column);
@@ -53,24 +70,35 @@ class Common extends Extractor
                 $this->quote($table['tableName'])
             );
         } else {
-            return sprintf(
+            $query = sprintf(
                 "SELECT * FROM %s.%s",
                 $this->quote($table['schema']),
                 $this->quote($table['tableName'])
             );
         }
+
+        if (!empty($incrementalAddons)) {
+            $query .= sprintf(" WHERE %s", implode(' OR ', $incrementalAddons));
+        }
+        return $query;
     }
 
     public function getTables(array $tables = null)
     {
-        $sql = "SELECT * FROM INFORMATION_SCHEMA.TABLES 
-                                  WHERE TABLE_SCHEMA != 'performance_schema' 
-                                  AND TABLE_SCHEMA != 'mysql'
-                                  AND TABLE_SCHEMA != 'information_schema'";
+
+        $sql = "SELECT * FROM INFORMATION_SCHEMA.TABLES as c";
+
+        $whereClause = " WHERE c.TABLE_SCHEMA != 'performance_schema' 
+                          AND c.TABLE_SCHEMA != 'mysql'
+                          AND c.TABLE_SCHEMA != 'information_schema'";
+
+        if ($this->database) {
+            $whereClause = sprintf(" WHERE c.TABLE_SCHEMA = %s", $this->db->quote($this->database));
+        }
 
         if (!is_null($tables) && count($tables) > 0) {
-            $sql .= sprintf(
-                " AND TABLE_NAME IN (%s) AND TABLE_SCHEMA IN (%s)",
+            $whereClause .= sprintf(
+                " AND c.TABLE_NAME IN (%s) AND c.TABLE_SCHEMA IN (%s)",
                 implode(',', array_map(function ($table) {
                     return $this->db->quote($table['tableName']);
                 }, $tables)),
@@ -80,37 +108,51 @@ class Common extends Extractor
             );
         }
 
+        $sql .= $whereClause;
+
+        $sql .= " ORDER BY TABLE_SCHEMA, TABLE_NAME";
+
         $res = $this->db->query($sql);
         $arr = $res->fetchAll(\PDO::FETCH_ASSOC);
-
-        $output = [];
-        foreach ($arr as $table) {
-            $output[] = $this->describeTable($table);
+        if (count($arr) === 0) {
+            return [];
         }
-        return $output;
-    }
 
-    protected function describeTable(array $table)
-    {
-        $tabledef = [
-            'name' => $table['TABLE_NAME'],
-            'schema' => (isset($table['TABLE_SCHEMA'])) ? $table['TABLE_SCHEMA'] : '',
-            'type' => (isset($table['TABLE_TYPE'])) ? $table['TABLE_TYPE'] : '',
-            'rowCount' => (isset($table['TABLE_ROWS'])) ? $table['TABLE_ROWS'] : ''
-        ];
+        $tableNameArray = [];
+        $tableDefs = [];
+        foreach ($arr as $table) {
+            $tableNameArray[] = $table['TABLE_NAME'];
+            $tableDefs[$table['TABLE_SCHEMA'] . '.' . $table['TABLE_NAME']] = [
+                'name' => $table['TABLE_NAME'],
+                'schema' => (isset($table['TABLE_SCHEMA'])) ? $table['TABLE_SCHEMA'] : '',
+                'type' => (isset($table['TABLE_TYPE'])) ? $table['TABLE_TYPE'] : '',
+                'rowCount' => (isset($table['TABLE_ROWS'])) ? $table['TABLE_ROWS'] : '',
+            ];
+            if ($table["AUTO_INCREMENT"]) {
+                $tableDefs[$table['TABLE_SCHEMA'] . '.' . $table['TABLE_NAME']]['autoIncrement'] = $table['AUTO_INCREMENT'];
+            }
+        }
 
-        $sql = sprintf("SELECT c.*, 
+        if (!is_null($tables) && count($tables) > 0) {
+            $sql = "SELECT c.*, 
                     CONSTRAINT_NAME, REFERENCED_TABLE_NAME, REFERENCED_COLUMN_NAME, REFERENCED_TABLE_SCHEMA
                     FROM INFORMATION_SCHEMA.COLUMNS as c 
                     LEFT OUTER JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE as kcu
-                    ON c.TABLE_NAME = kcu.TABLE_NAME AND c.COLUMN_NAME = kcu.COLUMN_NAME
-                    WHERE c.TABLE_NAME = %s", $this->db->quote($table['TABLE_NAME']));
+                    ON c.TABLE_NAME = kcu.TABLE_NAME AND c.COLUMN_NAME = kcu.COLUMN_NAME";
+        } else {
+            $sql = "SELECT c.*
+                    FROM INFORMATION_SCHEMA.COLUMNS as c";
+        }
+
+        $sql .= $whereClause;
+
+        $sql .= " ORDER BY c.TABLE_SCHEMA, c.TABLE_NAME, ORDINAL_POSITION";
 
         $res = $this->db->query($sql);
-        $columns = [];
-
         $rows = $res->fetchAll(\PDO::FETCH_ASSOC);
+
         foreach ($rows as $i => $column) {
+            $curTable = $column['TABLE_SCHEMA'] . '.' . $column['TABLE_NAME'];
             $length = ($column['CHARACTER_MAXIMUM_LENGTH']) ? $column['CHARACTER_MAXIMUM_LENGTH'] : null;
             if (is_null($length) && !is_null($column['NUMERIC_PRECISION'])) {
                 if ($column['NUMERIC_SCALE'] > 0) {
@@ -119,28 +161,38 @@ class Common extends Extractor
                     $length = $column['NUMERIC_PRECISION'];
                 }
             }
-            $columns[] = [
+            $curColumn = [
                 "name" => $column['COLUMN_NAME'],
                 "type" => $column['DATA_TYPE'],
                 "primaryKey" => ($column['COLUMN_KEY'] === "PRI") ? true : false,
                 "length" => $length,
                 "nullable" => ($column['IS_NULLABLE'] === "NO") ? false : true,
                 "default" => $column['COLUMN_DEFAULT'],
-                "ordinalPosition" => $column['ORDINAL_POSITION']
+                "ordinalPosition" => $column['ORDINAL_POSITION'],
             ];
 
-            if (!is_null($column['CONSTRAINT_NAME'])) {
-                $columns[$i]['constraintName'] = $column['CONSTRAINT_NAME'];
+            if (array_key_exists('CONSTRAINT_NAME', $column) && !is_null($column['CONSTRAINT_NAME'])) {
+                $curColumn['constraintName'] = $column['CONSTRAINT_NAME'];
             }
-            if (!is_null($column['REFERENCED_TABLE_NAME'])) {
-                $columns[$i]['foreignKeyRefSchema'] = $column['REFERENCED_TABLE_SCHEMA'];
-                $columns[$i]['foreignKeyRefTable'] = $column['REFERENCED_TABLE_NAME'];
-                $columns[$i]['foreignKeyRefColumn'] = $column['REFERENCED_COLUMN_NAME'];
+            if (array_key_exists('REFERENCED_TABLE_NAME', $column) && !is_null($column['REFERENCED_TABLE_NAME'])) {
+                $curColumn['foreignKeyRefSchema'] = $column['REFERENCED_TABLE_SCHEMA'];
+                $curColumn['foreignKeyRefTable'] = $column['REFERENCED_TABLE_NAME'];
+                $curColumn['foreignKeyRefColumn'] = $column['REFERENCED_COLUMN_NAME'];
             }
+            if ($column['EXTRA']) {
+                $curColumn["extra"] = $column["EXTRA"];
+                if ($column['EXTRA'] === 'auto_increment') {
+                    $curColumn['autoIncrement'] = $tableDefs[$curTable]['autoIncrement'];
+                }
+                if ($column['EXTRA'] === 'on update CURRENT_TIMESTAMP' && $column['COLUMN_DEFAULT'] === 'CURRENT_TIMESTAMP') {
+                    $tableDefs[$curTable]['timestampUpdateColumn'] = $column['COLUMN_NAME'];
+                }
+            }
+            $tableDefs[$curTable]['columns'][$column['ORDINAL_POSITION'] - 1] = $curColumn;
         }
-        $tabledef['columns'] = $columns;
-        return $tabledef;
+        return array_values($tableDefs);
     }
+
 
     private function quote($obj)
     {

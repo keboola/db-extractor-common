@@ -16,6 +16,8 @@ use Pimple\Container;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 use Symfony\Component\Config\Definition\Exception\Exception as ConfigException;
 use Symfony\Component\Config\Definition\Processor;
+use Symfony\Component\Serializer\Encoder\JsonEncoder;
+
 
 class Application extends Container
 {
@@ -49,8 +51,6 @@ class Application extends Container
         } else {
             $this->configDefinition = new ConfigRowDefinition();
         }
-
-
     }
 
     public function run()
@@ -136,21 +136,28 @@ class Application extends Container
     private function runAction()
     {
         $imported = [];
+        $outputState = [];
         if (isset($this['parameters']['tables'])) {
             $tables = array_filter($this['parameters']['tables'], function ($table) {
                 return ($table['enabled']);
             });
+            foreach ($tables as $table) {
+                $exportResults = $this['extractor']->export($table);
+                $imported[] = $exportResults;
+            }
         } else {
-            $tables = [$this['parameters']];
-        }
-
-        foreach ($tables as $table) {
-            $imported[] = $this['extractor']->export($table);
+            $exportResults = $this['extractor']->export($this['parameters']);
+            if (isset($exportResults['state'])) {
+                $outputState = $exportResults['state'];
+                unset($exportResults['state']);
+            }
+            $imported = $exportResults;
         }
 
         return [
             'status' => 'success',
-            'imported' => $imported
+            'imported' => $imported,
+            'state' => $outputState,
         ];
     }
 

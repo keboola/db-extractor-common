@@ -32,6 +32,9 @@ abstract class Extractor
     /** @var  array */
     protected $state;
 
+    /** @var  array|null may contain either/both of autoIncrementColumn, timestampColumn */
+    protected $incrementalFetching;
+
     /** @var Logger */
     protected $logger;
 
@@ -57,6 +60,10 @@ abstract class Extractor
                 throw new ApplicationException("Missing driver: " . $e->getMessage());
             }
             throw new UserException("Error connecting to DB: " . $e->getMessage(), 0, $e);
+        }
+
+        if (isset($parameters['incrementalFetching'])) {
+            $this->incrementalFetching = $parameters['incrementalFetching'];
         }
     }
 
@@ -107,7 +114,7 @@ abstract class Extractor
     abstract public function testConnection();
 
     /**
-     * @param array|null $tables - an optional array of table names
+     * @param array|null $tables - an optional array of tables with tableName and schema properties
      * @return mixed
      */
     abstract public function getTables(array $tables = null);
@@ -138,13 +145,13 @@ abstract class Extractor
         }
 
         try {
-            $rows = $this->writeToCsv($stmt, $csv);
+            $result = $this->writeToCsv($stmt, $csv);
         } catch (CsvException $e) {
              throw new ApplicationException("Write to CSV failed: " . $e->getMessage(), 0, $e);
         }
 
 
-        if ($rows > 0) {
+        if ($result['rows'] > 0) {
             $this->createManifest($table);
         } else {
             $this->logger->warn(sprintf(
@@ -153,7 +160,15 @@ abstract class Extractor
             ));
         }
 
-        return $outputTable;
+        $output = [
+            "outputTable"=> $outputTable,
+            "rows" => $result['rows']
+        ];
+        // output state
+        if (!empty($result['lastFetchedRow'])) {
+            $output["state"]['lastFetchedRow'] = $result['lastFetchedRow'];
+        }
+        return $output;
     }
 
     private function handleDbError(\Exception $e, array $table = null, int $counter = null) : UserException
@@ -215,11 +230,12 @@ abstract class Extractor
     /**
      * @param \PDOStatement $stmt
      * @param CsvFile $csv
-     * @return int number of rows written to output file
+     * @return array ['rows', 'lastFetchedRow']
      * @throws CsvException
      */
     protected function writeToCsv(\PDOStatement $stmt, CsvFile $csv)
     {
+        $output = [];
         $resultRow = @$stmt->fetch(\PDO::FETCH_ASSOC);
 
         if (is_array($resultRow) && !empty($resultRow)) {
@@ -229,14 +245,29 @@ abstract class Extractor
 
             // write the rest
             $numRows = 1;
+            $lastRow = null;
             while ($resultRow = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                 $csv->writeRow($resultRow);
+                $lastRow = $resultRow;
                 $numRows++;
             }
-
-            return $numRows;
+            if ($this->incrementalFetching) {
+                if (isset($this->incrementalFetching['autoIncrementColumn'])) {
+                    $output['lastFetchedRow']['autoIncrement'] = $lastRow[$this->incrementalFetching['autoIncrementColumn']];
+                }
+                if (isset($this->incrementalFetching['timestampColumn'])) {
+                    $output['lastFetchedRow']['timestamp'] = $lastRow[$this->incrementalFetching['timestampColumn']];
+                }
+            }
+            $output['rows'] = $numRows;
+            return $output;
         }
-        return 0;
+        // no rows found.  If incremental fetching is turned on, we need to preserve the last state
+        if ($this->incrementalFetching && isset($this->state['lastFetchedRow'])) {
+            $output = $this->state;
+        }
+        $output['rows'] = 0;
+        return $output;
     }
 
     protected function createOutputCsv($outputTable)
