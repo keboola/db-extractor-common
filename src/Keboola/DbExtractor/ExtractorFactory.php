@@ -20,7 +20,7 @@ class ExtractorFactory
     public function __construct(array $parameters, array $state)
     {
         $this->parameters = $parameters;
-        $this->state = $state
+        $this->state = $state;
     }
 
     public function create($logger)

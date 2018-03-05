@@ -29,6 +29,9 @@ abstract class Extractor
     /** @var \PDO */
     protected $db;
 
+    /** @var  array */
+    protected $state;
+
     /** @var Logger */
     protected $logger;
 
@@ -36,10 +39,11 @@ abstract class Extractor
 
     private $dbParameters;
 
-    public function __construct($parameters, Logger $logger)
+    public function __construct(array $parameters, array $state = [], Logger $logger)
     {
         $this->logger = $logger;
         $this->dataDir = $parameters['data_dir'];
+        $this->state = $state;
 
         if (isset($parameters['db']['ssh']['enabled']) && $parameters['db']['ssh']['enabled']) {
             $parameters['db'] = $this->createSshTunnel($parameters['db']);
