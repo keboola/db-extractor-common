@@ -425,9 +425,10 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertFileExists($this->dataDir . '/out/tables/in.c-main.something-weird.csv.manifest');
     }
 
-    public function testIncrementalFetching()
+    public function testIncrementalFetchingByTimestamp()
     {
         $config = $this->getIncrementalFetchingConfig();
+        $config['incrementalFethcingColumn'] = 'timestamp';
         $this->createAutoIncrementAndTimestampTable();
 
         $result = (new Application($config))->run();
@@ -444,9 +445,7 @@ class CommonExtractorTest extends ExtractorTest
         //check that output state contains expected information
         $this->assertArrayHasKey('state', $result);
         $this->assertArrayHasKey('lastFetchedRow', $result['state']);
-        $this->assertArrayHasKey('timestamp', $result['state']['lastFetchedRow']);
-        $this->assertArrayHasKey('autoIncrement', $result['state']['lastFetchedRow']);
-        $this->assertEquals(2, $result['state']['lastFetchedRow']['autoIncrement']);
+        $this->assertNotEmpty($result['state']['lastFetchedRow']);
 
         sleep(2);
         // the next fetch should be empty
@@ -462,22 +461,18 @@ class CommonExtractorTest extends ExtractorTest
         //check that output state contains expected information
         $this->assertArrayHasKey('state', $newResult);
         $this->assertArrayHasKey('lastFetchedRow', $newResult['state']);
-        $this->assertArrayHasKey('timestamp', $newResult['state']['lastFetchedRow']);
-        $this->assertArrayHasKey('autoIncrement', $newResult['state']['lastFetchedRow']);
-        $this->assertEquals(4, $newResult['state']['lastFetchedRow']['autoIncrement']);
         $this->assertGreaterThan(
-            $result['state']['lastFetchedRow']['timestamp'],
-            $newResult['state']['lastFetchedRow']['timestamp']
+            $result['state']['lastFetchedRow'],
+            $newResult['state']['lastFetchedRow']
         );
     }
 
-    public function testInvalidIncrementalFetchingColumns()
+    public function testIncrementalFetchingInvalidColumns()
     {
         $this->createAutoIncrementAndTimestampTable();
         $config = $this->getIncrementalFetchingConfig();
-        $config['parameters']['incrementalFetching'] = [
-            'autoIncrementColumn' => 'fakeCol' // column does not exist
-        ];
+        $config['parameters']['incrementalFetchingColumn'] = 'fakeCol'; // column does not exist
+
         try {
             $result = (new Application($config))->run();
             $this->fail('specified autoIncrement column does not exist, should fail.');
@@ -485,9 +480,9 @@ class CommonExtractorTest extends ExtractorTest
             $this->assertStringStartsWith("Specified autoIncrement column", $e->getMessage());
         }
 
-        $config['parameters']['incrementalFetching'] = [
-            'timestampColumn' => 'fakeCol' // column does not exist
-        ];
+        // column exists but is not autoIncrement or timestamp
+        $config['parameters']['incrementalFetchingColumn'] = 'name';
+
         try {
             $result = (new Application($config))->run();
             $this->fail('specified autoIncrement column does not exist, should fail.');
@@ -496,7 +491,7 @@ class CommonExtractorTest extends ExtractorTest
         }
     }
 
-    public function testInvalidIncrementalFetchingConfig()
+    public function testIncrementalFetchingInvalidConfig()
     {
         $this->createAutoIncrementAndTimestampTable();
         $config = $this->getIncrementalFetchingConfig();
@@ -523,10 +518,7 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['name'] = 'auto-increment-timestamp';
         $config['parameters']['outputTable'] = 'in.c-main.auto-increment-timestamp';
         $config['parameters']['primaryKey'] = ['id'];
-        $config['parameters']['incrementalFetching'] = [
-            'autoIncrementColumn' => 'id',
-            'timestampColumn' => 'timestamp'
-        ];
+        $config['parameters']['incrementalFetchingColumn'] = 'id';
         return $config;
     }
 

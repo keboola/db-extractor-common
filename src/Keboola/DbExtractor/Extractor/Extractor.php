@@ -32,7 +32,7 @@ abstract class Extractor
     /** @var  array */
     protected $state;
 
-    /** @var  array|null may contain either/both of autoIncrementColumn, timestampColumn */
+    /** @var  array|null with keys type (autoIncrement or timestamp) and column*/
     protected $incrementalFetching;
 
     /** @var Logger */
@@ -62,8 +62,11 @@ abstract class Extractor
             throw new UserException("Error connecting to DB: " . $e->getMessage(), 0, $e);
         }
 
-        if (isset($parameters['incrementalFetching'])) {
-            $this->incrementalFetching = $parameters['incrementalFetching'];
+        if (isset($parameters['incrementalFetchingColumn'])) {
+            $this->validateIncrementalFetching(
+                $parameters['table'],
+                $parameters['incrementalFetchingColumn']
+            );
         }
     }
 
@@ -121,6 +124,11 @@ abstract class Extractor
 
     abstract public function simpleQuery(array $table, array $columns = array());
 
+    public function validateIncrementalFetching(array $table, string $columnName)
+    {
+        throw new UserException('Incremental Fetching is not supported by this extractor.');
+    }
+
     public function export(array $table)
     {
         $outputTable = $table['outputTable'];
@@ -149,7 +157,6 @@ abstract class Extractor
         } catch (CsvException $e) {
              throw new ApplicationException("Write to CSV failed: " . $e->getMessage(), 0, $e);
         }
-
 
         if ($result['rows'] > 0) {
             $this->createManifest($table);
@@ -251,35 +258,22 @@ abstract class Extractor
                 $lastRow = $resultRow;
                 $numRows++;
             }
-            if ($this->incrementalFetching) {
-                if (isset($this->incrementalFetching['autoIncrementColumn'])) {
-                    if (!array_key_exists($this->incrementalFetching['autoIncrementColumn'], $lastRow)) {
-                        throw new UserException(
-                            sprintf(
-                                "Specified autoIncrement column %s not found in table",
-                                $this->incrementalFetching['autoIncrementColumn']
-                            )
-                        );
-                    }
-                    $output['lastFetchedRow']['autoIncrement'] = $lastRow[$this->incrementalFetching['autoIncrementColumn']];
+            if (isset($this->incrementalFetching['column'])) {
+                if (!array_key_exists($this->incrementalFetching['column'], $lastRow)) {
+                    throw new UserException(
+                        sprintf(
+                            "The specified incremental fetching column %s not found in the table",
+                            $this->incrementalFetching['column']
+                        )
+                    );
                 }
-                if (isset($this->incrementalFetching['timestampColumn'])) {
-                    if (!array_key_exists($this->incrementalFetching['timestampColumn'], $lastRow)) {
-                        throw new UserException(
-                            sprintf(
-                                "Specified timestamp column %s not found in table",
-                                $this->incrementalFetching['timestampColumn']
-                            )
-                        );
-                    }
-                    $output['lastFetchedRow']['timestamp'] = $lastRow[$this->incrementalFetching['timestampColumn']];
-                }
+                $output['lastFetchedRow'] = $lastRow[$this->incrementalFetching['column']];
             }
             $output['rows'] = $numRows;
             return $output;
         }
         // no rows found.  If incremental fetching is turned on, we need to preserve the last state
-        if ($this->incrementalFetching && isset($this->state['lastFetchedRow'])) {
+        if ($this->incrementalFetching['column'] && isset($this->state['lastFetchedRow'])) {
             $output = $this->state;
         }
         $output['rows'] = 0;

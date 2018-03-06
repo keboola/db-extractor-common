@@ -15,6 +15,9 @@ class Common extends Extractor
 {
     protected $database;
 
+    const TYPE_AUTO_INCREMENT = 'autoIncrement';
+    const TYPE_TIMESTAMP = 'timestamp';
+
     public function createConnection($params)
     {
         // convert errors to PDOExceptions
@@ -45,19 +48,67 @@ class Common extends Extractor
         $this->db->query("SELECT 1");
     }
 
+    /**
+     * @param array $table
+     * @param string $columnName
+     * @throws UserException
+     */
+    public function validateIncrementalFetching(array $table, string $columnName)
+    {
+        $res = $this->db->query(
+            sprintf(
+                'SELECT * FROM INFORMATION_SCHEMA.COLUMNS as cols 
+                            WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND COLUMN_NAME = %s',
+                $this->db->quote($table['schema']),
+                $this->db->quote($table['tableName']),
+                $this->db->quote($columnName)
+            )
+        );
+        $columns = $res->fetchAll();
+        if (count($columns) === 0) {
+            throw new UserException(
+                sprintf(
+                    'Column [%s] specified for incremental fetching was not found in the table',
+                    $columnName
+                )
+            );
+        }
+        if ($columns[0]['EXTRA'] === 'auto_increment') {
+            $this->incrementalFetching['column'] = $columnName;
+            $this->incrementalFetching['type'] = self::TYPE_AUTO_INCREMENT;
+        } else if ($columns[0]['EXTRA'] === 'on update CURRENT_TIMESTAMP' && $columns[0]['COLUMN_DEFAULT'] === 'CURRENT_TIMESTAMP') {
+            $this->incrementalFetching['column'] = $columnName;
+            $this->incrementalFetching['type'] = self::TYPE_TIMESTAMP;
+        } else {
+            throw new UserException(
+                sprintf(
+                    'Column [%s] specified for incremental fetching is not an auto increment column or an auto update timestamp',
+                    $columnName
+                )
+            );
+        }
+    }
+
     public function simpleQuery(array $table, array $columns = array())
     {
         $incrementalAddons = [];
         if ($this->incrementalFetching && isset($this->state['lastFetchedRow'])) {
-            if (isset($this->state['lastFetchedRow']['autoIncrement'])) {
-                $autoIncColumn = $this->incrementalFetching['autoIncrementColumn'];
-                $autoIncValue = $this->state['lastFetchedRow']['autoIncrement'];
-                $incrementalAddons[] = sprintf(' %s > %d', $this->quote($autoIncColumn), (int) $autoIncValue);
-            }
-            if (isset($this->state['lastFetchedRow']['timestamp'])) {
-                $updateTimestampColumn = $this->incrementalFetching['timestampColumn'];
-                $updateTimestampValue = $this->state['lastFetchedRow']['timestamp'];
-                $incrementalAddons[] = sprintf(" %s > '%s'", $this->quote($updateTimestampColumn), $updateTimestampValue);
+            if ($this->incrementalFetching['type'] === self::TYPE_AUTO_INCREMENT) {
+                $incrementalAddons[] = sprintf(
+                    ' %s > %d',
+                    $this->quote($this->incrementalFetching['column']),
+                    (int) $this->state['lastFetchedRow']
+                );
+            } else if ($this->incrementalFetching['type'] === self::TYPE_AUTO_INCREMENT) {
+                $incrementalAddons[] = sprintf(
+                    " %s > '%s'",
+                    $this->quote($this->incrementalFetching['column']),
+                    $this->state['lastFetchedRow']
+                );
+            } else {
+                throw new ApplicationException(
+                    sprintf('Unknown incremental fetching column type %s', $this->incrementalFetching['type'])
+                );
             }
         }
         if (count($columns) > 0) {

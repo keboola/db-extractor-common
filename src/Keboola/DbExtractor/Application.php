@@ -93,7 +93,7 @@ class Application extends Container
                     $table['name']
                 ));
             }
-            if (isset($table['incrementalFetching'])) {
+            if (isset($table['incrementalFetchingColumn'])) {
                 throw new ConfigException(sprintf(
                     'Invalid Configuration in "%s". Incremental fetching is not supported for advanced queries.',
                     $table['name']
@@ -109,6 +109,8 @@ class Application extends Container
                 'Invalid Configuration in "%s". The table property requires "tableName" and "schema"',
                 $table['name']
             ));
+        } else if (isset($table['incrementalFetching']['autoIncrementColumn']) && empty($table['primaryKey'])) {
+            $this['logger']->warn("An import autoIncrement column is being used but output primary key is not set.");
         }
     }
 
