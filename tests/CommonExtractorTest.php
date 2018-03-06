@@ -12,6 +12,9 @@ class CommonExtractorTest extends ExtractorTest
 {
     const DRIVER = 'common';
 
+    /** @var  \PDO */
+    private $db;
+
     public function setUp()
     {
         if (!defined('APP_NAME')) {
@@ -53,6 +56,9 @@ class CommonExtractorTest extends ExtractorTest
         $inputFile = ROOT_PATH . '/tests/data/escaping.csv';
         $dataLoader->load($inputFile, 'escapingPK');
         $dataLoader->load($inputFile, 'escaping');
+
+        // let other methods use the db connection
+        $this->db = $dataLoader->getPdo();
     }
 
     public function testRun()
@@ -424,6 +430,76 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertEquals('success', $result['status']);
         $this->assertFileExists($this->dataDir . '/out/tables/in.c-main.something-weird.csv');
         $this->assertFileExists($this->dataDir . '/out/tables/in.c-main.something-weird.csv.manifest');
+    }
+
+    public function testIncrementalFetching()
+    {
+        $config = $this->getConfigRow(self::DRIVER);
+        unset($config['parameters']['query']);
+        $config['parameters']['table'] = [
+            'tableName' => 'auto_increment_timestamp',
+            'schema' => 'testdb'
+        ];
+        $config['parameters']['incremental'] = true;
+        $config['parameters']['name'] = 'auto-increment-timestamp';
+        $config['parameters']['outputTable'] = 'in.c-main.auto-increment-timestamp';
+        $config['parameters']['primaryKey'] = ['id'];
+        $config['parameters']['incrementalFetching'] = [
+            'autoIncrementColumn' => 'id',
+            'timestampColumn' => 'timestamp'
+        ];
+        $this->createAutoIncrementAndTimestampTable();
+
+        $result = (new Application($config))->run();
+
+        $this->assertEquals('success', $result['status']);
+        $this->assertEquals(
+            [
+                'outputTable' => 'in.c-main.auto-increment-timestamp',
+                'rows' => 2
+            ],
+            $result['imported']
+        );
+
+        //check that output state contains expected information
+        $this->assertArrayHasKey('state', $result);
+        $this->assertArrayHasKey('lastFetchedRow', $result['state']);
+        $this->assertArrayHasKey('timestamp', $result['state']['lastFetchedRow']);
+        $this->assertArrayHasKey('autoIncrement', $result['state']['lastFetchedRow']);
+        $this->assertEquals(2, $result['state']['lastFetchedRow']['autoIncrement']);
+
+        $firstTimestamp = $result['state']['lastFetchedRow']['timestamp'];
+
+        sleep(2);
+        //now add a couple rows and run it again.
+        $this->db->exec('INSERT INTO auto_increment_timestamp (`name`) VALUES (\'charles\'), (\'william\')');
+
+        $newResult = (new Application($config, $result['state']))->run();
+
+        //check that output state contains expected information
+        $this->assertArrayHasKey('state', $newResult);
+        $this->assertArrayHasKey('lastFetchedRow', $newResult['state']);
+        $this->assertArrayHasKey('timestamp', $newResult['state']['lastFetchedRow']);
+        $this->assertArrayHasKey('autoIncrement', $newResult['state']['lastFetchedRow']);
+        $this->assertEquals(4, $newResult['state']['lastFetchedRow']['autoIncrement']);
+        $this->assertGreaterThan(
+            $result['state']['lastFetchedRow']['timestamp'],
+            $newResult['state']['lastFetchedRow']['timestamp']
+        );
+    }
+
+    protected function createAutoIncrementAndTimestampTable()
+    {
+        $this->db->exec('DROP TABLE IF EXISTS auto_increment_timestamp');
+
+
+        $this->db->exec('CREATE TABLE auto_increment_timestamp (
+            `id` INT NOT NULL AUTO_INCREMENT,
+            `name` VARCHAR(30) NOT NULL DEFAULT \'pam\',
+            `timestamp` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (`id`)  
+        )');
+        $this->db->exec('INSERT INTO auto_increment_timestamp (`name`) VALUES (\'george\'), (\'henry\')');
     }
 
     protected function assertRunResult($result)
