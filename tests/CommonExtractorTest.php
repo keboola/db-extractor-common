@@ -73,7 +73,10 @@ class CommonExtractorTest extends ExtractorTest
 
     public function testRunConfigRow()
     {
-        $this->assertRunResult((new Application($this->getConfigRow(self::DRIVER)))->run());
+        $result = (new Application($this->getConfigRow(self::DRIVER)))->run();
+        $this->assertEquals('success', $result['status']);
+        $this->assertEquals('in.c-main.escaping', $result['imported']['outputTable']);
+        $this->assertEquals(7, $result['imported']['rows']);
     }
 
     public function testRunWithSSH()
@@ -253,11 +256,7 @@ class CommonExtractorTest extends ExtractorTest
                         "length" => "155",
                         "nullable" => false,
                         "default" => "abc",
-                        "ordinalPosition" => "1",
-                        "constraintName" => "escaping_ibfk_1",
-                        "foreignKeyRefSchema" => "testdb",
-                        "foreignKeyRefTable" => "escapingPK",
-                        "foreignKeyRefColumn" => "col1"
+                        "ordinalPosition" => "1"
                     ],[
                         "name" => "col2",
                         "type" => "varchar",
@@ -265,11 +264,7 @@ class CommonExtractorTest extends ExtractorTest
                         "length" => "155",
                         "nullable" => false,
                         "default" => "abc",
-                        "ordinalPosition" => "2",
-                        "constraintName" => "escaping_ibfk_1",
-                        "foreignKeyRefSchema" => "testdb",
-                        "foreignKeyRefTable" => "escapingPK",
-                        "foreignKeyRefColumn" => "col2"
+                        "ordinalPosition" => "2"
                     ]
                 ]
             ],[
@@ -284,8 +279,7 @@ class CommonExtractorTest extends ExtractorTest
                         "length" => "155",
                         "nullable" => false,
                         "default" => "",
-                        "ordinalPosition" => "1",
-                        "constraintName" => "PRIMARY"
+                        "ordinalPosition" => "1"
                     ], [
                         "name" => "col2",
                         "type" => "varchar",
@@ -293,8 +287,7 @@ class CommonExtractorTest extends ExtractorTest
                         "length" => "155",
                         "nullable" => false,
                         "default" => "",
-                        "ordinalPosition" => "2",
-                        "constraintName" => "PRIMARY"
+                        "ordinalPosition" => "2"
                     ]
                 ]
             ]
@@ -505,8 +498,8 @@ class CommonExtractorTest extends ExtractorTest
     protected function assertRunResult($result)
     {
         $expectedCsvFile = ROOT_PATH . '/tests/data/escaping.csv';
-        $outputCsvFile = $this->dataDir . '/out/tables/' . $result['imported'][0] . '.csv';
-        $outputManifestFile = $this->dataDir . '/out/tables/' . $result['imported'][0] . '.csv.manifest';
+        $outputCsvFile = $this->dataDir . '/out/tables/' . $result['imported'][0]['outputTable'] . '.csv';
+        $outputManifestFile = $this->dataDir . '/out/tables/' . $result['imported'][0]['outputTable'] . '.csv.manifest';
 
         $this->assertEquals('success', $result['status']);
         $this->assertFileExists($outputCsvFile);
