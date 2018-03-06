@@ -427,20 +427,7 @@ class CommonExtractorTest extends ExtractorTest
 
     public function testIncrementalFetching()
     {
-        $config = $this->getConfigRow(self::DRIVER);
-        unset($config['parameters']['query']);
-        $config['parameters']['table'] = [
-            'tableName' => 'auto_increment_timestamp',
-            'schema' => 'testdb'
-        ];
-        $config['parameters']['incremental'] = true;
-        $config['parameters']['name'] = 'auto-increment-timestamp';
-        $config['parameters']['outputTable'] = 'in.c-main.auto-increment-timestamp';
-        $config['parameters']['primaryKey'] = ['id'];
-        $config['parameters']['incrementalFetching'] = [
-            'autoIncrementColumn' => 'id',
-            'timestampColumn' => 'timestamp'
-        ];
+        $config = $this->getIncrementalFetchingConfig();
         $this->createAutoIncrementAndTimestampTable();
 
         $result = (new Application($config))->run();
@@ -487,16 +474,7 @@ class CommonExtractorTest extends ExtractorTest
     public function testInvalidIncrementalFetchingColumns()
     {
         $this->createAutoIncrementAndTimestampTable();
-        $config = $this->getConfigRow(self::DRIVER);
-        unset($config['parameters']['query']);
-        $config['parameters']['table'] = [
-            'tableName' => 'auto_increment_timestamp',
-            'schema' => 'testdb'
-        ];
-        $config['parameters']['incremental'] = false;
-        $config['parameters']['name'] = 'invalid-incremental-config';
-        $config['parameters']['outputTable'] = 'in.c-main.invalid-incremental-config';
-        $config['parameters']['primaryKey'] = ['id'];
+        $config = $this->getIncrementalFetchingConfig();
         $config['parameters']['incrementalFetching'] = [
             'autoIncrementColumn' => 'fakeCol' // column does not exist
         ];
@@ -510,7 +488,6 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['incrementalFetching'] = [
             'timestampColumn' => 'fakeCol' // column does not exist
         ];
-
         try {
             $result = (new Application($config))->run();
             $this->fail('specified autoIncrement column does not exist, should fail.');
@@ -522,15 +499,9 @@ class CommonExtractorTest extends ExtractorTest
     public function testInvalidIncrementalFetchingConfig()
     {
         $this->createAutoIncrementAndTimestampTable();
-        $config = $this->getConfigRow(self::DRIVER);
+        $config = $this->getIncrementalFetchingConfig();
         $config['parameters']['query'] = 'SELECT * FROM auto_increment_timestamp';
-        $config['parameters']['incremental'] = false;
-        $config['parameters']['name'] = 'auto_increment_timestamp';
-        $config['parameters']['outputTable'] = 'in.c-main.auto_increment_timestamp';
-        $config['parameters']['primaryKey'] = ['id'];
-        $config['parameters']['incrementalFetching'] = [
-            'autoIncrementColumn' => 'id' // column does not exist
-        ];
+        unset($config['parameters']['table']);
 
         try {
             $result = (new Application($config))->run();
@@ -538,6 +509,25 @@ class CommonExtractorTest extends ExtractorTest
         } catch (UserException $e) {
             $this->assertStringStartsWith("Invalid Configuration", $e->getMessage());
         }
+    }
+
+    private function getIncrementalFetchingConfig()
+    {
+        $config = $this->getConfigRow(self::DRIVER);
+        unset($config['parameters']['query']);
+        $config['parameters']['table'] = [
+            'tableName' => 'auto_increment_timestamp',
+            'schema' => 'testdb'
+        ];
+        $config['parameters']['incremental'] = true;
+        $config['parameters']['name'] = 'auto-increment-timestamp';
+        $config['parameters']['outputTable'] = 'in.c-main.auto-increment-timestamp';
+        $config['parameters']['primaryKey'] = ['id'];
+        $config['parameters']['incrementalFetching'] = [
+            'autoIncrementColumn' => 'id',
+            'timestampColumn' => 'timestamp'
+        ];
+        return $config;
     }
 
     protected function createAutoIncrementAndTimestampTable()
