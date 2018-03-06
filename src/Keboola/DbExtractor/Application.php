@@ -93,6 +93,12 @@ class Application extends Container
                     $table['name']
                 ));
             }
+            if (isset($table['incrementalFetching'])) {
+                throw new ConfigException(sprintf(
+                    'Invalid Configuration in "%s". Incremental fetching is not supported for advanced queries.',
+                    $table['name']
+                ));
+            }
         } else if (!isset($table['table'])) {
             throw new ConfigException(sprintf(
                 'Invalid Configuration in "%s". One of table or query is required.',

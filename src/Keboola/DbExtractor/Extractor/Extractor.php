@@ -231,7 +231,7 @@ abstract class Extractor
      * @param \PDOStatement $stmt
      * @param CsvFile $csv
      * @return array ['rows', 'lastFetchedRow']
-     * @throws CsvException
+     * @throws CsvException|UserException
      */
     protected function writeToCsv(\PDOStatement $stmt, CsvFile $csv)
     {
@@ -253,9 +253,25 @@ abstract class Extractor
             }
             if ($this->incrementalFetching) {
                 if (isset($this->incrementalFetching['autoIncrementColumn'])) {
+                    if (!array_key_exists($this->incrementalFetching['autoIncrementColumn'], $lastRow)) {
+                        throw new UserException(
+                            sprintf(
+                                "Specified autoIncrement column %s not found in table",
+                                $this->incrementalFetching['autoIncrementColumn']
+                            )
+                        );
+                    }
                     $output['lastFetchedRow']['autoIncrement'] = $lastRow[$this->incrementalFetching['autoIncrementColumn']];
                 }
                 if (isset($this->incrementalFetching['timestampColumn'])) {
+                    if (!array_key_exists($this->incrementalFetching['timestampColumn'], $lastRow)) {
+                        throw new UserException(
+                            sprintf(
+                                "Specified timestamp column %s not found in table",
+                                $this->incrementalFetching['timestampColumn']
+                            )
+                        );
+                    }
                     $output['lastFetchedRow']['timestamp'] = $lastRow[$this->incrementalFetching['timestampColumn']];
                 }
             }

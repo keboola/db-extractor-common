@@ -461,7 +461,10 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertArrayHasKey('autoIncrement', $result['state']['lastFetchedRow']);
         $this->assertEquals(2, $result['state']['lastFetchedRow']['autoIncrement']);
 
-        $firstTimestamp = $result['state']['lastFetchedRow']['timestamp'];
+        sleep(2);
+        // the next fetch should be empty
+        $emptyResult = (new Application($config, $result['state']))->run();
+        $this->assertEquals(0, $emptyResult['imported']['rows']);
 
         sleep(2);
         //now add a couple rows and run it again.
@@ -481,10 +484,65 @@ class CommonExtractorTest extends ExtractorTest
         );
     }
 
+    public function testInvalidIncrementalFetchingColumns()
+    {
+        $this->createAutoIncrementAndTimestampTable();
+        $config = $this->getConfigRow(self::DRIVER);
+        unset($config['parameters']['query']);
+        $config['parameters']['table'] = [
+            'tableName' => 'auto_increment_timestamp',
+            'schema' => 'testdb'
+        ];
+        $config['parameters']['incremental'] = false;
+        $config['parameters']['name'] = 'invalid-incremental-config';
+        $config['parameters']['outputTable'] = 'in.c-main.invalid-incremental-config';
+        $config['parameters']['primaryKey'] = ['id'];
+        $config['parameters']['incrementalFetching'] = [
+            'autoIncrementColumn' => 'fakeCol' // column does not exist
+        ];
+        try {
+            $result = (new Application($config))->run();
+            $this->fail('specified autoIncrement column does not exist, should fail.');
+        } catch (UserException $e) {
+            $this->assertStringStartsWith("Specified autoIncrement column", $e->getMessage());
+        }
+
+        $config['parameters']['incrementalFetching'] = [
+            'timestampColumn' => 'fakeCol' // column does not exist
+        ];
+
+        try {
+            $result = (new Application($config))->run();
+            $this->fail('specified autoIncrement column does not exist, should fail.');
+        } catch (UserException $e) {
+            $this->assertStringStartsWith("Specified timestamp column", $e->getMessage());
+        }
+    }
+
+    public function testInvalidIncrementalFetchingConfig()
+    {
+        $this->createAutoIncrementAndTimestampTable();
+        $config = $this->getConfigRow(self::DRIVER);
+        $config['parameters']['query'] = 'SELECT * FROM auto_increment_timestamp';
+        $config['parameters']['incremental'] = false;
+        $config['parameters']['name'] = 'auto_increment_timestamp';
+        $config['parameters']['outputTable'] = 'in.c-main.auto_increment_timestamp';
+        $config['parameters']['primaryKey'] = ['id'];
+        $config['parameters']['incrementalFetching'] = [
+            'autoIncrementColumn' => 'id' // column does not exist
+        ];
+
+        try {
+            $result = (new Application($config))->run();
+            $this->fail('specified autoIncrement column does not exist, should fail.');
+        } catch (UserException $e) {
+            $this->assertStringStartsWith("Invalid Configuration", $e->getMessage());
+        }
+    }
+
     protected function createAutoIncrementAndTimestampTable()
     {
         $this->db->exec('DROP TABLE IF EXISTS auto_increment_timestamp');
-
 
         $this->db->exec('CREATE TABLE auto_increment_timestamp (
             `id` INT NOT NULL AUTO_INCREMENT,
