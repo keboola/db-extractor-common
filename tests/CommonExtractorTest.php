@@ -467,6 +467,46 @@ class CommonExtractorTest extends ExtractorTest
         );
     }
 
+    public function testIncrementalFetchingByAutoIncrement()
+    {
+        $config = $this->getIncrementalFetchingConfig();
+        $config['incrementalFethcingColumn'] = 'id';
+        $this->createAutoIncrementAndTimestampTable();
+
+        $result = (new Application($config))->run();
+
+        $this->assertEquals('success', $result['status']);
+        $this->assertEquals(
+            [
+                'outputTable' => 'in.c-main.auto-increment-timestamp',
+                'rows' => 2
+            ],
+            $result['imported']
+        );
+
+        //check that output state contains expected information
+        $this->assertArrayHasKey('state', $result);
+        $this->assertArrayHasKey('lastFetchedRow', $result['state']);
+        $this->assertEquals(2, $result['state']['lastFetchedRow']);
+
+        sleep(2);
+        // the next fetch should be empty
+        $emptyResult = (new Application($config, $result['state']))->run();
+        $this->assertEquals(0, $emptyResult['imported']['rows']);
+
+        sleep(2);
+        //now add a couple rows and run it again.
+        $this->db->exec('INSERT INTO auto_increment_timestamp (`name`) VALUES (\'charles\'), (\'william\')');
+
+        $newResult = (new Application($config, $result['state']))->run();
+
+        //check that output state contains expected information
+        $this->assertArrayHasKey('state', $newResult);
+        $this->assertArrayHasKey('lastFetchedRow', $newResult['state']);
+        $this->assertEquals(4, $newResult['state']['lastFetchedRow']);
+        $this->assertEquals(2, $newResult['imported']['rows']);
+    }
+
     public function testIncrementalFetchingInvalidColumns()
     {
         $this->createAutoIncrementAndTimestampTable();
@@ -477,17 +517,7 @@ class CommonExtractorTest extends ExtractorTest
             $result = (new Application($config))->run();
             $this->fail('specified autoIncrement column does not exist, should fail.');
         } catch (UserException $e) {
-            $this->assertStringStartsWith("Specified autoIncrement column", $e->getMessage());
-        }
-
-        // column exists but is not autoIncrement or timestamp
-        $config['parameters']['incrementalFetchingColumn'] = 'name';
-
-        try {
-            $result = (new Application($config))->run();
-            $this->fail('specified autoIncrement column does not exist, should fail.');
-        } catch (UserException $e) {
-            $this->assertStringStartsWith("Specified timestamp column", $e->getMessage());
+            $this->assertStringStartsWith("Column [fakeCol]", $e->getMessage());
         }
     }
 
@@ -500,7 +530,7 @@ class CommonExtractorTest extends ExtractorTest
 
         try {
             $result = (new Application($config))->run();
-            $this->fail('specified autoIncrement column does not exist, should fail.');
+            $this->fail('cannot use incremental fetching with advanced query, should fail.');
         } catch (UserException $e) {
             $this->assertStringStartsWith("Invalid Configuration", $e->getMessage());
         }
