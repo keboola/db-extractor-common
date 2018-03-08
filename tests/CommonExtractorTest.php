@@ -519,6 +519,15 @@ class CommonExtractorTest extends ExtractorTest
         } catch (UserException $e) {
             $this->assertStringStartsWith("Column [fakeCol]", $e->getMessage());
         }
+
+        // column exists but is not auto-increment nor updating timestamp so should fail
+        $config['parameters']['incrementalFetchingColumn'] = 'name';
+        try {
+            $result = (new Application($config))->run();
+            $this->fail('specified column is not auto increment nor timestamp, should fail.');
+        } catch (UserException $e) {
+            $this->assertStringStartsWith("Column [name] specified for incremental fetching", $e->getMessage());
+        }
     }
 
     public function testIncrementalFetchingInvalidConfig()
