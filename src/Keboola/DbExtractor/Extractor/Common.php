@@ -91,16 +91,16 @@ class Common extends Extractor
 
     public function simpleQuery(array $table, array $columns = array())
     {
-        $incrementalAddons = [];
+        $incrementalAddon = null;
         if ($this->incrementalFetching && isset($this->state['lastFetchedRow'])) {
             if ($this->incrementalFetching['type'] === self::TYPE_AUTO_INCREMENT) {
-                $incrementalAddons[] = sprintf(
+                $incrementalAddon = sprintf(
                     ' %s > %d',
                     $this->quote($this->incrementalFetching['column']),
                     (int) $this->state['lastFetchedRow']
                 );
             } else if ($this->incrementalFetching['type'] === self::TYPE_AUTO_INCREMENT) {
-                $incrementalAddons[] = sprintf(
+                $incrementalAddon = sprintf(
                     " %s > '%s'",
                     $this->quote($this->incrementalFetching['column']),
                     $this->state['lastFetchedRow']
@@ -128,8 +128,12 @@ class Common extends Extractor
             );
         }
 
-        if (!empty($incrementalAddons)) {
-            $query .= sprintf(" WHERE %s", implode(' OR ', $incrementalAddons));
+        if ($incrementalAddon) {
+            $query .= sprintf(
+                " WHERE %s ORDER BY %s",
+                $incrementalAddon,
+                $this->quote($this->incrementalFetching['column'])
+            );
         }
         return $query;
     }
