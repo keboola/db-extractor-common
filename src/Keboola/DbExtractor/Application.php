@@ -16,12 +16,14 @@ use Pimple\Container;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 use Symfony\Component\Config\Definition\Exception\Exception as ConfigException;
 use Symfony\Component\Config\Definition\Processor;
+use Symfony\Component\Serializer\Encoder\JsonEncoder;
+
 
 class Application extends Container
 {
     private $configDefinition;
 
-    public function __construct($config)
+    public function __construct(array $config, array $state = [])
     {
         parent::__construct();
 
@@ -31,12 +33,14 @@ class Application extends Container
 
         $this['parameters'] = $config['parameters'];
 
+        $this['state'] = $state;
+
         $this['logger'] = function () use ($app) {
             return new Logger(APP_NAME);
         };
 
         $this['extractor_factory'] = function () use ($app) {
-            return new ExtractorFactory($app['parameters']);
+            return new ExtractorFactory($app['parameters'], $app['state']);
         };
 
         $this['extractor'] = function () use ($app) {
@@ -89,6 +93,12 @@ class Application extends Container
                     $table['name']
                 ));
             }
+            if (isset($table['incrementalFetchingColumn'])) {
+                throw new ConfigException(sprintf(
+                    'Invalid Configuration in "%s". Incremental fetching is not supported for advanced queries.',
+                    $table['name']
+                ));
+            }
         } else if (!isset($table['table'])) {
             throw new ConfigException(sprintf(
                 'Invalid Configuration in "%s". One of table or query is required.',
@@ -99,6 +109,8 @@ class Application extends Container
                 'Invalid Configuration in "%s". The table property requires "tableName" and "schema"',
                 $table['name']
             ));
+        } else if (isset($table['incrementalFetching']['autoIncrementColumn']) && empty($table['primaryKey'])) {
+            $this['logger']->warn("An import autoIncrement column is being used but output primary key is not set.");
         }
     }
 
@@ -132,21 +144,28 @@ class Application extends Container
     private function runAction()
     {
         $imported = [];
+        $outputState = [];
         if (isset($this['parameters']['tables'])) {
             $tables = array_filter($this['parameters']['tables'], function ($table) {
                 return ($table['enabled']);
             });
+            foreach ($tables as $table) {
+                $exportResults = $this['extractor']->export($table);
+                $imported[] = $exportResults;
+            }
         } else {
-            $tables = [$this['parameters']];
-        }
-
-        foreach ($tables as $table) {
-            $imported[] = $this['extractor']->export($table);
+            $exportResults = $this['extractor']->export($this['parameters']);
+            if (isset($exportResults['state'])) {
+                $outputState = $exportResults['state'];
+                unset($exportResults['state']);
+            }
+            $imported = $exportResults;
         }
 
         return [
             'status' => 'success',
-            'imported' => $imported
+            'imported' => $imported,
+            'state' => $outputState,
         ];
     }
 

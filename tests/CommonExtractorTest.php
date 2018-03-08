@@ -12,6 +12,9 @@ class CommonExtractorTest extends ExtractorTest
 {
     const DRIVER = 'common';
 
+    /** @var  \PDO */
+    private $db;
+
     public function setUp()
     {
         if (!defined('APP_NAME')) {
@@ -53,6 +56,9 @@ class CommonExtractorTest extends ExtractorTest
         $inputFile = ROOT_PATH . '/tests/data/escaping.csv';
         $dataLoader->load($inputFile, 'escapingPK');
         $dataLoader->load($inputFile, 'escaping');
+
+        // let other methods use the db connection
+        $this->db = $dataLoader->getPdo();
     }
 
     public function testRun()
@@ -67,7 +73,10 @@ class CommonExtractorTest extends ExtractorTest
 
     public function testRunConfigRow()
     {
-        $this->assertRunResult((new Application($this->getConfigRow(self::DRIVER)))->run());
+        $result = (new Application($this->getConfigRow(self::DRIVER)))->run();
+        $this->assertEquals('success', $result['status']);
+        $this->assertEquals('in.c-main.escaping', $result['imported']['outputTable']);
+        $this->assertEquals(7, $result['imported']['rows']);
     }
 
     public function testRunWithSSH()
@@ -247,11 +256,7 @@ class CommonExtractorTest extends ExtractorTest
                         "length" => "155",
                         "nullable" => false,
                         "default" => "abc",
-                        "ordinalPosition" => "1",
-                        "constraintName" => "escaping_ibfk_1",
-                        "foreignKeyRefSchema" => "testdb",
-                        "foreignKeyRefTable" => "escapingPK",
-                        "foreignKeyRefColumn" => "col1"
+                        "ordinalPosition" => "1"
                     ],[
                         "name" => "col2",
                         "type" => "varchar",
@@ -259,11 +264,7 @@ class CommonExtractorTest extends ExtractorTest
                         "length" => "155",
                         "nullable" => false,
                         "default" => "abc",
-                        "ordinalPosition" => "2",
-                        "constraintName" => "escaping_ibfk_1",
-                        "foreignKeyRefSchema" => "testdb",
-                        "foreignKeyRefTable" => "escapingPK",
-                        "foreignKeyRefColumn" => "col2"
+                        "ordinalPosition" => "2"
                     ]
                 ]
             ],[
@@ -278,8 +279,7 @@ class CommonExtractorTest extends ExtractorTest
                         "length" => "155",
                         "nullable" => false,
                         "default" => "",
-                        "ordinalPosition" => "1",
-                        "constraintName" => "PRIMARY"
+                        "ordinalPosition" => "1"
                     ], [
                         "name" => "col2",
                         "type" => "varchar",
@@ -287,8 +287,7 @@ class CommonExtractorTest extends ExtractorTest
                         "length" => "155",
                         "nullable" => false,
                         "default" => "",
-                        "ordinalPosition" => "2",
-                        "constraintName" => "PRIMARY"
+                        "ordinalPosition" => "2"
                     ]
                 ]
             ]
@@ -426,11 +425,160 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertFileExists($this->dataDir . '/out/tables/in.c-main.something-weird.csv.manifest');
     }
 
+    public function testIncrementalFetchingByTimestamp()
+    {
+        $config = $this->getIncrementalFetchingConfig();
+        $config['incrementalFethcingColumn'] = 'timestamp';
+        $this->createAutoIncrementAndTimestampTable();
+
+        $result = (new Application($config))->run();
+
+        $this->assertEquals('success', $result['status']);
+        $this->assertEquals(
+            [
+                'outputTable' => 'in.c-main.auto-increment-timestamp',
+                'rows' => 2
+            ],
+            $result['imported']
+        );
+
+        //check that output state contains expected information
+        $this->assertArrayHasKey('state', $result);
+        $this->assertArrayHasKey('lastFetchedRow', $result['state']);
+        $this->assertNotEmpty($result['state']['lastFetchedRow']);
+
+        sleep(2);
+        // the next fetch should be empty
+        $emptyResult = (new Application($config, $result['state']))->run();
+        $this->assertEquals(0, $emptyResult['imported']['rows']);
+
+        sleep(2);
+        //now add a couple rows and run it again.
+        $this->db->exec('INSERT INTO auto_increment_timestamp (`name`) VALUES (\'charles\'), (\'william\')');
+
+        $newResult = (new Application($config, $result['state']))->run();
+
+        //check that output state contains expected information
+        $this->assertArrayHasKey('state', $newResult);
+        $this->assertArrayHasKey('lastFetchedRow', $newResult['state']);
+        $this->assertGreaterThan(
+            $result['state']['lastFetchedRow'],
+            $newResult['state']['lastFetchedRow']
+        );
+    }
+
+    public function testIncrementalFetchingByAutoIncrement()
+    {
+        $config = $this->getIncrementalFetchingConfig();
+        $config['incrementalFethcingColumn'] = 'id';
+        $this->createAutoIncrementAndTimestampTable();
+
+        $result = (new Application($config))->run();
+
+        $this->assertEquals('success', $result['status']);
+        $this->assertEquals(
+            [
+                'outputTable' => 'in.c-main.auto-increment-timestamp',
+                'rows' => 2
+            ],
+            $result['imported']
+        );
+
+        //check that output state contains expected information
+        $this->assertArrayHasKey('state', $result);
+        $this->assertArrayHasKey('lastFetchedRow', $result['state']);
+        $this->assertEquals(2, $result['state']['lastFetchedRow']);
+
+        sleep(2);
+        // the next fetch should be empty
+        $emptyResult = (new Application($config, $result['state']))->run();
+        $this->assertEquals(0, $emptyResult['imported']['rows']);
+
+        sleep(2);
+        //now add a couple rows and run it again.
+        $this->db->exec('INSERT INTO auto_increment_timestamp (`name`) VALUES (\'charles\'), (\'william\')');
+
+        $newResult = (new Application($config, $result['state']))->run();
+
+        //check that output state contains expected information
+        $this->assertArrayHasKey('state', $newResult);
+        $this->assertArrayHasKey('lastFetchedRow', $newResult['state']);
+        $this->assertEquals(4, $newResult['state']['lastFetchedRow']);
+        $this->assertEquals(2, $newResult['imported']['rows']);
+    }
+
+    public function testIncrementalFetchingInvalidColumns()
+    {
+        $this->createAutoIncrementAndTimestampTable();
+        $config = $this->getIncrementalFetchingConfig();
+        $config['parameters']['incrementalFetchingColumn'] = 'fakeCol'; // column does not exist
+
+        try {
+            $result = (new Application($config))->run();
+            $this->fail('specified autoIncrement column does not exist, should fail.');
+        } catch (UserException $e) {
+            $this->assertStringStartsWith("Column [fakeCol]", $e->getMessage());
+        }
+
+        // column exists but is not auto-increment nor updating timestamp so should fail
+        $config['parameters']['incrementalFetchingColumn'] = 'name';
+        try {
+            $result = (new Application($config))->run();
+            $this->fail('specified column is not auto increment nor timestamp, should fail.');
+        } catch (UserException $e) {
+            $this->assertStringStartsWith("Column [name] specified for incremental fetching", $e->getMessage());
+        }
+    }
+
+    public function testIncrementalFetchingInvalidConfig()
+    {
+        $this->createAutoIncrementAndTimestampTable();
+        $config = $this->getIncrementalFetchingConfig();
+        $config['parameters']['query'] = 'SELECT * FROM auto_increment_timestamp';
+        unset($config['parameters']['table']);
+
+        try {
+            $result = (new Application($config))->run();
+            $this->fail('cannot use incremental fetching with advanced query, should fail.');
+        } catch (UserException $e) {
+            $this->assertStringStartsWith("Invalid Configuration", $e->getMessage());
+        }
+    }
+
+    private function getIncrementalFetchingConfig()
+    {
+        $config = $this->getConfigRow(self::DRIVER);
+        unset($config['parameters']['query']);
+        $config['parameters']['table'] = [
+            'tableName' => 'auto_increment_timestamp',
+            'schema' => 'testdb'
+        ];
+        $config['parameters']['incremental'] = true;
+        $config['parameters']['name'] = 'auto-increment-timestamp';
+        $config['parameters']['outputTable'] = 'in.c-main.auto-increment-timestamp';
+        $config['parameters']['primaryKey'] = ['id'];
+        $config['parameters']['incrementalFetchingColumn'] = 'id';
+        return $config;
+    }
+
+    protected function createAutoIncrementAndTimestampTable()
+    {
+        $this->db->exec('DROP TABLE IF EXISTS auto_increment_timestamp');
+
+        $this->db->exec('CREATE TABLE auto_increment_timestamp (
+            `id` INT NOT NULL AUTO_INCREMENT,
+            `name` VARCHAR(30) NOT NULL DEFAULT \'pam\',
+            `timestamp` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (`id`)  
+        )');
+        $this->db->exec('INSERT INTO auto_increment_timestamp (`name`) VALUES (\'george\'), (\'henry\')');
+    }
+
     protected function assertRunResult($result)
     {
         $expectedCsvFile = ROOT_PATH . '/tests/data/escaping.csv';
-        $outputCsvFile = $this->dataDir . '/out/tables/' . $result['imported'][0] . '.csv';
-        $outputManifestFile = $this->dataDir . '/out/tables/' . $result['imported'][0] . '.csv.manifest';
+        $outputCsvFile = $this->dataDir . '/out/tables/' . $result['imported'][0]['outputTable'] . '.csv';
+        $outputManifestFile = $this->dataDir . '/out/tables/' . $result['imported'][0]['outputTable'] . '.csv.manifest';
 
         $this->assertEquals('success', $result['status']);
         $this->assertFileExists($outputCsvFile);

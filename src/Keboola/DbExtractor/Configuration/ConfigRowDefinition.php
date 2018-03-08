@@ -69,6 +69,7 @@ class ConfigRowDefinition implements ConfigurationInterface
                 ->booleanNode('incremental')
                     ->defaultValue(false)
                 ->end()
+                ->scalarNode('incrementalFetchingColumn')->end()
                 ->booleanNode('enabled')
                     ->defaultValue(true)
                 ->end()

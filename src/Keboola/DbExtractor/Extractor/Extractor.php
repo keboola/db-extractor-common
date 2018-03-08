@@ -29,6 +29,12 @@ abstract class Extractor
     /** @var \PDO */
     protected $db;
 
+    /** @var  array */
+    protected $state;
+
+    /** @var  array|null with keys type (autoIncrement or timestamp) and column*/
+    protected $incrementalFetching;
+
     /** @var Logger */
     protected $logger;
 
@@ -36,10 +42,11 @@ abstract class Extractor
 
     private $dbParameters;
 
-    public function __construct($parameters, Logger $logger)
+    public function __construct(array $parameters, array $state = [], Logger $logger)
     {
         $this->logger = $logger;
         $this->dataDir = $parameters['data_dir'];
+        $this->state = $state;
 
         if (isset($parameters['db']['ssh']['enabled']) && $parameters['db']['ssh']['enabled']) {
             $parameters['db'] = $this->createSshTunnel($parameters['db']);
@@ -53,6 +60,13 @@ abstract class Extractor
                 throw new ApplicationException("Missing driver: " . $e->getMessage());
             }
             throw new UserException("Error connecting to DB: " . $e->getMessage(), 0, $e);
+        }
+
+        if (isset($parameters['incrementalFetchingColumn'])) {
+            $this->validateIncrementalFetching(
+                $parameters['table'],
+                $parameters['incrementalFetchingColumn']
+            );
         }
     }
 
@@ -103,12 +117,17 @@ abstract class Extractor
     abstract public function testConnection();
 
     /**
-     * @param array|null $tables - an optional array of table names
+     * @param array|null $tables - an optional array of tables with tableName and schema properties
      * @return mixed
      */
     abstract public function getTables(array $tables = null);
 
     abstract public function simpleQuery(array $table, array $columns = array());
+
+    public function validateIncrementalFetching(array $table, string $columnName)
+    {
+        throw new UserException('Incremental Fetching is not supported by this extractor.');
+    }
 
     public function export(array $table)
     {
@@ -134,13 +153,12 @@ abstract class Extractor
         }
 
         try {
-            $rows = $this->writeToCsv($stmt, $csv);
+            $result = $this->writeToCsv($stmt, $csv);
         } catch (CsvException $e) {
              throw new ApplicationException("Write to CSV failed: " . $e->getMessage(), 0, $e);
         }
 
-
-        if ($rows > 0) {
+        if ($result['rows'] > 0) {
             $this->createManifest($table);
         } else {
             $this->logger->warn(sprintf(
@@ -149,7 +167,15 @@ abstract class Extractor
             ));
         }
 
-        return $outputTable;
+        $output = [
+            "outputTable"=> $outputTable,
+            "rows" => $result['rows']
+        ];
+        // output state
+        if (!empty($result['lastFetchedRow'])) {
+            $output["state"]['lastFetchedRow'] = $result['lastFetchedRow'];
+        }
+        return $output;
     }
 
     private function handleDbError(\Exception $e, array $table = null, int $counter = null) : UserException
@@ -211,11 +237,12 @@ abstract class Extractor
     /**
      * @param \PDOStatement $stmt
      * @param CsvFile $csv
-     * @return int number of rows written to output file
-     * @throws CsvException
+     * @return array ['rows', 'lastFetchedRow']
+     * @throws CsvException|UserException
      */
     protected function writeToCsv(\PDOStatement $stmt, CsvFile $csv)
     {
+        $output = [];
         $resultRow = @$stmt->fetch(\PDO::FETCH_ASSOC);
 
         if (is_array($resultRow) && !empty($resultRow)) {
@@ -225,14 +252,32 @@ abstract class Extractor
 
             // write the rest
             $numRows = 1;
+            $lastRow = null;
             while ($resultRow = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                 $csv->writeRow($resultRow);
+                $lastRow = $resultRow;
                 $numRows++;
             }
-
-            return $numRows;
+            if (isset($this->incrementalFetching['column'])) {
+                if (!array_key_exists($this->incrementalFetching['column'], $lastRow)) {
+                    throw new UserException(
+                        sprintf(
+                            "The specified incremental fetching column %s not found in the table",
+                            $this->incrementalFetching['column']
+                        )
+                    );
+                }
+                $output['lastFetchedRow'] = $lastRow[$this->incrementalFetching['column']];
+            }
+            $output['rows'] = $numRows;
+            return $output;
         }
-        return 0;
+        // no rows found.  If incremental fetching is turned on, we need to preserve the last state
+        if ($this->incrementalFetching['column'] && isset($this->state['lastFetchedRow'])) {
+            $output = $this->state;
+        }
+        $output['rows'] = 0;
+        return $output;
     }
 
     protected function createOutputCsv($outputTable)
