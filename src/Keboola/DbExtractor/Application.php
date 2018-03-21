@@ -17,7 +17,7 @@ use Symfony\Component\Config\Definition\ConfigurationInterface;
 use Symfony\Component\Config\Definition\Exception\Exception as ConfigException;
 use Symfony\Component\Config\Definition\Processor;
 use Symfony\Component\Serializer\Encoder\JsonEncoder;
-
+use Nette\Utils;
 
 class Application extends Container
 {
@@ -186,11 +186,20 @@ class Application extends Container
     {
         try {
             $output = [];
-            $output['tables'] = $this['extractor']->getTables();
+            $tables = $this['extractor']->getTables();
+            array_walk_recursive($tables, [$this, 'webalizeIdentifiers']);
+            $output['tables'] = $tables;
             $output['status'] = 'success';
         } catch (\Exception $e) {
             throw new UserException(sprintf("Failed to get tables: '%s'", $e->getMessage()), 0, $e);
         }
         return $output;
+    }
+
+    private function webalizeIdentifiers(&$value, $key)
+    {
+        if ($key === 'name') {
+            $value = Utils\Strings::webalize($value);
+        }
     }
 }
