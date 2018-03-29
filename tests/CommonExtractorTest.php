@@ -45,13 +45,13 @@ class CommonExtractorTest extends ExtractorTest
         $dataLoader->getPdo()->exec("SET NAMES utf8;");
         $dataLoader->getPdo()->exec("CREATE TABLE escapingPK (
                                     col1 VARCHAR(155), 
-                                    col2 VARCHAR(155), 
-                                    PRIMARY KEY (col1, col2))");
+                                    SãoPaulo VARCHAR(155), 
+                                    PRIMARY KEY (col1, SãoPaulo))");
 
         $dataLoader->getPdo()->exec("CREATE TABLE escaping (
                                   col1 VARCHAR(155) NOT NULL DEFAULT 'abc', 
-                                  col2 VARCHAR(155) NOT NULL DEFAULT 'abc',
-                                  FOREIGN KEY (col1, col2) REFERENCES escapingPK(col1, col2))");
+                                  SãoPaulo VARCHAR(155) NOT NULL DEFAULT 'abc',
+                                  FOREIGN KEY (col1, SãoPaulo) REFERENCES escapingPK(col1, SãoPaulo))");
 
         $inputFile = ROOT_PATH . '/tests/data/escaping.csv';
         $dataLoader->load($inputFile, 'escapingPK');
