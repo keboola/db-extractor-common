@@ -136,7 +136,9 @@ abstract class Extractor
 
         $this->logger->info("Exporting to " . $outputTable);
 
+        $isAdvancedQuery = true;
         if (array_key_exists('table', $table) && !array_key_exists('query', $table)) {
+            $isAdvancedQuery = false;
             $query = $this->simpleQuery($table['table'], $table['columns']);
         } else {
             $query = $table['query'];
@@ -153,7 +155,7 @@ abstract class Extractor
         }
 
         try {
-            $result = $this->writeToCsv($stmt, $csv);
+            $result = $this->writeToCsv($stmt, $csv, $isAdvancedQuery);
         } catch (CsvException $e) {
              throw new ApplicationException("Write to CSV failed: " . $e->getMessage(), 0, $e);
         }
@@ -237,17 +239,25 @@ abstract class Extractor
     /**
      * @param \PDOStatement $stmt
      * @param CsvFile $csv
+<<<<<<< HEAD
      * @return array ['rows', 'lastFetchedRow']
      * @throws CsvException|UserException
+=======
+     * @param bool $writeHeader
+     * @return int number of rows written to output file
+     * @throws CsvException
+>>>>>>> for simple queries write webalized columns to manifest
      */
-    protected function writeToCsv(\PDOStatement $stmt, CsvFile $csv)
+    protected function writeToCsv(\PDOStatement $stmt, CsvFile $csv, $includeHeader = true)
     {
         $output = [];
         $resultRow = @$stmt->fetch(\PDO::FETCH_ASSOC);
 
         if (is_array($resultRow) && !empty($resultRow)) {
             // write header and first line
-            $csv->writeRow(array_keys($resultRow));
+            if ($includeHeader) {
+                $csv->writeRow(array_keys($resultRow));
+            }
             $csv->writeRow($resultRow);
 
             // write the rest
@@ -302,6 +312,8 @@ abstract class Extractor
             $manifestData['primary_key'] = $table['primaryKey'];
         }
 
+        $manifestColumns = [];
+
         if (isset($table['table']) && !is_null($table['table'])) {
             $tables = $this->getTables([$table['table']]);
             if (count($tables) > 0) {
@@ -316,16 +328,26 @@ abstract class Extractor
                         $column['type'],
                         array_intersect_key($column, array_flip($datatypeKeys))
                     );
-                    $columnMetadata[$column['name']] = $datatype->toMetadata();
+                    $columnName = $column['name'];
+                    if (array_key_exists('webalizedName', $column)) {
+                        $columnName = $column['webalizedName'];
+                    }
+                    $columnMetadata[$columnName] = $datatype->toMetadata();
                     $nonDatatypeKeys = array_diff_key($column, array_flip($datatypeKeys));
                     foreach ($nonDatatypeKeys as $key => $value) {
-                        if ($key !== 'name') {
-                            $columnMetadata[$column['name']][] = [
+                        if ($key === 'name') {
+                            $columnMetadata[$columnName][] = [
+                                'key' => "KBC.sourceName",
+                                'value' => $value
+                            ];
+                        } else {
+                            $columnMetadata[$columnName][] = [
                                 'key' => "KBC." . $key,
-                                'value'=> $value
+                                'value' => $value
                             ];
                         }
                     }
+                    $manifestColumns[] = $columnName;
                 }
                 unset($tableDetails['columns']);
                 foreach ($tableDetails as $key => $value) {
@@ -335,6 +357,7 @@ abstract class Extractor
                     ];
                 }
                 $manifestData['column_metadata'] = $columnMetadata;
+                $manifestData['columns'] = $manifestColumns;
             }
         }
         return file_put_contents($outFilename, json_encode($manifestData));
