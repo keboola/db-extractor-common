@@ -186,14 +186,7 @@ class Application extends Container
     {
         try {
             $output = [];
-            $tables = $this['extractor']->getTables();
-            foreach ($tables as $key => $table) {
-                $tables[$key]['webalizedName'] = Utils\Strings::webalize($table['name']);
-                foreach ($table['columns'] as $columnKey => $column) {
-                    $tables[$key]['columns'][$columnKey]['webalizedName'] = Utils\Strings::webalize($column['name']);
-                }
-            }
-            $output['tables'] = $tables;
+            $output['tables'] = $this['extractor']->getTables();
             $output['status'] = 'success';
         } catch (\Exception $e) {
             throw new UserException(sprintf("Failed to get tables: '%s'", $e->getMessage()), 0, $e);
