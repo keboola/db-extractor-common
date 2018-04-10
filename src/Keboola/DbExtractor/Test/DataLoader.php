@@ -20,7 +20,7 @@ class DataLoader
         ]);
     }
 
-    public function load($inputFile, $destinationTable)
+    public function load($inputFile, $destinationTable, $ignoreLines = 1)
     {
         $query = sprintf(
             "LOAD DATA LOCAL INFILE '%s'
@@ -28,9 +28,10 @@ class DataLoader
                 FIELDS TERMINATED BY ','
                 ENCLOSED BY '\"'
                 ESCAPED BY ''
-                IGNORE 1 LINES",
+                IGNORE %d LINES",
             $inputFile,
-            $destinationTable
+            $destinationTable,
+            $ignoreLines
         );
 
         return $this->pdo->exec($query);
