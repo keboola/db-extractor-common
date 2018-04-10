@@ -2,7 +2,7 @@
     "parameters": {
       "db": {
         "host": "localhost",
-        "database": "test",
+        "database": "testdb",
         "user": "travis",
         "password": "",
         "port": 3306
@@ -20,7 +20,7 @@
           "id": 1,
           "name": "simple",
           "table": {
-            "tableName": "escaping",
+            "tableName": "simple",
             "schema": "testdb"
           },
           "outputTable": "in.c-main.simple",

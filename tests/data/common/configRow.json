@@ -9,10 +9,14 @@
     },
     "id": 0,
     "name": "escaping",
-    "query": "SELECT * FROM escaping",
-    "outputTable": "in.c-main.escaping",
+    "outputTable": "in.c-main.simple",
+    "table": {
+      "schema": "testdb",
+      "tableName": "simple"
+    },
     "incremental": false,
-    "primaryKey": ["col1"],
+    "primaryKey": ["SãoPaulo"],
+    "columns": ["col1", "SãoPaulo"],
     "enabled": true
   }
 }
