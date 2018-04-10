@@ -72,10 +72,12 @@ class CommonExtractorTest extends ExtractorTest
     private function cleanOutputDirectory()
     {
         $finder = new Finder();
-        $finder->files()->in(ROOT_PATH . '/tests/data/out');
-        $fs = new Filesystem();
-        foreach ($finder as $file) {
-            $fs->remove((string) $file);
+        if (file_exists(ROOT_PATH . '/tests/data/out/tables')) {
+            $finder->files()->in(ROOT_PATH . '/tests/data/out/tables');
+            $fs = new Filesystem();
+            foreach ($finder as $file) {
+                $fs->remove((string) $file);
+            }
         }
     }
 
