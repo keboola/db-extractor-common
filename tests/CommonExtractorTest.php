@@ -82,16 +82,16 @@ class CommonExtractorTest extends ExtractorTest
     {
         $this->cleanOutputDirectory();
         $result = (new Application($this->getConfig(self::DRIVER)))->run();
-        $this->assertExtractedData(ROOT_PATH . '/tests/data/escaping.csv', $result['imported'][0]);
-        $this->assertExtractedData(ROOT_PATH . '/tests/data/simple.csv', $result['imported'][1]);
+        $this->assertExtractedData(ROOT_PATH . '/tests/data/escaping.csv', $result['imported'][0]['outputTable']);
+        $this->assertExtractedData(ROOT_PATH . '/tests/data/simple.csv', $result['imported'][1]['outputTable']);
     }
 
     public function testRunJsonConfig()
     {
         $this->cleanOutputDirectory();
         $result = (new Application($this->getConfig(self::DRIVER, 'json')))->run();
-        $this->assertExtractedData(ROOT_PATH . '/tests/data/escaping.csv', $result['imported'][0]);
-        $this->assertExtractedData(ROOT_PATH . '/tests/data/simple.csv', $result['imported'][1]);
+        $this->assertExtractedData(ROOT_PATH . '/tests/data/escaping.csv', $result['imported'][0]['outputTable']);
+        $this->assertExtractedData(ROOT_PATH . '/tests/data/simple.csv', $result['imported'][1]['outputTable']);
     }
 
     public function testRunConfigRow()
@@ -100,7 +100,7 @@ class CommonExtractorTest extends ExtractorTest
         $result = (new Application($this->getConfigRow(self::DRIVER)))->run();
         $this->assertEquals('success', $result['status']);
         $this->assertEquals('in.c-main.simple', $result['imported']['outputTable']);
-        $this->assertEquals(7, $result['imported']['rows']);
+        $this->assertEquals(2, $result['imported']['rows']);
         $this->assertExtractedData(ROOT_PATH . '/tests/data/simple.csv', $result['imported']['outputTable']);
     }
 
@@ -117,8 +117,8 @@ class CommonExtractorTest extends ExtractorTest
             'sshHost' => 'sshproxy'
         ];
         $result = (new Application($config))->run();
-        $this->assertExtractedData(ROOT_PATH . '/tests/data/escaping.csv', $result['imported'][0]);
-        $this->assertExtractedData(ROOT_PATH . '/tests/data/simple.csv', $result['imported'][1]);
+        $this->assertExtractedData(ROOT_PATH . '/tests/data/escaping.csv', $result['imported'][0]['outputTable']);
+        $this->assertExtractedData(ROOT_PATH . '/tests/data/simple.csv', $result['imported'][1]['outputTable']);
     }
 
     public function testRunWithSSHDeprecated()
@@ -138,8 +138,8 @@ class CommonExtractorTest extends ExtractorTest
         ];
 
         $result = (new Application($config))->run();
-        $this->assertExtractedData(ROOT_PATH . '/tests/data/escaping.csv', $result['imported'][0]);
-        $this->assertExtractedData(ROOT_PATH . '/tests/data/simple.csv', $result['imported'][1]);
+        $this->assertExtractedData(ROOT_PATH . '/tests/data/escaping.csv', $result['imported'][0]['outputTable']);
+        $this->assertExtractedData(ROOT_PATH . '/tests/data/simple.csv', $result['imported'][1]['outputTable']);
     }
 
     public function testRunWithSSHUserException()
@@ -292,10 +292,6 @@ class CommonExtractorTest extends ExtractorTest
                                     'nullable' => false,
                                     'default' => 'abc',
                                     'ordinalPosition' => '1',
-                                    'constraintName' => 'escaping_ibfk_1',
-                                    'foreignKeyRefSchema' => 'testdb',
-                                    'foreignKeyRefTable' => 'escapingPK',
-                                    'foreignKeyRefColumn' => 'col1',
                                 ),
                             1 =>
                                 array (
@@ -307,10 +303,6 @@ class CommonExtractorTest extends ExtractorTest
                                     'nullable' => false,
                                     'default' => 'abc',
                                     'ordinalPosition' => '2',
-                                    'constraintName' => 'escaping_ibfk_1',
-                                    'foreignKeyRefSchema' => 'testdb',
-                                    'foreignKeyRefTable' => 'escapingPK',
-                                    'foreignKeyRefColumn' => 'col2',
                                 ),
                         ),
                 ),
@@ -332,7 +324,6 @@ class CommonExtractorTest extends ExtractorTest
                                     'nullable' => false,
                                     'default' => '',
                                     'ordinalPosition' => '1',
-                                    'constraintName' => 'PRIMARY',
                                 ),
                             1 =>
                                 array (
@@ -344,7 +335,6 @@ class CommonExtractorTest extends ExtractorTest
                                     'nullable' => false,
                                     'default' => '',
                                     'ordinalPosition' => '2',
-                                    'constraintName' => 'PRIMARY',
                                 ),
                         ),
                 ),
@@ -367,7 +357,6 @@ class CommonExtractorTest extends ExtractorTest
                                     'nullable' => false,
                                     'default' => 'abc',
                                     'ordinalPosition' => '1',
-                                    'constraintName' => 'PRIMARY',
                                 ),
                             1 =>
                                 array (
@@ -397,7 +386,7 @@ class CommonExtractorTest extends ExtractorTest
         $app = new Application($config);
 
         $result = $app->run();
-        $this->assertExtractedData(ROOT_PATH . '/tests/data/simple.csv', $result['imported'][0]);
+        $this->assertExtractedData(ROOT_PATH . '/tests/data/simple.csv', $result['imported'][0]['outputTable']);
 
         $outputManifest = Yaml::parse(
             file_get_contents($manifestFile)
@@ -559,7 +548,7 @@ class CommonExtractorTest extends ExtractorTest
         $app = new Application($config);
         $result = $app->run();
 
-        $this->assertExtractedData(ROOT_PATH . '/tests/data/simple.csv', $result['imported'][0]);
+        $this->assertExtractedData(ROOT_PATH . '/tests/data/simple.csv', $result['imported'][0]['outputTable']);
     }
 
     public function testInvalidConfigurationQueryAndTable()
@@ -724,6 +713,7 @@ class CommonExtractorTest extends ExtractorTest
     {
         $config = $this->getConfigRow(self::DRIVER);
         unset($config['parameters']['query']);
+        unset($config['parameters']['columns']);
         $config['parameters']['table'] = [
             'tableName' => 'auto_increment_timestamp',
             'schema' => 'testdb'
