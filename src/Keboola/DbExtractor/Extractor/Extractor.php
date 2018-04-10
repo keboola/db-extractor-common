@@ -42,7 +42,7 @@ abstract class Extractor
 
     private $dbParameters;
 
-    public function __construct(array $parameters, array $state = [], Logger $logger)
+    public function __construct(array $parameters, array $state = [], Logger $logger = null)
     {
         $this->logger = $logger;
         $this->dataDir = $parameters['data_dir'];

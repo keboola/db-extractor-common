@@ -69,7 +69,8 @@ class CommonExtractorTest extends ExtractorTest
         $this->db = $dataLoader->getPdo();
     }
 
-    private function cleanOutputDirectory() {
+    private function cleanOutputDirectory()
+    {
         $finder = new Finder();
         $finder->files()->in(ROOT_PATH . '/tests/data/out');
         $fs = new Filesystem();
