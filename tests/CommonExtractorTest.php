@@ -56,9 +56,9 @@ class CommonExtractorTest extends ExtractorTest
                                   FOREIGN KEY (col1, col2) REFERENCES escapingPK(col1, col2))");
 
         $dataLoader->getPdo()->exec("CREATE TABLE simple (
-                                  col1 VARCHAR(155) NOT NULL DEFAULT 'abc', 
+                                  `_weird-I-d` VARCHAR(155) NOT NULL DEFAULT 'abc', 
                                   `SãoPaulo` VARCHAR(155) NOT NULL DEFAULT 'abc',
-                                  PRIMARY KEY (col1))");
+                                  PRIMARY KEY (`_weird-I-d`))");
 
         $inputFile = ROOT_PATH . '/tests/data/escaping.csv';
         $simpleFile = ROOT_PATH . '/tests/data/simple.csv';
@@ -87,6 +87,12 @@ class CommonExtractorTest extends ExtractorTest
         $result = (new Application($this->getConfig(self::DRIVER)))->run();
         $this->assertExtractedData(ROOT_PATH . '/tests/data/escaping.csv', $result['imported'][0]['outputTable']);
         $this->assertExtractedData(ROOT_PATH . '/tests/data/simple.csv', $result['imported'][1]['outputTable']);
+        $manifest = json_decode(
+            file_get_contents($this->dataDir . '/out/tables/' . $result['imported'][1]['outputTable'] . ".csv.manifest"),
+            true
+        );
+        $this->assertEquals(["weird_I_d", 'S_oPaulo'], $manifest['columns']);
+        $this->assertEquals(["weird_I_d"], $manifest['primary_key']);
     }
 
     public function testRunJsonConfig()
@@ -95,6 +101,12 @@ class CommonExtractorTest extends ExtractorTest
         $result = (new Application($this->getConfig(self::DRIVER, 'json')))->run();
         $this->assertExtractedData(ROOT_PATH . '/tests/data/escaping.csv', $result['imported'][0]['outputTable']);
         $this->assertExtractedData(ROOT_PATH . '/tests/data/simple.csv', $result['imported'][1]['outputTable']);
+        $manifest = json_decode(
+            file_get_contents($this->dataDir . '/out/tables/' . $result['imported'][1]['outputTable'] . ".csv.manifest"),
+            true
+        );
+        $this->assertEquals(["weird_I_d", 'S_oPaulo'], $manifest['columns']);
+        $this->assertEquals(["weird_I_d"], $manifest['primary_key']);
     }
 
     public function testRunConfigRow()
@@ -105,6 +117,12 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertEquals('in.c-main.simple', $result['imported']['outputTable']);
         $this->assertEquals(2, $result['imported']['rows']);
         $this->assertExtractedData(ROOT_PATH . '/tests/data/simple.csv', $result['imported']['outputTable']);
+        $manifest = json_decode(
+            file_get_contents($this->dataDir . '/out/tables/' . $result['imported']['outputTable'] . ".csv.manifest"),
+            true
+        );
+        $this->assertEquals(["weird_I_d", 'S_oPaulo'], $manifest['columns']);
+        $this->assertEquals(["weird_I_d"], $manifest['primary_key']);
     }
 
     public function testRunWithSSH()
@@ -352,8 +370,8 @@ class CommonExtractorTest extends ExtractorTest
                         array (
                             0 =>
                                 array (
-                                    'name' => 'col1',
-                                    'sanitizedName' => 'col1',
+                                    'name' => '_weird-I-d',
+                                    'sanitizedName' => 'weird_I_d',
                                     'type' => 'varchar',
                                     'primaryKey' => true,
                                     'length' => '155',
@@ -418,11 +436,11 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertEquals($expectedMetadata, $metadataList);
         $this->assertArrayHasKey('column_metadata', $outputManifest);
         $this->assertCount(2, $outputManifest['column_metadata']);
-        $this->assertArrayHasKey('col1', $outputManifest['column_metadata']);
+        $this->assertArrayHasKey('weird_I_d', $outputManifest['column_metadata']);
         $this->assertArrayHasKey('S_oPaulo', $outputManifest['column_metadata']);
 
         $expectedColumnMetadata = array (
-            'col1' =>
+            'weird_I_d' =>
                 array (
                     0 =>
                         array (
@@ -452,12 +470,12 @@ class CommonExtractorTest extends ExtractorTest
                     5 =>
                         array (
                             'key' => 'KBC.sourceName',
-                            'value' => 'col1',
+                            'value' => '_weird-I-d',
                         ),
                     6 =>
                         array (
                             'key' => 'KBC.sanitizedName',
-                            'value' => 'col1',
+                            'value' => 'weird_I_d',
                         ),
                     7 =>
                         array (
@@ -553,11 +571,12 @@ class CommonExtractorTest extends ExtractorTest
 
         $outputTableName = $result['imported'][0]['outputTable'];
         $this->assertExtractedData(ROOT_PATH . '/tests/data/simple.csv', $outputTableName);
-        $manifetst = json_decode(
+        $manifest = json_decode(
             file_get_contents($this->dataDir . '/out/tables/' . $outputTableName . ".csv.manifest"),
             true
         );
-        $this->assertEquals(["col1", 'S_oPaulo'], $manifetst['columns']);
+        $this->assertEquals(["weird_I_d", 'S_oPaulo'], $manifest['columns']);
+        $this->assertEquals(["weird_I_d"], $manifest['primary_key']);
     }
 
     public function testInvalidConfigurationQueryAndTable()

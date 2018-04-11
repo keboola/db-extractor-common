@@ -25,8 +25,8 @@
           },
           "outputTable": "in.c-main.simple",
           "incremental": false,
-          "primaryKey": [],
-          "columns": []
+          "primaryKey": ["_weird-I-d"],
+          "columns": ["_weird-I-d", "SãoPaulo"]
         }
       ]
     }

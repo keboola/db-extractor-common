@@ -314,9 +314,14 @@ abstract class Extractor
             if (count($tables) > 0) {
                 $tableDetails = $tables[0];
                 $columnMetadata = [];
+                $sanitizedPks = [];
                 foreach ($tableDetails['columns'] as $column) {
                     if (count($table['columns']) > 0 && !in_array($column['name'], $table['columns'])) {
                         continue;
+                    }
+                    // use sanitized name for primary key if available
+                    if (in_array($column['name'], $table['primaryKey']) && array_key_exists('sanitizedName', $column)) {
+                        $sanitizedPks[] = $column['sanitizedName'];
                     }
                     $datatypeKeys = ['type', 'length', 'nullable', 'default', 'format'];
                     $datatype = new GenericStorage(
@@ -353,6 +358,9 @@ abstract class Extractor
                 }
                 $manifestData['column_metadata'] = $columnMetadata;
                 $manifestData['columns'] = $manifestColumns;
+                if (!empty($sanitizedPks)) {
+                    $manifestData['primary_key'] = $sanitizedPks;
+                }
             }
         }
         return file_put_contents($outFilename, json_encode($manifestData));

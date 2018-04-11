@@ -15,8 +15,8 @@
       "tableName": "simple"
     },
     "incremental": false,
-    "primaryKey": ["SãoPaulo"],
-    "columns": ["col1", "SãoPaulo"],
+    "primaryKey": ["_weird-I-d"],
+    "columns": ["_weird-I-d", "SãoPaulo"],
     "enabled": true
   }
 }
