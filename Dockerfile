@@ -1,6 +1,5 @@
 #VERSION 1.0.0
 FROM php:7.1-fpm
-MAINTAINER Miro Cillik <miro@keboola.com>
 
 ENV DEBIAN_FRONTEND noninteractive
 
