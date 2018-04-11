@@ -99,7 +99,15 @@ class CommonExtractorTest extends ExtractorTest
     {
         $this->cleanOutputDirectory();
         $result = (new Application($this->getConfig(self::DRIVER, 'json')))->run();
+
         $this->assertExtractedData(ROOT_PATH . '/tests/data/escaping.csv', $result['imported'][0]['outputTable']);
+        $manifest = json_decode(
+            file_get_contents($this->dataDir . '/out/tables/' . $result['imported'][0]['outputTable'] . ".csv.manifest"),
+            true
+        );
+        $this->assertArrayNotHasKey('columns', $manifest);
+        $this->assertArrayNotHasKey('primary_key', $manifest);
+        
         $this->assertExtractedData(ROOT_PATH . '/tests/data/simple.csv', $result['imported'][1]['outputTable']);
         $manifest = json_decode(
             file_get_contents($this->dataDir . '/out/tables/' . $result['imported'][1]['outputTable'] . ".csv.manifest"),
