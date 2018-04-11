@@ -239,14 +239,9 @@ abstract class Extractor
     /**
      * @param \PDOStatement $stmt
      * @param CsvFile $csv
-<<<<<<< HEAD
+     * @param boolean $includeHeader
      * @return array ['rows', 'lastFetchedRow']
      * @throws CsvException|UserException
-=======
-     * @param bool $writeHeader
-     * @return int number of rows written to output file
-     * @throws CsvException
->>>>>>> for simple queries write webalized columns to manifest
      */
     protected function writeToCsv(\PDOStatement $stmt, CsvFile $csv, $includeHeader = true)
     {
@@ -329,8 +324,8 @@ abstract class Extractor
                         array_intersect_key($column, array_flip($datatypeKeys))
                     );
                     $columnName = $column['name'];
-                    if (array_key_exists('webalizedName', $column)) {
-                        $columnName = $column['webalizedName'];
+                    if (array_key_exists('sanitizedName', $column)) {
+                        $columnName = $column['sanitizedName'];
                     }
                     $columnMetadata[$columnName] = $datatype->toMetadata();
                     $nonDatatypeKeys = array_diff_key($column, array_flip($datatypeKeys));

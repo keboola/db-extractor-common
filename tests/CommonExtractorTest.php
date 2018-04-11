@@ -280,7 +280,7 @@ class CommonExtractorTest extends ExtractorTest
             0 =>
                 array (
                     'name' => 'escaping',
-                    'webalizedName' => 'escaping',
+                    'sanitizedName' => 'escaping',
                     'schema' => 'testdb',
                     'type' => 'BASE TABLE',
                     'columns' =>
@@ -288,7 +288,7 @@ class CommonExtractorTest extends ExtractorTest
                             0 =>
                                 array (
                                     'name' => 'col1',
-                                    'webalizedName' => 'col1',
+                                    'sanitizedName' => 'col1',
                                     'type' => 'varchar',
                                     'primaryKey' => false,
                                     'length' => '155',
@@ -299,7 +299,7 @@ class CommonExtractorTest extends ExtractorTest
                             1 =>
                                 array (
                                     'name' => 'col2',
-                                    'webalizedName' => 'col2',
+                                    'sanitizedName' => 'col2',
                                     'type' => 'varchar',
                                     'primaryKey' => false,
                                     'length' => '155',
@@ -312,7 +312,7 @@ class CommonExtractorTest extends ExtractorTest
             1 =>
                 array (
                     'name' => 'escapingPK',
-                    'webalizedName' => 'escapingpk',
+                    'sanitizedName' => 'escapingPK',
                     'schema' => 'testdb',
                     'type' => 'BASE TABLE',
                     'columns' =>
@@ -320,7 +320,7 @@ class CommonExtractorTest extends ExtractorTest
                             0 =>
                                 array (
                                     'name' => 'col1',
-                                    'webalizedName' => 'col1',
+                                    'sanitizedName' => 'col1',
                                     'type' => 'varchar',
                                     'primaryKey' => true,
                                     'length' => '155',
@@ -331,7 +331,7 @@ class CommonExtractorTest extends ExtractorTest
                             1 =>
                                 array (
                                     'name' => 'col2',
-                                    'webalizedName' => 'col2',
+                                    'sanitizedName' => 'col2',
                                     'type' => 'varchar',
                                     'primaryKey' => true,
                                     'length' => '155',
@@ -344,7 +344,7 @@ class CommonExtractorTest extends ExtractorTest
             2 =>
                 array (
                     'name' => 'simple',
-                    'webalizedName' => 'simple',
+                    'sanitizedName' => 'simple',
                     'schema' => 'testdb',
                     'type' => 'BASE TABLE',
                     'rowCount' => '2',
@@ -353,7 +353,7 @@ class CommonExtractorTest extends ExtractorTest
                             0 =>
                                 array (
                                     'name' => 'col1',
-                                    'webalizedName' => 'col1',
+                                    'sanitizedName' => 'col1',
                                     'type' => 'varchar',
                                     'primaryKey' => true,
                                     'length' => '155',
@@ -364,7 +364,7 @@ class CommonExtractorTest extends ExtractorTest
                             1 =>
                                 array (
                                     'name' => 'SãoPaulo',
-                                    'webalizedName' => 'sopaulo',
+                                    'sanitizedName' => 'S_oPaulo',
                                     'type' => 'varchar',
                                     'primaryKey' => false,
                                     'length' => '155',
@@ -403,7 +403,7 @@ class CommonExtractorTest extends ExtractorTest
             'KBC.name' => 'simple',
             'KBC.schema' => 'testdb',
             'KBC.type' => 'BASE TABLE',
-            'KBC.webalizedName' => 'simple'
+            'KBC.sanitizedName' => 'simple'
         ];
         $metadataList = [];
         foreach ($outputManifest['metadata'] as $i => $metadata) {
@@ -419,7 +419,7 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertArrayHasKey('column_metadata', $outputManifest);
         $this->assertCount(2, $outputManifest['column_metadata']);
         $this->assertArrayHasKey('col1', $outputManifest['column_metadata']);
-        $this->assertArrayHasKey('sopaulo', $outputManifest['column_metadata']);
+        $this->assertArrayHasKey('S_oPaulo', $outputManifest['column_metadata']);
 
         $expectedColumnMetadata = array (
             'col1' =>
@@ -456,7 +456,7 @@ class CommonExtractorTest extends ExtractorTest
                         ),
                     6 =>
                         array (
-                            'key' => 'KBC.webalizedName',
+                            'key' => 'KBC.sanitizedName',
                             'value' => 'col1',
                         ),
                     7 =>
@@ -475,7 +475,7 @@ class CommonExtractorTest extends ExtractorTest
                             'value' => 'PRIMARY',
                         ),
                 ),
-            'sopaulo' =>
+            'S_oPaulo' =>
                 array (
                     0 =>
                         array (
@@ -509,8 +509,8 @@ class CommonExtractorTest extends ExtractorTest
                         ),
                     6 =>
                         array (
-                            'key' => 'KBC.webalizedName',
-                            'value' => 'sopaulo',
+                            'key' => 'KBC.sanitizedName',
+                            'value' => 'S_oPaulo',
                         ),
                     7 =>
                         array (
@@ -551,7 +551,13 @@ class CommonExtractorTest extends ExtractorTest
         $app = new Application($config);
         $result = $app->run();
 
-        $this->assertExtractedData(ROOT_PATH . '/tests/data/simple.csv', $result['imported'][0]['outputTable']);
+        $outputTableName = $result['imported'][0]['outputTable'];
+        $this->assertExtractedData(ROOT_PATH . '/tests/data/simple.csv', $outputTableName);
+        $manifetst = json_decode(
+            file_get_contents($this->dataDir . '/out/tables/' . $outputTableName . ".csv.manifest"),
+            true
+        );
+        $this->assertEquals(["col1", 'S_oPaulo'], $manifetst['columns']);
     }
 
     public function testInvalidConfigurationQueryAndTable()

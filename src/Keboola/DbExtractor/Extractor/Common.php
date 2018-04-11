@@ -9,7 +9,7 @@
 namespace Keboola\DbExtractor\Extractor;
 
 use Keboola\DbExtractor\Exception\UserException;
-use Nette\Utils;
+use Keboola\Utils;
 
 class Common extends Extractor
 {
@@ -175,11 +175,12 @@ class Common extends Extractor
 
         $tableNameArray = [];
         $tableDefs = [];
+
         foreach ($arr as $table) {
             $tableNameArray[] = $table['TABLE_NAME'];
             $tableDefs[$table['TABLE_SCHEMA'] . '.' . $table['TABLE_NAME']] = [
                 'name' => $table['TABLE_NAME'],
-                'webalizedName' => Utils\Strings::webalize($table['TABLE_NAME']),
+                'sanitizedName' => \Keboola\Utils\sanitizeColumnName($table['TABLE_NAME']),
                 'schema' => (isset($table['TABLE_SCHEMA'])) ? $table['TABLE_SCHEMA'] : '',
                 'type' => (isset($table['TABLE_TYPE'])) ? $table['TABLE_TYPE'] : '',
                 'rowCount' => (isset($table['TABLE_ROWS'])) ? $table['TABLE_ROWS'] : '',
@@ -219,7 +220,7 @@ class Common extends Extractor
             }
             $curColumn = [
                 "name" => $column['COLUMN_NAME'],
-                "webalizedName" => Utils\Strings::webalize($column['COLUMN_NAME']),
+                "sanitizedName" => \Keboola\Utils\sanitizeColumnName($column['COLUMN_NAME']),
                 "type" => $column['DATA_TYPE'],
                 "primaryKey" => ($column['COLUMN_KEY'] === "PRI") ? true : false,
                 "length" => $length,
