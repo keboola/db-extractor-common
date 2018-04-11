@@ -10,6 +10,7 @@
     "symfony/config": "^3.0",
     "symfony/yaml": "^3.0",
     "keboola/ssh-tunnel": "^1.0",
+    "keboola/php-utils": "^2.3",
     "nette/utils": "^2.4",
     "vkartaviy/retry": "^0.2",
     "symfony/serializer": "^3.1"
@@ -22,8 +23,8 @@
   },
   "authors": [
     {
-      "name": "Miroslav Cillik",
-      "email": "miro@keboola.com"
+      "name": "keboola",
+      "email": "devel@keboola.com"
     }
   ],
   "autoload": {
