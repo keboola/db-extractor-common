@@ -1,15 +1,10 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: miroslavcillik
- * Date: 12/02/16
- * Time: 16:38
- */
+
+declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Extractor;
 
 use Keboola\DbExtractor\Exception\UserException;
-use Keboola\Utils;
 
 class Common extends Extractor
 {

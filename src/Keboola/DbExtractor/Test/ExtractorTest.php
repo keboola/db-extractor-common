@@ -1,11 +1,6 @@
 <?php
 
-/**
- * Created by PhpStorm.
- * User: miroslavcillik
- * Date: 10/12/15
- * Time: 14:26
- */
+declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Test;
 

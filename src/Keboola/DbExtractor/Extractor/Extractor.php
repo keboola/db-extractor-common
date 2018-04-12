@@ -1,11 +1,6 @@
 <?php
 
-/**
- * Created by PhpStorm.
- * User: miroslavcillik
- * Date: 10/12/15
- * Time: 13:04
- */
+declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Extractor;
 
@@ -70,7 +65,7 @@ abstract class Extractor
         }
     }
 
-    public function createSshTunnel($dbConfig)
+    public function createSshTunnel(array $dbConfig)
     {
         $sshConfig = $dbConfig['ssh'];
         // check params
@@ -112,7 +107,7 @@ abstract class Extractor
         return $dbConfig;
     }
 
-    abstract public function createConnection($params);
+    abstract public function createConnection(array $params);
 
     abstract public function testConnection();
 
