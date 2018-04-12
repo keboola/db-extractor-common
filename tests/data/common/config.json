@@ -2,7 +2,7 @@
     "parameters": {
       "db": {
         "host": "localhost",
-        "database": "test",
+        "database": "testdb",
         "user": "travis",
         "password": "",
         "port": 3306
@@ -14,19 +14,19 @@
           "query": "SELECT * FROM escaping",
           "outputTable": "in.c-main.escaping",
           "incremental": false,
-          "primaryKey": ["col1"],
+          "primaryKey": null,
           "enabled": true
         }, {
           "id": 1,
           "name": "simple",
           "table": {
-            "tableName": "escaping",
+            "tableName": "simple",
             "schema": "testdb"
           },
           "outputTable": "in.c-main.simple",
           "incremental": false,
-          "primaryKey": [],
-          "columns": []
+          "primaryKey": ["_weird-I-d"],
+          "columns": ["_weird-I-d", "SãoPaulo"]
         }
       ]
     }

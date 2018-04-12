@@ -110,4 +110,3 @@ class ConfigRowDefinition implements ConfigurationInterface
         return $node;
     }
 }
-

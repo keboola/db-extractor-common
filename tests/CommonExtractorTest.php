@@ -4,6 +4,8 @@ namespace Keboola\DbExtractor\Tests;
 
 use Keboola\DbExtractor\Application;
 use Keboola\DbExtractor\Exception\UserException;
+use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\Finder\Finder;
 use Symfony\Component\Yaml\Yaml;
 use Keboola\DbExtractor\Test\ExtractorTest;
 use Keboola\DbExtractor\Test\DataLoader;
@@ -53,34 +55,87 @@ class CommonExtractorTest extends ExtractorTest
                                   col2 VARCHAR(155) NOT NULL DEFAULT 'abc',
                                   FOREIGN KEY (col1, col2) REFERENCES escapingPK(col1, col2))");
 
+        $dataLoader->getPdo()->exec("CREATE TABLE simple (
+                                  `_weird-I-d` VARCHAR(155) NOT NULL DEFAULT 'abc', 
+                                  `SãoPaulo` VARCHAR(155) NOT NULL DEFAULT 'abc',
+                                  PRIMARY KEY (`_weird-I-d`))");
+
         $inputFile = ROOT_PATH . '/tests/data/escaping.csv';
+        $simpleFile = ROOT_PATH . '/tests/data/simple.csv';
         $dataLoader->load($inputFile, 'escapingPK');
         $dataLoader->load($inputFile, 'escaping');
-
+        $dataLoader->load($simpleFile, 'simple', 0);
         // let other methods use the db connection
         $this->db = $dataLoader->getPdo();
     }
 
-    public function testRun()
+    private function cleanOutputDirectory()
     {
-        $this->assertRunResult((new Application($this->getConfig(self::DRIVER)))->run());
+        $finder = new Finder();
+        if (file_exists(ROOT_PATH . '/tests/data/out/tables')) {
+            $finder->files()->in(ROOT_PATH . '/tests/data/out/tables');
+            $fs = new Filesystem();
+            foreach ($finder as $file) {
+                $fs->remove((string) $file);
+            }
+        }
+    }
+
+    public function testRunSimple()
+    {
+        $this->cleanOutputDirectory();
+        $result = (new Application($this->getConfig(self::DRIVER)))->run();
+        $this->assertExtractedData(ROOT_PATH . '/tests/data/escaping.csv', $result['imported'][0]['outputTable']);
+        $this->assertExtractedData(ROOT_PATH . '/tests/data/simple.csv', $result['imported'][1]['outputTable']);
+        $manifest = json_decode(
+            file_get_contents($this->dataDir . '/out/tables/' . $result['imported'][1]['outputTable'] . ".csv.manifest"),
+            true
+        );
+        $this->assertEquals(["weird_I_d", 'S_oPaulo'], $manifest['columns']);
+        $this->assertEquals(["weird_I_d"], $manifest['primary_key']);
     }
 
     public function testRunJsonConfig()
     {
-        $this->assertRunResult((new Application($this->getConfig(self::DRIVER, 'json')))->run());
+        $this->cleanOutputDirectory();
+        $result = (new Application($this->getConfig(self::DRIVER, 'json')))->run();
+
+        $this->assertExtractedData(ROOT_PATH . '/tests/data/escaping.csv', $result['imported'][0]['outputTable']);
+        $manifest = json_decode(
+            file_get_contents($this->dataDir . '/out/tables/' . $result['imported'][0]['outputTable'] . ".csv.manifest"),
+            true
+        );
+        $this->assertArrayNotHasKey('columns', $manifest);
+        $this->assertArrayNotHasKey('primary_key', $manifest);
+        
+        $this->assertExtractedData(ROOT_PATH . '/tests/data/simple.csv', $result['imported'][1]['outputTable']);
+        $manifest = json_decode(
+            file_get_contents($this->dataDir . '/out/tables/' . $result['imported'][1]['outputTable'] . ".csv.manifest"),
+            true
+        );
+        $this->assertEquals(["weird_I_d", 'S_oPaulo'], $manifest['columns']);
+        $this->assertEquals(["weird_I_d"], $manifest['primary_key']);
     }
 
     public function testRunConfigRow()
     {
+        $this->cleanOutputDirectory();
         $result = (new Application($this->getConfigRow(self::DRIVER)))->run();
         $this->assertEquals('success', $result['status']);
-        $this->assertEquals('in.c-main.escaping', $result['imported']['outputTable']);
-        $this->assertEquals(7, $result['imported']['rows']);
+        $this->assertEquals('in.c-main.simple', $result['imported']['outputTable']);
+        $this->assertEquals(2, $result['imported']['rows']);
+        $this->assertExtractedData(ROOT_PATH . '/tests/data/simple.csv', $result['imported']['outputTable']);
+        $manifest = json_decode(
+            file_get_contents($this->dataDir . '/out/tables/' . $result['imported']['outputTable'] . ".csv.manifest"),
+            true
+        );
+        $this->assertEquals(["weird_I_d", 'S_oPaulo'], $manifest['columns']);
+        $this->assertEquals(["weird_I_d"], $manifest['primary_key']);
     }
 
     public function testRunWithSSH()
     {
+        $this->cleanOutputDirectory();
         $config = $this->getConfig(self::DRIVER);
         $config['parameters']['db']['ssh'] = [
             'enabled' => true,
@@ -90,11 +145,14 @@ class CommonExtractorTest extends ExtractorTest
             ],
             'sshHost' => 'sshproxy'
         ];
-        $this->assertRunResult((new Application($config))->run());
+        $result = (new Application($config))->run();
+        $this->assertExtractedData(ROOT_PATH . '/tests/data/escaping.csv', $result['imported'][0]['outputTable']);
+        $this->assertExtractedData(ROOT_PATH . '/tests/data/simple.csv', $result['imported'][1]['outputTable']);
     }
 
     public function testRunWithSSHDeprecated()
     {
+        $this->cleanOutputDirectory();
         $config = $this->getConfig(self::DRIVER);
         $config['parameters']['db']['ssh'] = [
             'enabled' => true,
@@ -109,11 +167,13 @@ class CommonExtractorTest extends ExtractorTest
         ];
 
         $result = (new Application($config))->run();
-        $this->assertRunResult($result);
+        $this->assertExtractedData(ROOT_PATH . '/tests/data/escaping.csv', $result['imported'][0]['outputTable']);
+        $this->assertExtractedData(ROOT_PATH . '/tests/data/simple.csv', $result['imported'][1]['outputTable']);
     }
 
     public function testRunWithSSHUserException()
     {
+        $this->cleanOutputDirectory();
         $this->setExpectedException('Keboola\DbExtractor\Exception\UserException');
 
         $config = $this->getConfig(self::DRIVER);
@@ -162,8 +222,6 @@ class CommonExtractorTest extends ExtractorTest
     {
         $outputCsvFile = $this->dataDir . '/out/tables/in.c-main.escaping.csv';
         $outputManifestFile = $this->dataDir . '/out/tables/in.c-main.escaping.csv.manifest';
-        @unlink($outputCsvFile);
-        @unlink($outputManifestFile);
 
         $config = $this->getConfig(self::DRIVER);
         $config['parameters']['tables'][0]['query'] = "SELECT * FROM escaping WHERE col1 = '123'";
@@ -233,7 +291,7 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertArrayHasKey('status', $result);
         $this->assertArrayHasKey('tables', $result);
         $this->assertEquals('success', $result['status']);
-        $this->assertCount(2, $result['tables']);
+        $this->assertCount(3, $result['tables']);
 
         $this->assertGreaterThan(5, $result['tables'][0]['rowCount']);
         $this->assertLessThan(9, $result['tables'][0]['rowCount']);
@@ -242,56 +300,108 @@ class CommonExtractorTest extends ExtractorTest
 
         unset($result['tables'][0]['rowCount']);
         unset($result['tables'][1]['rowCount']);
+        unset($result['tables'][3]['rowCount']);
 
-        $expectedData = [
-            [
-                "name" => "escaping",
-                "schema" => "testdb",
-                "type" => "BASE TABLE",
-                "columns" => [
-                    [
-                        "name" => "col1",
-                        "type" => "varchar",
-                        "primaryKey" => false,
-                        "length" => "155",
-                        "nullable" => false,
-                        "default" => "abc",
-                        "ordinalPosition" => "1"
-                    ],[
-                        "name" => "col2",
-                        "type" => "varchar",
-                        "primaryKey" => false,
-                        "length" => "155",
-                        "nullable" => false,
-                        "default" => "abc",
-                        "ordinalPosition" => "2"
-                    ]
-                ]
-            ],[
-                "name" => "escapingPK",
-                "schema" => "testdb",
-                "type" => "BASE TABLE",
-                "columns" => [
-                    [
-                        "name" => "col1",
-                        "type" => "varchar",
-                        "primaryKey" => true,
-                        "length" => "155",
-                        "nullable" => false,
-                        "default" => "",
-                        "ordinalPosition" => "1"
-                    ], [
-                        "name" => "col2",
-                        "type" => "varchar",
-                        "primaryKey" => true,
-                        "length" => "155",
-                        "nullable" => false,
-                        "default" => "",
-                        "ordinalPosition" => "2"
-                    ]
-                ]
-            ]
-        ];
+        $expectedData = array (
+            0 =>
+                array (
+                    'name' => 'escaping',
+                    'sanitizedName' => 'escaping',
+                    'schema' => 'testdb',
+                    'type' => 'BASE TABLE',
+                    'columns' =>
+                        array (
+                            0 =>
+                                array (
+                                    'name' => 'col1',
+                                    'sanitizedName' => 'col1',
+                                    'type' => 'varchar',
+                                    'primaryKey' => false,
+                                    'length' => '155',
+                                    'nullable' => false,
+                                    'default' => 'abc',
+                                    'ordinalPosition' => '1',
+                                ),
+                            1 =>
+                                array (
+                                    'name' => 'col2',
+                                    'sanitizedName' => 'col2',
+                                    'type' => 'varchar',
+                                    'primaryKey' => false,
+                                    'length' => '155',
+                                    'nullable' => false,
+                                    'default' => 'abc',
+                                    'ordinalPosition' => '2',
+                                ),
+                        ),
+                ),
+            1 =>
+                array (
+                    'name' => 'escapingPK',
+                    'sanitizedName' => 'escapingPK',
+                    'schema' => 'testdb',
+                    'type' => 'BASE TABLE',
+                    'columns' =>
+                        array (
+                            0 =>
+                                array (
+                                    'name' => 'col1',
+                                    'sanitizedName' => 'col1',
+                                    'type' => 'varchar',
+                                    'primaryKey' => true,
+                                    'length' => '155',
+                                    'nullable' => false,
+                                    'default' => '',
+                                    'ordinalPosition' => '1',
+                                ),
+                            1 =>
+                                array (
+                                    'name' => 'col2',
+                                    'sanitizedName' => 'col2',
+                                    'type' => 'varchar',
+                                    'primaryKey' => true,
+                                    'length' => '155',
+                                    'nullable' => false,
+                                    'default' => '',
+                                    'ordinalPosition' => '2',
+                                ),
+                        ),
+                ),
+            2 =>
+                array (
+                    'name' => 'simple',
+                    'sanitizedName' => 'simple',
+                    'schema' => 'testdb',
+                    'type' => 'BASE TABLE',
+                    'rowCount' => '2',
+                    'columns' =>
+                        array (
+                            0 =>
+                                array (
+                                    'name' => '_weird-I-d',
+                                    'sanitizedName' => 'weird_I_d',
+                                    'type' => 'varchar',
+                                    'primaryKey' => true,
+                                    'length' => '155',
+                                    'nullable' => false,
+                                    'default' => 'abc',
+                                    'ordinalPosition' => '1',
+                                ),
+                            1 =>
+                                array (
+                                    'name' => 'SãoPaulo',
+                                    'sanitizedName' => 'S_oPaulo',
+                                    'type' => 'varchar',
+                                    'primaryKey' => false,
+                                    'length' => '155',
+                                    'nullable' => false,
+                                    'default' => 'abc',
+                                    'ordinalPosition' => '2',
+                                ),
+                        ),
+                ),
+        );
+
         $this->assertEquals($expectedData, $result['tables']);
     }
 
@@ -301,12 +411,11 @@ class CommonExtractorTest extends ExtractorTest
         unset($config['parameters']['tables'][0]);
 
         $manifestFile = $this->dataDir . '/out/tables/in.c-main.simple.csv.manifest';
-        @unlink($manifestFile);
 
         $app = new Application($config);
 
         $result = $app->run();
-        $this->assertRunResult($result);
+        $this->assertExtractedData(ROOT_PATH . '/tests/data/simple.csv', $result['imported'][0]['outputTable']);
 
         $outputManifest = Yaml::parse(
             file_get_contents($manifestFile)
@@ -317,9 +426,10 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertArrayHasKey('metadata', $outputManifest);
 
         $expectedMetadata = [
-            'KBC.name' => 'escaping',
+            'KBC.name' => 'simple',
             'KBC.schema' => 'testdb',
-            'KBC.type' => 'BASE TABLE'
+            'KBC.type' => 'BASE TABLE',
+            'KBC.sanitizedName' => 'simple'
         ];
         $metadataList = [];
         foreach ($outputManifest['metadata'] as $i => $metadata) {
@@ -328,37 +438,120 @@ class CommonExtractorTest extends ExtractorTest
             $metadataList[$metadata['key']] = $metadata['value'];
         }
 
-        $this->assertGreaterThan(5, $metadataList['KBC.rowCount']);
-        $this->assertLessThan(9, $metadataList['KBC.rowCount']);
+        $this->assertEquals(2, $metadataList['KBC.rowCount']);
         unset($metadataList['KBC.rowCount']);
 
         $this->assertEquals($expectedMetadata, $metadataList);
         $this->assertArrayHasKey('column_metadata', $outputManifest);
         $this->assertCount(2, $outputManifest['column_metadata']);
-        $this->assertArrayHasKey('col1', $outputManifest['column_metadata']);
-        $this->assertArrayHasKey('col2', $outputManifest['column_metadata']);
+        $this->assertArrayHasKey('weird_I_d', $outputManifest['column_metadata']);
+        $this->assertArrayHasKey('S_oPaulo', $outputManifest['column_metadata']);
 
-        $expectedColumnMetadata = [
-            'KBC.datatype.type' => 'varchar',
-            'KBC.datatype.basetype' => 'STRING',
-            'KBC.datatype.nullable' => false,
-            'KBC.datatype.default' => 'abc',
-            'KBC.datatype.length' => '155',
-            'KBC.primaryKey' => false,
-            'KBC.ordinalPosition' => 1,
-            'KBC.foreignKeyRefSchema' => 'testdb',
-            'KBC.foreignKeyRefTable' => 'escapingPK',
-            'KBC.foreignKeyRefColumn' => 'col1',
-            'KBC.constraintName' => 'escaping_ibfk_1'
-        ];
+        $expectedColumnMetadata = array (
+            'weird_I_d' =>
+                array (
+                    0 =>
+                        array (
+                            'key' => 'KBC.datatype.type',
+                            'value' => 'varchar',
+                        ),
+                    1 =>
+                        array (
+                            'key' => 'KBC.datatype.nullable',
+                            'value' => false,
+                        ),
+                    2 =>
+                        array (
+                            'key' => 'KBC.datatype.basetype',
+                            'value' => 'STRING',
+                        ),
+                    3 =>
+                        array (
+                            'key' => 'KBC.datatype.length',
+                            'value' => '155',
+                        ),
+                    4 =>
+                        array (
+                            'key' => 'KBC.datatype.default',
+                            'value' => 'abc',
+                        ),
+                    5 =>
+                        array (
+                            'key' => 'KBC.sourceName',
+                            'value' => '_weird-I-d',
+                        ),
+                    6 =>
+                        array (
+                            'key' => 'KBC.sanitizedName',
+                            'value' => 'weird_I_d',
+                        ),
+                    7 =>
+                        array (
+                            'key' => 'KBC.primaryKey',
+                            'value' => true,
+                        ),
+                    8 =>
+                        array (
+                            'key' => 'KBC.ordinalPosition',
+                            'value' => '1',
+                        ),
+                    9 =>
+                        array (
+                            'key' => 'KBC.constraintName',
+                            'value' => 'PRIMARY',
+                        ),
+                ),
+            'S_oPaulo' =>
+                array (
+                    0 =>
+                        array (
+                            'key' => 'KBC.datatype.type',
+                            'value' => 'varchar',
+                        ),
+                    1 =>
+                        array (
+                            'key' => 'KBC.datatype.nullable',
+                            'value' => false,
+                        ),
+                    2 =>
+                        array (
+                            'key' => 'KBC.datatype.basetype',
+                            'value' => 'STRING',
+                        ),
+                    3 =>
+                        array (
+                            'key' => 'KBC.datatype.length',
+                            'value' => '155',
+                        ),
+                    4 =>
+                        array (
+                            'key' => 'KBC.datatype.default',
+                            'value' => 'abc',
+                        ),
+                    5 =>
+                        array (
+                            'key' => 'KBC.sourceName',
+                            'value' => 'SãoPaulo',
+                        ),
+                    6 =>
+                        array (
+                            'key' => 'KBC.sanitizedName',
+                            'value' => 'S_oPaulo',
+                        ),
+                    7 =>
+                        array (
+                            'key' => 'KBC.primaryKey',
+                            'value' => false,
+                        ),
+                    8 =>
+                        array (
+                            'key' => 'KBC.ordinalPosition',
+                            'value' => '2',
+                        ),
+                ),
+        );
 
-        $colMetadata = [];
-        foreach ($outputManifest['column_metadata']['col1'] as $metadata) {
-            $this->assertArrayHasKey('key', $metadata);
-            $this->assertArrayHasKey('value', $metadata);
-            $colMetadata[$metadata['key']] = $metadata['value'];
-        }
-        $this->assertEquals($expectedColumnMetadata, $colMetadata);
+        $this->assertEquals($expectedColumnMetadata, $outputManifest['column_metadata']);
     }
 
     public function testNonExistingAction()
@@ -384,7 +577,14 @@ class CommonExtractorTest extends ExtractorTest
         $app = new Application($config);
         $result = $app->run();
 
-        $this->assertRunResult($result);
+        $outputTableName = $result['imported'][0]['outputTable'];
+        $this->assertExtractedData(ROOT_PATH . '/tests/data/simple.csv', $outputTableName);
+        $manifest = json_decode(
+            file_get_contents($this->dataDir . '/out/tables/' . $outputTableName . ".csv.manifest"),
+            true
+        );
+        $this->assertEquals(["weird_I_d", 'S_oPaulo'], $manifest['columns']);
+        $this->assertEquals(["weird_I_d"], $manifest['primary_key']);
     }
 
     public function testInvalidConfigurationQueryAndTable()
@@ -549,6 +749,7 @@ class CommonExtractorTest extends ExtractorTest
     {
         $config = $this->getConfigRow(self::DRIVER);
         unset($config['parameters']['query']);
+        unset($config['parameters']['columns']);
         $config['parameters']['table'] = [
             'tableName' => 'auto_increment_timestamp',
             'schema' => 'testdb'
@@ -574,13 +775,11 @@ class CommonExtractorTest extends ExtractorTest
         $this->db->exec('INSERT INTO auto_increment_timestamp (`name`) VALUES (\'george\'), (\'henry\')');
     }
 
-    protected function assertRunResult($result)
+    protected function assertExtractedData($expectedCsvFile, $outputName, $headerExpected = true)
     {
-        $expectedCsvFile = ROOT_PATH . '/tests/data/escaping.csv';
-        $outputCsvFile = $this->dataDir . '/out/tables/' . $result['imported'][0]['outputTable'] . '.csv';
-        $outputManifestFile = $this->dataDir . '/out/tables/' . $result['imported'][0]['outputTable'] . '.csv.manifest';
+        $outputCsvFile = $this->dataDir . '/out/tables/' . $outputName . '.csv';
+        $outputManifestFile = $this->dataDir . '/out/tables/' . $outputName . '.csv.manifest';
 
-        $this->assertEquals('success', $result['status']);
         $this->assertFileExists($outputCsvFile);
         $this->assertFileExists($outputManifestFile);
         $this->assertEquals(file_get_contents($expectedCsvFile), file_get_contents($outputCsvFile));

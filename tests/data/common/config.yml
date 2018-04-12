@@ -1,7 +1,7 @@
 parameters:
     db:
         host: localhost
-        database: test
+        database: testdb
         user: travis
         password:
         port: 3306
@@ -22,9 +22,11 @@ parameters:
             name: simple
             outputTable: in.c-main.simple
             incremental: false
-            primaryKey: null
+            primaryKey:
+              -
+                _weird-I-d
             table:
               schema: testdb
-              tableName: escaping
+              tableName: simple
             retries: 1
             columns:

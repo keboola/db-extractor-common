@@ -42,7 +42,7 @@ abstract class Extractor
 
     private $dbParameters;
 
-    public function __construct(array $parameters, array $state = [], Logger $logger)
+    public function __construct(array $parameters, array $state = [], Logger $logger = null)
     {
         $this->logger = $logger;
         $this->dataDir = $parameters['data_dir'];
@@ -136,7 +136,9 @@ abstract class Extractor
 
         $this->logger->info("Exporting to " . $outputTable);
 
+        $isAdvancedQuery = true;
         if (array_key_exists('table', $table) && !array_key_exists('query', $table)) {
+            $isAdvancedQuery = false;
             $query = $this->simpleQuery($table['table'], $table['columns']);
         } else {
             $query = $table['query'];
@@ -153,7 +155,7 @@ abstract class Extractor
         }
 
         try {
-            $result = $this->writeToCsv($stmt, $csv);
+            $result = $this->writeToCsv($stmt, $csv, $isAdvancedQuery);
         } catch (CsvException $e) {
              throw new ApplicationException("Write to CSV failed: " . $e->getMessage(), 0, $e);
         }
@@ -237,17 +239,20 @@ abstract class Extractor
     /**
      * @param \PDOStatement $stmt
      * @param CsvFile $csv
+     * @param boolean $includeHeader
      * @return array ['rows', 'lastFetchedRow']
      * @throws CsvException|UserException
      */
-    protected function writeToCsv(\PDOStatement $stmt, CsvFile $csv)
+    protected function writeToCsv(\PDOStatement $stmt, CsvFile $csv, $includeHeader = true)
     {
         $output = [];
         $resultRow = @$stmt->fetch(\PDO::FETCH_ASSOC);
 
         if (is_array($resultRow) && !empty($resultRow)) {
             // write header and first line
-            $csv->writeRow(array_keys($resultRow));
+            if ($includeHeader) {
+                $csv->writeRow(array_keys($resultRow));
+            }
             $csv->writeRow($resultRow);
 
             // write the rest
@@ -302,30 +307,47 @@ abstract class Extractor
             $manifestData['primary_key'] = $table['primaryKey'];
         }
 
+        $manifestColumns = [];
+
         if (isset($table['table']) && !is_null($table['table'])) {
             $tables = $this->getTables([$table['table']]);
             if (count($tables) > 0) {
                 $tableDetails = $tables[0];
                 $columnMetadata = [];
+                $sanitizedPks = [];
                 foreach ($tableDetails['columns'] as $column) {
                     if (count($table['columns']) > 0 && !in_array($column['name'], $table['columns'])) {
                         continue;
+                    }
+                    // use sanitized name for primary key if available
+                    if (in_array($column['name'], $table['primaryKey']) && array_key_exists('sanitizedName', $column)) {
+                        $sanitizedPks[] = $column['sanitizedName'];
                     }
                     $datatypeKeys = ['type', 'length', 'nullable', 'default', 'format'];
                     $datatype = new GenericStorage(
                         $column['type'],
                         array_intersect_key($column, array_flip($datatypeKeys))
                     );
-                    $columnMetadata[$column['name']] = $datatype->toMetadata();
+                    $columnName = $column['name'];
+                    if (array_key_exists('sanitizedName', $column)) {
+                        $columnName = $column['sanitizedName'];
+                    }
+                    $columnMetadata[$columnName] = $datatype->toMetadata();
                     $nonDatatypeKeys = array_diff_key($column, array_flip($datatypeKeys));
                     foreach ($nonDatatypeKeys as $key => $value) {
-                        if ($key !== 'name') {
-                            $columnMetadata[$column['name']][] = [
+                        if ($key === 'name') {
+                            $columnMetadata[$columnName][] = [
+                                'key' => "KBC.sourceName",
+                                'value' => $value
+                            ];
+                        } else {
+                            $columnMetadata[$columnName][] = [
                                 'key' => "KBC." . $key,
-                                'value'=> $value
+                                'value' => $value
                             ];
                         }
                     }
+                    $manifestColumns[] = $columnName;
                 }
                 unset($tableDetails['columns']);
                 foreach ($tableDetails as $key => $value) {
@@ -335,6 +357,10 @@ abstract class Extractor
                     ];
                 }
                 $manifestData['column_metadata'] = $columnMetadata;
+                $manifestData['columns'] = $manifestColumns;
+                if (!empty($sanitizedPks)) {
+                    $manifestData['primary_key'] = $sanitizedPks;
+                }
             }
         }
         return file_put_contents($outFilename, json_encode($manifestData));
