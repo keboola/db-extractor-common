@@ -1,11 +1,6 @@
 <?php
 
-/**
- * Created by PhpStorm.
- * User: miroslavcillik
- * Date: 10/12/15
- * Time: 13:04
- */
+declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Extractor;
 
@@ -32,7 +27,7 @@ abstract class Extractor
     /** @var  array */
     protected $state;
 
-    /** @var  array|null with keys type (autoIncrement or timestamp) and column*/
+    /** @var  array|null with keys type (autoIncrement or timestamp), column, and limit*/
     protected $incrementalFetching;
 
     /** @var Logger */
@@ -61,16 +56,16 @@ abstract class Extractor
             }
             throw new UserException("Error connecting to DB: " . $e->getMessage(), 0, $e);
         }
-
         if (isset($parameters['incrementalFetchingColumn'])) {
             $this->validateIncrementalFetching(
                 $parameters['table'],
-                $parameters['incrementalFetchingColumn']
+                $parameters['incrementalFetchingColumn'],
+                isset($parameters['incrementalFetchingLimit']) ? $parameters['incrementalFetchingLimit'] : null
             );
         }
     }
 
-    public function createSshTunnel($dbConfig)
+    public function createSshTunnel(array $dbConfig)
     {
         $sshConfig = $dbConfig['ssh'];
         // check params
@@ -124,7 +119,7 @@ abstract class Extractor
 
     abstract public function simpleQuery(array $table, array $columns = array());
 
-    public function validateIncrementalFetching(array $table, string $columnName)
+    public function validateIncrementalFetching(array $table, string $columnName, int $limit = null)
     {
         throw new UserException('Incremental Fetching is not supported by this extractor.');
     }
@@ -257,7 +252,7 @@ abstract class Extractor
 
             // write the rest
             $numRows = 1;
-            $lastRow = null;
+            $lastRow = $resultRow;
             while ($resultRow = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                 $csv->writeRow($resultRow);
                 $lastRow = $resultRow;

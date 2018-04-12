@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Keboola\DbExtractor\Tests;
 
 use Keboola\DbExtractor\Application;
@@ -705,6 +707,45 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertArrayHasKey('lastFetchedRow', $newResult['state']);
         $this->assertEquals(4, $newResult['state']['lastFetchedRow']);
         $this->assertEquals(2, $newResult['imported']['rows']);
+    }
+
+    public function testIncrementalFetchingLimit()
+    {
+        $config = $this->getIncrementalFetchingConfig();
+        $config['parameters']['incrementalFetchingLimit'] = 1;
+        $this->createAutoIncrementAndTimestampTable();
+
+        $result = (new Application($config))->run();
+
+        $this->assertEquals('success', $result['status']);
+        $this->assertEquals(
+            [
+                'outputTable' => 'in.c-main.auto-increment-timestamp',
+                'rows' => 1
+            ],
+            $result['imported']
+        );
+
+        //check that output state contains expected information
+        $this->assertArrayHasKey('state', $result);
+        $this->assertArrayHasKey('lastFetchedRow', $result['state']);
+        $this->assertEquals(1, $result['state']['lastFetchedRow']);
+
+        sleep(2);
+        // the next fetch should contain the second row
+        $result = (new Application($config, $result['state']))->run();
+        $this->assertEquals(
+            [
+                'outputTable' => 'in.c-main.auto-increment-timestamp',
+                'rows' => 1
+            ],
+            $result['imported']
+        );
+
+        //check that output state contains expected information
+        $this->assertArrayHasKey('state', $result);
+        $this->assertArrayHasKey('lastFetchedRow', $result['state']);
+        $this->assertEquals(2, $result['state']['lastFetchedRow']);
     }
 
     public function testIncrementalFetchingInvalidColumns()

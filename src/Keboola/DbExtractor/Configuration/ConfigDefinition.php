@@ -1,10 +1,7 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: miroslavcillik
- * Date: 09/03/16
- * Time: 11:23
- */
+
+declare(strict_types=1);
+
 namespace Keboola\DbExtractor\Configuration;
 
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
@@ -12,12 +9,7 @@ use Symfony\Component\Config\Definition\ConfigurationInterface;
 
 class ConfigDefinition implements ConfigurationInterface
 {
-    /**
-     * Generates the configuration tree builder.
-     *
-     * @return \Symfony\Component\Config\Definition\Builder\TreeBuilder The tree builder
-     */
-    public function getConfigTreeBuilder()
+    public function getConfigTreeBuilder() : \Symfony\Component\Config\Definition\Builder\TreeBuilder
     {
         $treeBuilder = new TreeBuilder();
         $rootNode = $treeBuilder->root('parameters');

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Keboola\DbExtractor\Configuration;
 
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
@@ -70,6 +72,7 @@ class ConfigRowDefinition implements ConfigurationInterface
                     ->defaultValue(false)
                 ->end()
                 ->scalarNode('incrementalFetchingColumn')->end()
+                ->scalarNode('incrementalFetchingLimit')->end()
                 ->booleanNode('enabled')
                     ->defaultValue(true)
                 ->end()

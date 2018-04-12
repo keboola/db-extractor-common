@@ -1,11 +1,6 @@
 <?php
 
-/**
- * Created by PhpStorm.
- * User: miroslavcillik
- * Date: 10/12/15
- * Time: 12:17
- */
+declare(strict_types=1);
 
 namespace Keboola\DbExtractor;
 
@@ -16,8 +11,6 @@ use Pimple\Container;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 use Symfony\Component\Config\Definition\Exception\Exception as ConfigException;
 use Symfony\Component\Config\Definition\Processor;
-use Symfony\Component\Serializer\Encoder\JsonEncoder;
-use Nette\Utils;
 
 class Application extends Container
 {
@@ -114,7 +107,7 @@ class Application extends Container
         }
     }
 
-    private function validateParameters($parameters)
+    private function validateParameters(array $parameters)
     {
         try {
             $processor = new Processor();
