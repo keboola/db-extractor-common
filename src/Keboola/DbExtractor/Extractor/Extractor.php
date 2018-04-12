@@ -27,7 +27,7 @@ abstract class Extractor
     /** @var  array */
     protected $state;
 
-    /** @var  array|null with keys type (autoIncrement or timestamp) and column*/
+    /** @var  array|null with keys type (autoIncrement or timestamp), column, and limit*/
     protected $incrementalFetching;
 
     /** @var Logger */
@@ -107,7 +107,7 @@ abstract class Extractor
         return $dbConfig;
     }
 
-    abstract public function createConnection(array $params);
+    abstract public function createConnection($params);
 
     abstract public function testConnection();
 
@@ -119,7 +119,7 @@ abstract class Extractor
 
     abstract public function simpleQuery(array $table, array $columns = array());
 
-    public function validateIncrementalFetching(array $table, string $columnName)
+    public function validateIncrementalFetching(array $table, string $columnName, int $limit = null)
     {
         throw new UserException('Incremental Fetching is not supported by this extractor.');
     }
