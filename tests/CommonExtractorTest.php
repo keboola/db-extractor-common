@@ -712,8 +712,7 @@ class CommonExtractorTest extends ExtractorTest
     public function testIncrementalFetchingLimit()
     {
         $config = $this->getIncrementalFetchingConfig();
-        $config['incrementalFethcingColumn'] = 'id';
-        $config['incrementalFetchingLimit'] = 1;
+        $config['parameters']['incrementalFetchingLimit'] = 1;
         $this->createAutoIncrementAndTimestampTable();
 
         $result = (new Application($config))->run();

@@ -56,11 +56,11 @@ abstract class Extractor
             }
             throw new UserException("Error connecting to DB: " . $e->getMessage(), 0, $e);
         }
-
         if (isset($parameters['incrementalFetchingColumn'])) {
             $this->validateIncrementalFetching(
                 $parameters['table'],
-                $parameters['incrementalFetchingColumn']
+                $parameters['incrementalFetchingColumn'],
+                isset($parameters['incrementalFetchingLimit']) ? $parameters['incrementalFetchingLimit'] : null
             );
         }
     }
@@ -252,7 +252,7 @@ abstract class Extractor
 
             // write the rest
             $numRows = 1;
-            $lastRow = null;
+            $lastRow = $resultRow;
             while ($resultRow = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                 $csv->writeRow($resultRow);
                 $lastRow = $resultRow;
