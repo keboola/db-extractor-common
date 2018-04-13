@@ -295,11 +295,6 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertEquals('success', $result['status']);
         $this->assertCount(3, $result['tables']);
 
-        $this->assertGreaterThan(5, $result['tables'][0]['rowCount']);
-        $this->assertLessThan(9, $result['tables'][0]['rowCount']);
-        $this->assertGreaterThan(5, $result['tables'][1]['rowCount']);
-        $this->assertLessThan(9, $result['tables'][1]['rowCount']);
-
         unset($result['tables'][0]['rowCount']);
         unset($result['tables'][1]['rowCount']);
         unset($result['tables'][3]['rowCount']);
