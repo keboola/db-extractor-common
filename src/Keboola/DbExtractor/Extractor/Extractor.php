@@ -139,7 +139,7 @@ abstract class Extractor
         }
 
         $maxTries = isset($table['retries']) ? (int) $table['retries'] : self::DEFAULT_MAX_TRIES;
-        $retryPolicy = new SimpleRetryPolicy($maxTries, ['PDOException', 'ErrorException', 'CsvException']);
+        $retryPolicy = new SimpleRetryPolicy($maxTries, ['ErrorException', 'CsvException']);
         $backOffPolicy = new ExponentialBackOffPolicy(1000);
         $proxy = new RetryProxy($retryPolicy, $backOffPolicy);
         $counter = 0;
@@ -152,10 +152,6 @@ abstract class Extractor
             ) {
                 if ($counter > 0) {
                     $this->logger->info(sprintf('%s. Retrying... [%dx]', $lastException->getMessage(), $counter));
-                    try {
-                        $this->db = $this->createConnection($this->dbParameters);
-                    } catch (\Exception $e) {
-                    };
                 }
                 try {
                     /** @var \PDOStatement $stmt */
