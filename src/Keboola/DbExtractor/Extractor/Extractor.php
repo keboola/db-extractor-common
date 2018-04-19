@@ -127,6 +127,7 @@ abstract class Extractor
     public function export(array $table)
     {
         $outputTable = $table['outputTable'];
+        $name = $table['name'];
 
         $this->logger->info("Exporting to " . $outputTable);
 
@@ -147,7 +148,7 @@ abstract class Extractor
         $lastException = null;
 
         $result = $proxy->call(function () use (
-            $maxTries, $query, $outputTable, $isAdvancedQuery, &$counter, &$lastException
+            $maxTries, $query, $table, $outputTable, $isAdvancedQuery, &$counter, &$lastException
         ) {
             if ($counter > 0) {
                 $this->logger->info(sprintf('%s. Retrying... [%dx]', $lastException->getMessage(), $counter));
@@ -160,15 +161,19 @@ abstract class Extractor
                 );
                 $csv = $this->createOutputCsv($outputTable);
                 $result = $this->writeToCsv($stmt, $csv, $isAdvancedQuery);
+                $lastException = null;
                 return $result;
             } catch (UserException $ue) {
-                throw $ue;
+                throw $this->handleDbError($ue, $table);
             } catch (\Exception $e) {
-                $lastException = $this->handleDbError($e, null, $counter + 1);
+                $lastException = $this->handleDbError($e, $table, $counter + 1);
                 $counter++;
                 throw $e;
             }
         });
+        if ($lastException) {
+            throw $lastException;
+        }
 
         if ($result['rows'] > 0) {
             $this->createManifest($table);
