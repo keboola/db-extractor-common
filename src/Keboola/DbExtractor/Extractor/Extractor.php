@@ -146,38 +146,29 @@ abstract class Extractor
         /** @var \Exception $lastException */
         $lastException = null;
 
-        try {
-            $result = $proxy->call(function () use (
-                $maxTries, $query, $outputTable, $isAdvancedQuery, &$counter, &$lastException
-            ) {
-                if ($counter > 0) {
-                    $this->logger->info(sprintf('%s. Retrying... [%dx]', $lastException->getMessage(), $counter));
-                }
-                try {
-                    /** @var \PDOStatement $stmt */
-                    $stmt = $this->executeQuery(
-                        $query,
-                        $maxTries
-                    );
-                    $csv = $this->createOutputCsv($outputTable);
-                    $result = $this->writeToCsv($stmt, $csv, $isAdvancedQuery);
-                    return $result;
-                } catch (UserException $ue) {
-                    throw $ue;
-                } catch (\Exception $e) {
-                    $lastException = $this->handleDbError($e, null, $counter + 1);
-                    $counter++;
-                    throw $e;
-                }
-            });
-        } catch (CsvException $e) {
-            throw new ApplicationException("Write to CSV failed: " . $e->getMessage(), 0, $e);
-        } catch (\Exception $e) {
-            if ($lastException) {
-                throw $lastException;
+        $result = $proxy->call(function () use (
+            $maxTries, $query, $outputTable, $isAdvancedQuery, &$counter, &$lastException
+        ) {
+            if ($counter > 0) {
+                $this->logger->info(sprintf('%s. Retrying... [%dx]', $lastException->getMessage(), $counter));
             }
-            throw $this->handleDbError($e, $table);
-        }
+            try {
+                /** @var \PDOStatement $stmt */
+                $stmt = $this->executeQuery(
+                    $query,
+                    $maxTries
+                );
+                $csv = $this->createOutputCsv($outputTable);
+                $result = $this->writeToCsv($stmt, $csv, $isAdvancedQuery);
+                return $result;
+            } catch (UserException $ue) {
+                throw $ue;
+            } catch (\Exception $e) {
+                $lastException = $this->handleDbError($e, null, $counter + 1);
+                $counter++;
+                throw $e;
+            }
+        });
 
         if ($result['rows'] > 0) {
             $this->createManifest($table);
