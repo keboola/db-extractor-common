@@ -229,12 +229,12 @@ abstract class Extractor
                     return $stmt;
                 } catch (\Exception $e) {
                     $counter++;
+                    $lastException = $this->handleDbError($e, null, $counter);
                     $this->logger->info(sprintf('%s. Retrying... [%dx]', $lastException->getMessage(), $counter));
                     try {
                         $this->db = $this->createConnection($this->dbParameters);
                     } catch (\Exception $e) {
                     };
-                    $lastException = $this->handleDbError($e, null, $counter);
                     throw $e;
                 }
             });
