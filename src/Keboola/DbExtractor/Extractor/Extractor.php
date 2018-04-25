@@ -150,9 +150,6 @@ abstract class Extractor
         $result = $proxy->call(function () use (
             $maxTries, $query, $table, $outputTable, $isAdvancedQuery, &$counter, &$lastException
         ) {
-            if ($counter > 0) {
-                $this->logger->info(sprintf('%s. Retrying... [%dx]', $lastException->getMessage(), $counter));
-            }
             try {
                 /** @var \PDOStatement $stmt */
                 $stmt = $this->executeQuery(
@@ -166,8 +163,9 @@ abstract class Extractor
             } catch (UserException $ue) {
                 throw $this->handleDbError($ue, $table);
             } catch (\Exception $e) {
-                $lastException = $this->handleDbError($e, $table, $counter + 1);
                 $counter++;
+                $lastException = $this->handleDbError($e, $table, $counter);
+                $this->logger->info(sprintf('%s. Retrying... [%dx]', $lastException->getMessage(), $counter));
                 throw $e;
             }
         });
@@ -224,21 +222,19 @@ abstract class Extractor
         $lastException = null;
         try {
             $stmt = $proxy->call(function () use ($query, &$counter, &$lastException) {
-                if ($counter > 0) {
-                    $this->logger->info(sprintf('%s. Retrying... [%dx]', $lastException->getMessage(), $counter));
-                    try {
-                        $this->db = $this->createConnection($this->dbParameters);
-                    } catch (\Exception $e) {
-                    };
-                }
                 try {
                     /** @var \PDOStatement $stmt */
                     $stmt = @$this->db->prepare($query);
                     @$stmt->execute();
                     return $stmt;
                 } catch (\Exception $e) {
-                    $lastException = $this->handleDbError($e, null, $counter + 1);
                     $counter++;
+                    $this->logger->info(sprintf('%s. Retrying... [%dx]', $lastException->getMessage(), $counter));
+                    try {
+                        $this->db = $this->createConnection($this->dbParameters);
+                    } catch (\Exception $e) {
+                    };
+                    $lastException = $this->handleDbError($e, null, $counter);
                     throw $e;
                 }
             });
