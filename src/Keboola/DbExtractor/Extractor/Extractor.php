@@ -10,6 +10,7 @@ use Keboola\Datatype\Definition\GenericStorage;
 use Keboola\DbExtractor\Exception\ApplicationException;
 use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractor\Logger;
+use Keboola\DbExtractor\Retrier;
 use Keboola\SSHTunnel\SSH;
 use Keboola\SSHTunnel\SSHException;
 use Nette\Utils;
@@ -140,38 +141,12 @@ abstract class Extractor
         }
 
         $maxTries = isset($table['retries']) ? (int) $table['retries'] : self::DEFAULT_MAX_TRIES;
-        $retryPolicy = new SimpleRetryPolicy($maxTries, ['ErrorException', 'CsvException']);
-        $backOffPolicy = new ExponentialBackOffPolicy(1000);
-        $proxy = new RetryProxy($retryPolicy, $backOffPolicy);
-        $counter = 0;
-        /** @var \Exception $lastException */
-        $lastException = null;
 
-        $result = $proxy->call(function () use (
-            $maxTries, $query, $table, $outputTable, $isAdvancedQuery, &$counter, &$lastException
-        ) {
-            try {
-                /** @var \PDOStatement $stmt */
-                $stmt = $this->executeQuery(
-                    $query,
-                    $maxTries
-                );
-                $csv = $this->createOutputCsv($outputTable);
-                $result = $this->writeToCsv($stmt, $csv, $isAdvancedQuery);
-                $lastException = null;
-                return $result;
-            } catch (UserException $ue) {
-                throw $this->handleDbError($ue, $table);
-            } catch (\Exception $e) {
-                $counter++;
-                $lastException = $this->handleDbError($e, $table, $counter);
-                $this->logger->info(sprintf('%s. Retrying... [%dx]', $lastException->getMessage(), $counter));
-                throw $e;
-            }
-        });
-        if ($lastException) {
-            throw $lastException;
-        }
+        $retrier = new Retrier($maxTries, ['ErrorException', 'PDOException'], $this->logger);
+        /** @var \PDOStatement $stmt */
+        $stmt = $retrier->retry([$this,'executeQuery'],[$query]);
+        $csv = $this->createOutputCsv($outputTable);
+        $result = $retrier->retry([$this, 'writeToCsv'], [$stmt, $csv, $isAdvancedQuery]);
 
         if ($result['rows'] > 0) {
             $this->createManifest($table);
@@ -212,39 +187,9 @@ abstract class Extractor
      * @return int Number of rows returned by query
      * @throws \PDOException|\ErrorException
      */
-    protected function executeQuery($query, int $maxTries)
+    public function executeQuery($query)
     {
-        $retryPolicy = new SimpleRetryPolicy($maxTries, ['PDOException', 'ErrorException']);
-        $backOffPolicy = new ExponentialBackOffPolicy(1000);
-        $proxy = new RetryProxy($retryPolicy, $backOffPolicy);
-        $counter = 0;
-        /** @var \Exception $lastException */
-        $lastException = null;
-        try {
-            $stmt = $proxy->call(function () use ($query, &$counter, &$lastException) {
-                try {
-                    /** @var \PDOStatement $stmt */
-                    $stmt = @$this->db->prepare($query);
-                    @$stmt->execute();
-                    return $stmt;
-                } catch (\Exception $e) {
-                    $counter++;
-                    $lastException = $this->handleDbError($e, null, $counter);
-                    $this->logger->info(sprintf('%s. Retrying... [%dx]', $lastException->getMessage(), $counter));
-                    try {
-                        $this->db = $this->createConnection($this->dbParameters);
-                    } catch (\Exception $e) {
-                    };
-                    throw $e;
-                }
-            });
-        } catch (\Exception $e) {
-            if ($lastException) {
-                throw $lastException;
-            }
-            throw $e;
-        }
-        return $stmt;
+        return @$this->db->prepare($query);
     }
 
     /**
@@ -254,7 +199,7 @@ abstract class Extractor
      * @return array ['rows', 'lastFetchedRow']
      * @throws CsvException|UserException
      */
-    protected function writeToCsv(\PDOStatement $stmt, CsvFile $csv, $includeHeader = true)
+    public function writeToCsv(\PDOStatement $stmt, CsvFile $csv, $includeHeader = true)
     {
         $output = [];
         $resultRow = @$stmt->fetch(\PDO::FETCH_ASSOC);

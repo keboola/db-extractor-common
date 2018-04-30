@@ -27,7 +27,7 @@ class Retrier
 
     /**
      * @param callable $method
-     * @param int $maxtries
+     * @param array $methodParams
      * @throws UserException
      */
     public function retry(
