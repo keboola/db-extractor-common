@@ -14,6 +14,7 @@ use Symfony\Component\Config\Definition\Processor;
 
 class Application extends Container
 {
+    /** @var ConfigDefinition|ConfigRowDefinition|ConfigurationInterface */
     private $configDefinition;
 
     public function __construct(array $config, array $state = [])
@@ -28,7 +29,7 @@ class Application extends Container
 
         $this['state'] = $state;
 
-        $this['logger'] = function () use ($app) {
+        $this['logger'] = function () {
             return new Logger(APP_NAME);
         };
 
@@ -46,7 +47,7 @@ class Application extends Container
         }
     }
 
-    public function run()
+    public function run(): array
     {
         $this['parameters'] = $this->validateParameters($this['parameters']);
 
@@ -58,12 +59,12 @@ class Application extends Container
         return $this->$actionMethod();
     }
 
-    public function setConfigDefinition(ConfigurationInterface $definition)
+    public function setConfigDefinition(ConfigurationInterface $definition): void
     {
         $this->configDefinition = $definition;
     }
 
-    private function isTableValid($table)
+    private function isTableValid(array $table): bool
     {
         if (!array_key_exists('schema', $table)) {
             return false;
@@ -77,37 +78,50 @@ class Application extends Container
         return true;
     }
 
-    private function validateTableParameters(array $table)
+    private function validateTableParameters(array $table): void
     {
         if (isset($table['query']) && $table['query'] !== '') {
             if (isset($table['table'])) {
-                throw new ConfigException(sprintf(
-                    'Invalid Configuration in "%s". Both table and query cannot be set together.',
-                    $table['name']
-                ));
+                throw new ConfigException(
+                    sprintf(
+                        'Invalid Configuration in "%s". Both table and query cannot be set together.',
+                        $table['name']
+                    )
+                );
             }
             if (isset($table['incrementalFetchingColumn'])) {
-                throw new ConfigException(sprintf(
-                    'Invalid Configuration in "%s". Incremental fetching is not supported for advanced queries.',
-                    $table['name']
-                ));
+                throw new ConfigException(
+                    sprintf(
+                        'Invalid Configuration in "%s". Incremental fetching is not supported for advanced queries.',
+                        $table['name']
+                    )
+                );
             }
         } else if (!isset($table['table'])) {
-            throw new ConfigException(sprintf(
-                'Invalid Configuration in "%s". One of table or query is required.',
-                $table['name']
-            ));
+            throw new ConfigException(
+                sprintf(
+                    'Invalid Configuration in "%s". One of table or query is required.',
+                    $table['name']
+                )
+            );
         } else if (!$this->isTableValid($table['table'])) {
-            throw new ConfigException(sprintf(
-                'Invalid Configuration in "%s". The table property requires "tableName" and "schema"',
-                $table['name']
-            ));
+            throw new ConfigException(
+                sprintf(
+                    'Invalid Configuration in "%s". The table property requires "tableName" and "schema"',
+                    $table['name']
+                )
+            );
         } else if (isset($table['incrementalFetching']['autoIncrementColumn']) && empty($table['primaryKey'])) {
             $this['logger']->warn("An import autoIncrement column is being used but output primary key is not set.");
         }
     }
 
-    private function validateParameters(array $parameters)
+    /**
+     * @param array $parameters
+     * @return array
+     * @throws UserException
+     */
+    private function validateParameters(array $parameters): array
     {
         try {
             $processor = new Processor();
@@ -134,14 +148,17 @@ class Application extends Container
         }
     }
 
-    private function runAction()
+    private function runAction(): array
     {
         $imported = [];
         $outputState = [];
         if (isset($this['parameters']['tables'])) {
-            $tables = array_filter($this['parameters']['tables'], function ($table) {
-                return ($table['enabled']);
-            });
+            $tables = array_filter(
+                $this['parameters']['tables'],
+                function ($table) {
+                    return ($table['enabled']);
+                }
+            );
             foreach ($tables as $table) {
                 $exportResults = $this['extractor']->export($table);
                 $imported[] = $exportResults;
@@ -162,11 +179,11 @@ class Application extends Container
         ];
     }
 
-    private function testConnectionAction()
+    private function testConnectionAction(): array
     {
         try {
             $this['extractor']->testConnection();
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             throw new UserException(sprintf("Connection failed: '%s'", $e->getMessage()), 0, $e);
         }
 
@@ -175,13 +192,13 @@ class Application extends Container
         ];
     }
 
-    private function getTablesAction()
+    private function getTablesAction(): array
     {
         try {
             $output = [];
             $output['tables'] = $this['extractor']->getTables();
             $output['status'] = 'success';
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             throw new UserException(sprintf("Failed to get tables: '%s'", $e->getMessage()), 0, $e);
         }
         return $output;

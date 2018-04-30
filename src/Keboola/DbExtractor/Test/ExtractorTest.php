@@ -8,14 +8,17 @@ use Symfony\Component\Yaml\Yaml;
 
 class ExtractorTest extends \PHPUnit_Framework_TestCase
 {
+    /**
+     * @var string
+     */
     protected $dataDir = ROOT_PATH . "/tests/data";
 
     /**
      * @param $driver
      * @param string $format (yaml or json)
-     * @return mixed
+     * @return array|mixed
      */
-    protected function getConfig($driver, $format = 'yaml')
+    protected function getConfig(string $driver, string $format = 'yaml'): array
     {
         if ($format === 'json') {
             $config = json_decode(file_get_contents($this->dataDir . '/' .$driver . '/config.json'), true);
@@ -35,7 +38,7 @@ class ExtractorTest extends \PHPUnit_Framework_TestCase
         return $config;
     }
 
-    protected function getConfigRow($driver)
+    protected function getConfigRow(string $driver): array
     {
         $config = json_decode(file_get_contents($this->dataDir . '/' .$driver . '/configRow.json'), true);
 
@@ -52,7 +55,7 @@ class ExtractorTest extends \PHPUnit_Framework_TestCase
         return $config;
     }
 
-    protected function getEnv($driver, $suffix, $required = false)
+    protected function getEnv(string $driver, string $suffix, bool $required = false): string
     {
         $env = strtoupper($driver) . '_' . $suffix;
         if ($required) {
@@ -63,7 +66,7 @@ class ExtractorTest extends \PHPUnit_Framework_TestCase
         return getenv($env);
     }
 
-    public function getPrivateKey($driver)
+    public function getPrivateKey(string $driver): string
     {
         // docker-compose .env file does not support new lines in variables so we have to modify the key https://github.com/moby/moby/issues/12997
         return str_replace('"', '', str_replace('\n', "\n", $this->getEnv($driver, 'DB_SSH_KEY_PRIVATE')));

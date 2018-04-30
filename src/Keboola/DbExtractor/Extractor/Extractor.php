@@ -10,36 +10,50 @@ use Keboola\Datatype\Definition\GenericStorage;
 use Keboola\DbExtractor\Exception\ApplicationException;
 use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractor\Logger;
+use Keboola\DbExtractor\Retrier;
 use Keboola\SSHTunnel\SSH;
 use Keboola\SSHTunnel\SSHException;
 use Nette\Utils;
-use Retry\BackOff\ExponentialBackOffPolicy;
-use Retry\Policy\SimpleRetryPolicy;
-use Retry\RetryProxy;
 
 abstract class Extractor
 {
-    const DEFAULT_MAX_TRIES = 5;
+    public const DEFAULT_MAX_TRIES = 5;
 
-    /** @var \PDO */
+    /**
+     * @var \PDO
+     */
     protected $db;
 
-    /** @var  array */
+    /**
+     * @var  array
+     */
     protected $state;
 
-    /** @var  array|null with keys type (autoIncrement or timestamp), column, and limit*/
+    /**
+     * @var  array|null with keys type (autoIncrement or timestamp), column, and limit
+     */
     protected $incrementalFetching;
 
-    /** @var Logger */
+    /**
+     * @var Logger
+     */
     protected $logger;
 
+    /**
+     * @var mixed
+     */
     protected $dataDir;
 
+    /**
+     * @var array|mixed
+     */
     private $dbParameters;
 
-    public function __construct(array $parameters, array $state = [], Logger $logger = null)
+    public function __construct(array $parameters, array $state = [], ?Logger $logger = null)
     {
-        $this->logger = $logger;
+        if ($logger) {
+            $this->logger = $logger;
+        }
         $this->dataDir = $parameters['data_dir'];
         $this->state = $state;
 
@@ -50,7 +64,7 @@ abstract class Extractor
 
         try {
             $this->db = $this->createConnection($this->dbParameters);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             if (strstr(strtolower($e->getMessage()), 'could not find driver')) {
                 throw new ApplicationException("Missing driver: " . $e->getMessage());
             }
@@ -65,7 +79,7 @@ abstract class Extractor
         }
     }
 
-    public function createSshTunnel(array $dbConfig)
+    public function createSshTunnel(array $dbConfig): array
     {
         $sshConfig = $dbConfig['ssh'];
         // check params
@@ -90,9 +104,14 @@ abstract class Extractor
         $sshConfig['privateKey'] = isset($sshConfig['keys']['#private'])
             ?$sshConfig['keys']['#private']
             :$sshConfig['keys']['private'];
-        $tunnelParams = array_intersect_key($sshConfig, array_flip([
-            'user', 'sshHost', 'sshPort', 'localPort', 'remoteHost', 'remotePort', 'privateKey'
-        ]));
+        $tunnelParams = array_intersect_key(
+            $sshConfig,
+            array_flip(
+                [
+                'user', 'sshHost', 'sshPort', 'localPort', 'remoteHost', 'remotePort', 'privateKey',
+                ]
+            )
+        );
         $this->logger->info("Creating SSH tunnel to '" . $tunnelParams['sshHost'] . "'");
         try {
             $ssh = new SSH();
@@ -107,27 +126,40 @@ abstract class Extractor
         return $dbConfig;
     }
 
-    abstract public function createConnection($params);
+    /**
+     * @param array $params
+     * @return \PDO|mixed
+     */
+    abstract public function createConnection(array $params);
 
+    /**
+     * @return void|mixed
+     */
     abstract public function testConnection();
 
     /**
      * @param array|null $tables - an optional array of tables with tableName and schema properties
      * @return mixed
      */
-    abstract public function getTables(array $tables = null);
+    abstract public function getTables(?array $tables = null): array;
 
-    abstract public function simpleQuery(array $table, array $columns = array());
+    abstract public function simpleQuery(array $table, array $columns = array()): string;
 
-    public function validateIncrementalFetching(array $table, string $columnName, int $limit = null)
+    /**
+     * @param array    $table
+     * @param string   $columnName
+     * @param int|null $limit
+     * @throws UserException
+     */
+    public function validateIncrementalFetching(array $table, string $columnName, ?int $limit = null): void
     {
         throw new UserException('Incremental Fetching is not supported by this extractor.');
     }
 
-    public function export(array $table)
+    public function export(array $table): array
     {
         $outputTable = $table['outputTable'];
-        $csv = $this->createOutputCsv($outputTable);
+        $name = $table['name'];
 
         $this->logger->info("Exporting to " . $outputTable);
 
@@ -139,34 +171,29 @@ abstract class Extractor
             $query = $table['query'];
         }
 
-        try {
-            /** @var \PDOStatement $stmt */
-            $stmt = $this->executeQuery(
-                $query,
-                isset($table['retries']) ? (int) $table['retries'] : self::DEFAULT_MAX_TRIES
-            );
-        } catch (\Exception $e) {
-            throw $this->handleDbError($e, $table);
-        }
+        $maxTries = isset($table['retries']) ? (int) $table['retries'] : self::DEFAULT_MAX_TRIES;
 
-        try {
-            $result = $this->writeToCsv($stmt, $csv, $isAdvancedQuery);
-        } catch (CsvException $e) {
-             throw new ApplicationException("Write to CSV failed: " . $e->getMessage(), 0, $e);
-        }
+        $retrier = new Retrier($maxTries, ['ErrorException', 'PDOException'], $this->logger);
+
+        /** @var \PDOStatement $stmt */
+        $stmt = $retrier->retry([$this,'executeQuery'], [$query]);
+        $csv = $this->createOutputCsv($outputTable);
+        $result = $retrier->retry([$this, 'writeToCsv'], [$stmt, $csv, $isAdvancedQuery]);
 
         if ($result['rows'] > 0) {
             $this->createManifest($table);
         } else {
-            $this->logger->warn(sprintf(
-                "Query returned empty result. Nothing was imported for table [%s]",
-                $table['name']
-            ));
+            $this->logger->warn(
+                sprintf(
+                    "Query returned empty result. Nothing was imported for table [%s]",
+                    $table['name']
+                )
+            );
         }
 
         $output = [
             "outputTable"=> $outputTable,
-            "rows" => $result['rows']
+            "rows" => $result['rows'],
         ];
         // output state
         if (!empty($result['lastFetchedRow'])) {
@@ -175,7 +202,7 @@ abstract class Extractor
         return $output;
     }
 
-    private function handleDbError(\Exception $e, array $table = null, int $counter = null) : UserException
+    private function handleDbError(\Throwable $e, ?array $table = null, ?int $counter = null): UserException
     {
         $message = "";
         if ($table) {
@@ -189,56 +216,19 @@ abstract class Extractor
         return $exception;
     }
 
-    /**
-     * @param $query
-     * @return int Number of rows returned by query
-     * @throws \PDOException|\ErrorException
-     */
-    protected function executeQuery($query, int $maxTries)
+    public function executeQuery(string $query): \PDOStatement
     {
-        $retryPolicy = new SimpleRetryPolicy($maxTries, ['PDOException', 'ErrorException']);
-        $backOffPolicy = new ExponentialBackOffPolicy(1000);
-        $proxy = new RetryProxy($retryPolicy, $backOffPolicy);
-        $counter = 0;
-        /** @var \Exception $lastException */
-        $lastException = null;
-        try {
-            $stmt = $proxy->call(function () use ($query, &$counter, &$lastException) {
-                if ($counter > 0) {
-                    $this->logger->info(sprintf('%s. Retrying... [%dx]', $lastException->getMessage(), $counter));
-                    try {
-                        $this->db = $this->createConnection($this->dbParameters);
-                    } catch (\Exception $e) {
-                    };
-                }
-                try {
-                    /** @var \PDOStatement $stmt */
-                    $stmt = @$this->db->prepare($query);
-                    @$stmt->execute();
-                    return $stmt;
-                } catch (\Exception $e) {
-                    $lastException = $this->handleDbError($e, null, $counter + 1);
-                    $counter++;
-                    throw $e;
-                }
-            });
-        } catch (\Exception $e) {
-            if ($lastException) {
-                throw $lastException;
-            }
-            throw $e;
-        }
-        return $stmt;
+        return @$this->db->prepare($query);
     }
 
     /**
      * @param \PDOStatement $stmt
-     * @param CsvFile $csv
-     * @param boolean $includeHeader
+     * @param CsvFile       $csv
+     * @param boolean       $includeHeader
      * @return array ['rows', 'lastFetchedRow']
      * @throws CsvException|UserException
      */
-    protected function writeToCsv(\PDOStatement $stmt, CsvFile $csv, $includeHeader = true)
+    public function writeToCsv(\PDOStatement $stmt, CsvFile $csv, bool $includeHeader = true): array
     {
         $output = [];
         $resultRow = @$stmt->fetch(\PDO::FETCH_ASSOC);
@@ -280,7 +270,7 @@ abstract class Extractor
         return $output;
     }
 
-    protected function createOutputCsv($outputTable)
+    protected function createOutputCsv(string $outputTable): CsvFile
     {
         $outTablesDir = $this->dataDir . '/out/tables';
         if (!is_dir($outTablesDir)) {
@@ -289,13 +279,17 @@ abstract class Extractor
         return new CsvFile($this->getOutputFilename($outputTable));
     }
 
-    protected function createManifest($table)
+    /**
+     * @param array $table
+     * @return bool|int
+     */
+    protected function createManifest(array $table)
     {
         $outFilename = $this->getOutputFilename($table['outputTable']) . '.manifest';
 
         $manifestData = [
             'destination' => $table['outputTable'],
-            'incremental' => $table['incremental']
+            'incremental' => $table['incremental'],
         ];
 
         if (!empty($table['primaryKey'])) {
@@ -333,12 +327,12 @@ abstract class Extractor
                         if ($key === 'name') {
                             $columnMetadata[$columnName][] = [
                                 'key' => "KBC.sourceName",
-                                'value' => $value
+                                'value' => $value,
                             ];
                         } else {
                             $columnMetadata[$columnName][] = [
                                 'key' => "KBC." . $key,
-                                'value' => $value
+                                'value' => $value,
                             ];
                         }
                     }
@@ -348,7 +342,7 @@ abstract class Extractor
                 foreach ($tableDetails as $key => $value) {
                     $manifestData['metadata'][] = [
                         "key" => "KBC." . $key,
-                        "value" => $value
+                        "value" => $value,
                     ];
                 }
                 $manifestData['column_metadata'] = $columnMetadata;
@@ -361,7 +355,7 @@ abstract class Extractor
         return file_put_contents($outFilename, json_encode($manifestData));
     }
 
-    protected function getOutputFilename($outputTableName)
+    protected function getOutputFilename(string $outputTableName): string
     {
         $sanitizedTablename = Utils\Strings::webalize($outputTableName, '._');
         return $this->dataDir . '/out/tables/' . $sanitizedTablename . '.csv';

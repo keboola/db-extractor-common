@@ -14,12 +14,14 @@ use Keboola\DbExtractor\Test\DataLoader;
 
 class CommonExtractorTest extends ExtractorTest
 {
-    const DRIVER = 'common';
+    public const DRIVER = 'common';
 
-    /** @var  \PDO */
+    /**
+     * @var  \PDO
+     */
     private $db;
 
-    public function setUp()
+    public function setUp(): void
     {
         if (!defined('APP_NAME')) {
             define('APP_NAME', 'ex-db-common');
@@ -27,7 +29,7 @@ class CommonExtractorTest extends ExtractorTest
         $this->initDatabase();
     }
 
-    private function initDatabase()
+    private function initDatabase(): void
     {
         $dataLoader = new DataLoader(
             $this->getEnv(self::DRIVER, 'DB_HOST'),
@@ -38,29 +40,40 @@ class CommonExtractorTest extends ExtractorTest
         );
 
         $dataLoader->getPdo()->exec(sprintf("DROP DATABASE IF EXISTS `%s`", $this->getEnv(self::DRIVER, 'DB_DATABASE')));
-        $dataLoader->getPdo()->exec(sprintf("
+        $dataLoader->getPdo()->exec(
+            sprintf(
+                "
             CREATE DATABASE `%s`
             DEFAULT CHARACTER SET utf8
             DEFAULT COLLATE utf8_general_ci
-        ", $this->getEnv(self::DRIVER, 'DB_DATABASE')));
+        ",
+                $this->getEnv(self::DRIVER, 'DB_DATABASE')
+            )
+        );
 
         $dataLoader->getPdo()->exec("USE " . $this->getEnv(self::DRIVER, 'DB_DATABASE'));
 
         $dataLoader->getPdo()->exec("SET NAMES utf8;");
-        $dataLoader->getPdo()->exec("CREATE TABLE escapingPK (
+        $dataLoader->getPdo()->exec(
+            "CREATE TABLE escapingPK (
                                     col1 VARCHAR(155), 
                                     col2 VARCHAR(155), 
-                                    PRIMARY KEY (col1, col2))");
+                                    PRIMARY KEY (col1, col2))"
+        );
 
-        $dataLoader->getPdo()->exec("CREATE TABLE escaping (
+        $dataLoader->getPdo()->exec(
+            "CREATE TABLE escaping (
                                   col1 VARCHAR(155) NOT NULL DEFAULT 'abc', 
                                   col2 VARCHAR(155) NOT NULL DEFAULT 'abc',
-                                  FOREIGN KEY (col1, col2) REFERENCES escapingPK(col1, col2))");
+                                  FOREIGN KEY (col1, col2) REFERENCES escapingPK(col1, col2))"
+        );
 
-        $dataLoader->getPdo()->exec("CREATE TABLE simple (
+        $dataLoader->getPdo()->exec(
+            "CREATE TABLE simple (
                                   `_weird-I-d` VARCHAR(155) NOT NULL DEFAULT 'abc', 
                                   `SãoPaulo` VARCHAR(155) NOT NULL DEFAULT 'abc',
-                                  PRIMARY KEY (`_weird-I-d`))");
+                                  PRIMARY KEY (`_weird-I-d`))"
+        );
 
         $inputFile = ROOT_PATH . '/tests/data/escaping.csv';
         $simpleFile = ROOT_PATH . '/tests/data/simple.csv';
@@ -71,7 +84,7 @@ class CommonExtractorTest extends ExtractorTest
         $this->db = $dataLoader->getPdo();
     }
 
-    private function cleanOutputDirectory()
+    private function cleanOutputDirectory(): void
     {
         $finder = new Finder();
         if (file_exists(ROOT_PATH . '/tests/data/out/tables')) {
@@ -83,7 +96,7 @@ class CommonExtractorTest extends ExtractorTest
         }
     }
 
-    public function testRunSimple()
+    public function testRunSimple(): void
     {
         $this->cleanOutputDirectory();
         $result = (new Application($this->getConfig(self::DRIVER)))->run();
@@ -97,7 +110,7 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertEquals(["weird_I_d"], $manifest['primary_key']);
     }
 
-    public function testRunJsonConfig()
+    public function testRunJsonConfig(): void
     {
         $this->cleanOutputDirectory();
         $result = (new Application($this->getConfig(self::DRIVER, 'json')))->run();
@@ -119,7 +132,7 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertEquals(["weird_I_d"], $manifest['primary_key']);
     }
 
-    public function testRunConfigRow()
+    public function testRunConfigRow(): void
     {
         $this->cleanOutputDirectory();
         $result = (new Application($this->getConfigRow(self::DRIVER)))->run();
@@ -135,7 +148,7 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertEquals(["weird_I_d"], $manifest['primary_key']);
     }
 
-    public function testRunWithSSH()
+    public function testRunWithSSH(): void
     {
         $this->cleanOutputDirectory();
         $config = $this->getConfig(self::DRIVER);
@@ -143,16 +156,16 @@ class CommonExtractorTest extends ExtractorTest
             'enabled' => true,
             'keys' => [
                 '#private' => $this->getPrivateKey(self::DRIVER),
-                'public' => $this->getEnv(self::DRIVER, 'DB_SSH_KEY_PUBLIC')
+                'public' => $this->getEnv(self::DRIVER, 'DB_SSH_KEY_PUBLIC'),
             ],
-            'sshHost' => 'sshproxy'
+            'sshHost' => 'sshproxy',
         ];
         $result = (new Application($config))->run();
         $this->assertExtractedData(ROOT_PATH . '/tests/data/escaping.csv', $result['imported'][0]['outputTable']);
         $this->assertExtractedData(ROOT_PATH . '/tests/data/simple.csv', $result['imported'][1]['outputTable']);
     }
 
-    public function testRunWithSSHDeprecated()
+    public function testRunWithSSHDeprecated(): void
     {
         $this->cleanOutputDirectory();
         $config = $this->getConfig(self::DRIVER);
@@ -160,7 +173,7 @@ class CommonExtractorTest extends ExtractorTest
             'enabled' => true,
             'keys' => [
                 '#private' => $this->getPrivateKey(self::DRIVER),
-                'public' => $this->getEnv(self::DRIVER, 'DB_SSH_KEY_PUBLIC')
+                'public' => $this->getEnv(self::DRIVER, 'DB_SSH_KEY_PUBLIC'),
             ],
             'sshHost' => 'sshproxy',
             'localPort' => '33306',
@@ -173,7 +186,7 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertExtractedData(ROOT_PATH . '/tests/data/simple.csv', $result['imported'][1]['outputTable']);
     }
 
-    public function testRunWithSSHUserException()
+    public function testRunWithSSHUserException(): void
     {
         $this->cleanOutputDirectory();
         $this->setExpectedException('Keboola\DbExtractor\Exception\UserException');
@@ -183,7 +196,7 @@ class CommonExtractorTest extends ExtractorTest
             'enabled' => true,
             'keys' => [
                 '#private' => $this->getPrivateKey(self::DRIVER),
-                'public' => $this->getEnv(self::DRIVER, 'DB_SSH_KEY_PUBLIC')
+                'public' => $this->getEnv(self::DRIVER, 'DB_SSH_KEY_PUBLIC'),
             ],
             'sshHost' => 'wronghost',
             'localPort' => '33306',
@@ -194,7 +207,7 @@ class CommonExtractorTest extends ExtractorTest
         (new Application($config))->run();
     }
 
-    public function testRunWithWrongCredentials()
+    public function testRunWithWrongCredentials(): void
     {
         $config = $this->getConfig(self::DRIVER);
         $config['parameters']['db']['host'] = 'somebulshit';
@@ -207,7 +220,7 @@ class CommonExtractorTest extends ExtractorTest
         }
     }
 
-    public function testRetries()
+    public function testRetries(): void
     {
         $config = $this->getConfig(self::DRIVER);
         $config['parameters']['tables'][0]['query'] = "SELECT * FROM `table_that_does_not_exist`";
@@ -220,7 +233,7 @@ class CommonExtractorTest extends ExtractorTest
         }
     }
 
-    public function testRunEmptyQuery()
+    public function testRunEmptyQuery(): void
     {
         $outputCsvFile = $this->dataDir . '/out/tables/in.c-main.escaping.csv';
         $outputManifestFile = $this->dataDir . '/out/tables/in.c-main.escaping.csv.manifest';
@@ -235,7 +248,7 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertFileNotExists($outputManifestFile);
     }
 
-    public function testTestConnection()
+    public function testTestConnection(): void
     {
         $config = $this->getConfig(self::DRIVER);
         $config['action'] = 'testConnection';
@@ -246,14 +259,14 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertEquals('success', $res['status']);
     }
 
-    public function testTestConnectionFailInTheMiddle()
+    public function testTestConnectionFailInTheMiddle(): void
     {
         $config = $this->getConfig(self::DRIVER);
         $config['parameters']['tables'][] = [
             'id' => 10,
             'name' => 'bad',
             'query' => 'KILL CONNECTION_ID();',
-            'outputTable' => 'dummy'
+            'outputTable' => 'dummy',
         ];
         try {
             (new Application($config))->run();
@@ -264,7 +277,7 @@ class CommonExtractorTest extends ExtractorTest
         }
     }
 
-    public function testTestConnectionFailure()
+    public function testTestConnectionFailure(): void
     {
         $config = $this->getConfig(self::DRIVER);
         $config['action'] = 'testConnection';
@@ -281,7 +294,7 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertTrue($exceptionThrown);
     }
 
-    public function testGetTablesAction()
+    public function testGetTablesAction(): void
     {
         $config = $this->getConfig(self::DRIVER);
         $config['action'] = 'getTables';
@@ -294,11 +307,6 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertArrayHasKey('tables', $result);
         $this->assertEquals('success', $result['status']);
         $this->assertCount(3, $result['tables']);
-
-        $this->assertGreaterThan(5, $result['tables'][0]['rowCount']);
-        $this->assertLessThan(9, $result['tables'][0]['rowCount']);
-        $this->assertGreaterThan(5, $result['tables'][1]['rowCount']);
-        $this->assertLessThan(9, $result['tables'][1]['rowCount']);
 
         unset($result['tables'][0]['rowCount']);
         unset($result['tables'][1]['rowCount']);
@@ -407,7 +415,7 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertEquals($expectedData, $result['tables']);
     }
 
-    public function testMetadataManifest()
+    public function testMetadataManifest(): void
     {
         $config = $this->getConfig(self::DRIVER);
         unset($config['parameters']['tables'][0]);
@@ -431,7 +439,7 @@ class CommonExtractorTest extends ExtractorTest
             'KBC.name' => 'simple',
             'KBC.schema' => 'testdb',
             'KBC.type' => 'BASE TABLE',
-            'KBC.sanitizedName' => 'simple'
+            'KBC.sanitizedName' => 'simple',
         ];
         $metadataList = [];
         foreach ($outputManifest['metadata'] as $i => $metadata) {
@@ -556,7 +564,7 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertEquals($expectedColumnMetadata, $outputManifest['column_metadata']);
     }
 
-    public function testNonExistingAction()
+    public function testNonExistingAction(): void
     {
         $config = $this->getConfig(self::DRIVER);
         $config['action'] = 'sample';
@@ -571,7 +579,7 @@ class CommonExtractorTest extends ExtractorTest
         }
     }
 
-    public function testTableColumnsQuery()
+    public function testTableColumnsQuery(): void
     {
         $config = $this->getConfig(self::DRIVER);
         unset($config['parameters']['tables'][0]);
@@ -589,7 +597,7 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertEquals(["weird_I_d"], $manifest['primary_key']);
     }
 
-    public function testInvalidConfigurationQueryAndTable()
+    public function testInvalidConfigurationQueryAndTable(): void
     {
         $config = $this->getConfig(self::DRIVER);
         $config['parameters']['tables'][0]['table'] = ['schema' => 'testdb', 'tableName' => 'escaping'];
@@ -602,7 +610,7 @@ class CommonExtractorTest extends ExtractorTest
         }
     }
 
-    public function testInvalidConfigurationQueryNorTable()
+    public function testInvalidConfigurationQueryNorTable(): void
     {
         $config = $this->getConfig(self::DRIVER);
         unset($config['parameters']['tables'][0]['query']);
@@ -615,7 +623,7 @@ class CommonExtractorTest extends ExtractorTest
         }
     }
 
-    public function testStrangeTableName()
+    public function testStrangeTableName(): void
     {
         $config = $this->getConfig(self::DRIVER);
         $config['parameters']['tables'][0]['outputTable'] = "in.c-main.something/ weird";
@@ -627,7 +635,7 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertFileExists($this->dataDir . '/out/tables/in.c-main.something-weird.csv.manifest');
     }
 
-    public function testIncrementalFetchingByTimestamp()
+    public function testIncrementalFetchingByTimestamp(): void
     {
         $config = $this->getIncrementalFetchingConfig();
         $config['incrementalFethcingColumn'] = 'timestamp';
@@ -639,7 +647,7 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertEquals(
             [
                 'outputTable' => 'in.c-main.auto-increment-timestamp',
-                'rows' => 2
+                'rows' => 2,
             ],
             $result['imported']
         );
@@ -669,7 +677,7 @@ class CommonExtractorTest extends ExtractorTest
         );
     }
 
-    public function testIncrementalFetchingByAutoIncrement()
+    public function testIncrementalFetchingByAutoIncrement(): void
     {
         $config = $this->getIncrementalFetchingConfig();
         $config['incrementalFethcingColumn'] = 'id';
@@ -681,7 +689,7 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertEquals(
             [
                 'outputTable' => 'in.c-main.auto-increment-timestamp',
-                'rows' => 2
+                'rows' => 2,
             ],
             $result['imported']
         );
@@ -709,7 +717,7 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertEquals(2, $newResult['imported']['rows']);
     }
 
-    public function testIncrementalFetchingLimit()
+    public function testIncrementalFetchingLimit(): void
     {
         $config = $this->getIncrementalFetchingConfig();
         $config['parameters']['incrementalFetchingLimit'] = 1;
@@ -721,7 +729,7 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertEquals(
             [
                 'outputTable' => 'in.c-main.auto-increment-timestamp',
-                'rows' => 1
+                'rows' => 1,
             ],
             $result['imported']
         );
@@ -737,7 +745,7 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertEquals(
             [
                 'outputTable' => 'in.c-main.auto-increment-timestamp',
-                'rows' => 1
+                'rows' => 1,
             ],
             $result['imported']
         );
@@ -748,7 +756,7 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertEquals(2, $result['state']['lastFetchedRow']);
     }
 
-    public function testIncrementalFetchingInvalidColumns()
+    public function testIncrementalFetchingInvalidColumns(): void
     {
         $this->createAutoIncrementAndTimestampTable();
         $config = $this->getIncrementalFetchingConfig();
@@ -771,7 +779,7 @@ class CommonExtractorTest extends ExtractorTest
         }
     }
 
-    public function testIncrementalFetchingInvalidConfig()
+    public function testIncrementalFetchingInvalidConfig(): void
     {
         $this->createAutoIncrementAndTimestampTable();
         $config = $this->getIncrementalFetchingConfig();
@@ -786,14 +794,14 @@ class CommonExtractorTest extends ExtractorTest
         }
     }
 
-    private function getIncrementalFetchingConfig()
+    private function getIncrementalFetchingConfig(): array
     {
         $config = $this->getConfigRow(self::DRIVER);
         unset($config['parameters']['query']);
         unset($config['parameters']['columns']);
         $config['parameters']['table'] = [
             'tableName' => 'auto_increment_timestamp',
-            'schema' => 'testdb'
+            'schema' => 'testdb',
         ];
         $config['parameters']['incremental'] = true;
         $config['parameters']['name'] = 'auto-increment-timestamp';
@@ -803,21 +811,26 @@ class CommonExtractorTest extends ExtractorTest
         return $config;
     }
 
-    protected function createAutoIncrementAndTimestampTable()
+    protected function createAutoIncrementAndTimestampTable(): void
     {
         $this->db->exec('DROP TABLE IF EXISTS auto_increment_timestamp');
 
-        $this->db->exec('CREATE TABLE auto_increment_timestamp (
+        $this->db->exec(
+            'CREATE TABLE auto_increment_timestamp (
             `id` INT NOT NULL AUTO_INCREMENT,
             `name` VARCHAR(30) NOT NULL DEFAULT \'pam\',
             `timestamp` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (`id`)  
-        )');
+        )'
+        );
         $this->db->exec('INSERT INTO auto_increment_timestamp (`name`) VALUES (\'george\'), (\'henry\')');
     }
 
-    protected function assertExtractedData($expectedCsvFile, $outputName, $headerExpected = true)
-    {
+    protected function assertExtractedData(
+        string $expectedCsvFile,
+        string $outputName,
+        bool $headerExpected = true
+    ): void {
         $outputCsvFile = $this->dataDir . '/out/tables/' . $outputName . '.csv';
         $outputManifestFile = $this->dataDir . '/out/tables/' . $outputName . '.csv.manifest';
 
