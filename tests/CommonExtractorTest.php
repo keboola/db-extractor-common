@@ -113,7 +113,7 @@ class CommonExtractorTest extends ExtractorTest
     public function testRunJsonConfig(): void
     {
         $this->cleanOutputDirectory();
-        $result = (new Application($this->getConfig(self::DRIVER, 'json')))->run();
+        $result = (new Application($this->getConfig(self::DRIVER, parent::CONFIG_FORMAT_JSON)))->run();
 
         $this->assertExtractedData(ROOT_PATH . '/tests/data/escaping.csv', $result['imported'][0]['outputTable']);
         $manifest = json_decode(
