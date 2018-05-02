@@ -220,7 +220,7 @@ abstract class Extractor
         $stmt = $proxy->call(function () use ($query) {
             try {
                 /** @var \PDOStatement $stmt */
-                $stmt = @$this->db->prepare($query);
+                $stmt = $this->db->prepare($query);
                 @$stmt->execute();
                 return $stmt;
             } catch (Throwable $e) {
