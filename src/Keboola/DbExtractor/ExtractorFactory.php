@@ -21,12 +21,7 @@ class ExtractorFactory
         $this->state = $state;
     }
 
-    /**
-     * @param Logger $logger
-     * @return Extractor|mixed
-     * @throws UserException
-     */
-    public function create(Logger $logger)
+    public function create(Logger $logger): Extractor
     {
         $extractorClass = __NAMESPACE__ . '\\Extractor\\' . $this->parameters['extractor_class'];
         if (!class_exists($extractorClass)) {

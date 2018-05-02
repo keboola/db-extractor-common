@@ -10,13 +10,11 @@ use PDO;
 
 class Common extends Extractor
 {
-    /**
-     * @var  array
-     */
-    protected $database;
-
     public const TYPE_AUTO_INCREMENT = 'autoIncrement';
     public const TYPE_TIMESTAMP = 'timestamp';
+
+    /**@var array */
+    protected $database;
 
     public function createConnection(array $params): PDO
     {
@@ -49,9 +47,9 @@ class Common extends Extractor
     }
 
     /**
-     * @param array  $table
+     * @param array $table
      * @param string $columnName
-     * @param int    $limit
+     * @param int $limit
      * @throws UserException
      */
     public function validateIncrementalFetching(array $table, string $columnName, ?int $limit = null): void
@@ -278,7 +276,6 @@ class Common extends Extractor
         }
         return array_values($tableDefs);
     }
-
 
     private function quote(string $obj): string
     {

@@ -14,7 +14,7 @@ use Symfony\Component\Config\Definition\Processor;
 
 class Application extends Container
 {
-    /** @var ConfigDefinition|ConfigRowDefinition|ConfigurationInterface */
+    /** @var ConfigurationInterface */
     private $configDefinition;
 
     public function __construct(array $config, array $state = [])
