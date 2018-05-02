@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace Keboola\DbExtractor;
 
 use Keboola\DbExtractor\Exception\UserException;
+use Keboola\DbExtractor\Extractor\Extractor;
 
 class ExtractorFactory
 {
+    /** @var array  */
     private $parameters;
 
+    /** @var array  */
     private $state;
 
     public function __construct(array $parameters, array $state)
@@ -18,7 +21,12 @@ class ExtractorFactory
         $this->state = $state;
     }
 
-    public function create($logger)
+    /**
+     * @param Logger $logger
+     * @return Extractor|mixed
+     * @throws UserException
+     */
+    public function create(Logger $logger)
     {
         $extractorClass = __NAMESPACE__ . '\\Extractor\\' . $this->parameters['extractor_class'];
         if (!class_exists($extractorClass)) {

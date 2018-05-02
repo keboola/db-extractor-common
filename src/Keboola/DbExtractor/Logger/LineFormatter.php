@@ -8,6 +8,10 @@ use Keboola\Csv\CsvFile;
 
 class LineFormatter extends \Monolog\Formatter\LineFormatter
 {
+    /**
+     * @param CsvFile|array $data
+     * @return array|string
+     */
     protected function normalize($data)
     {
         if ($data instanceof CsvFile) {
