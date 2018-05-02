@@ -179,7 +179,7 @@ abstract class Extractor
                 $query,
                 isset($table['retries']) ? (int) $table['retries'] : self::DEFAULT_MAX_TRIES
             );
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             throw $this->handleDbError($e, $table);
         }
 
@@ -225,13 +225,7 @@ abstract class Extractor
         return $exception;
     }
 
-    /**
-     * @param string $query
-     * @param int $maxTries
-     * @return \PDOStatement
-     * @throws \PDOException|\ErrorException
-     */
-    protected function executeQuery($query, int $maxTries): \PDOStatement
+    protected function executeQuery(string $query, int $maxTries): \PDOStatement
     {
         $retryPolicy = new SimpleRetryPolicy($maxTries, ['PDOException', 'ErrorException']);
         $backOffPolicy = new ExponentialBackOffPolicy(1000);
@@ -245,7 +239,7 @@ abstract class Extractor
                     $this->logger->info(sprintf('%s. Retrying... [%dx]', $lastException->getMessage(), $counter));
                     try {
                         $this->db = $this->createConnection($this->dbParameters);
-                    } catch (\Exception $e) {
+                    } catch (\Throwable $e) {
                     };
                 }
                 try {
@@ -253,13 +247,13 @@ abstract class Extractor
                     $stmt = @$this->db->prepare($query);
                     @$stmt->execute();
                     return $stmt;
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     $lastException = $this->handleDbError($e, null, $counter + 1);
                     $counter++;
                     throw $e;
                 }
             });
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             if ($lastException) {
                 throw $lastException;
             }
