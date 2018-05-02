@@ -1,8 +1,8 @@
 <?php
 
+declare(strict_types=1);
 
 namespace Keboola\DbExtractor;
-
 
 use Retry\Policy\RetryPolicyInterface;
 use Retry\Policy\SimpleRetryPolicy;
@@ -31,13 +31,12 @@ class RetryProxy implements RetryProxyInterface
 
     public function __construct(
         Logger $logger,
-        int $maxTries = null,
-        int $backoffInterval = null,
-        array $expectedExceptions = null,
-        RetryPolicyInterface $retryPolicy = null,
-        BackoffPolicyInterface $backoffPolicy = null
-    )
-    {
+        ?int $maxTries = null,
+        ?int $backoffInterval = null,
+        ?array $expectedExceptions = null,
+        ?RetryPolicyInterface $retryPolicy = null,
+        ?BackoffPolicyInterface $backoffPolicy = null
+    ) {
         if ($retryPolicy === null) {
             $retryPolicy = new SimpleRetryPolicy(
                 $maxTries ? $maxTries : self::DEFAULT_MAX_TRIES,
@@ -80,7 +79,7 @@ class RetryProxy implements RetryProxyInterface
                             $retryContext->getRetryCount()
                         )
                     );
-                } catch (\Exception $policyException) {
+                } catch (\Throwable $policyException) {
                     throw new TerminatedRetryException('Terminated retry after error in policy.');
                 }
             }
