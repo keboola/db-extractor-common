@@ -4,20 +4,22 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Test;
 
+use PDO;
+
 class DataLoader
 {
-    /** @var \PDO  */
+    /** @var PDO  */
     private $pdo;
 
     public function __construct(string $host, string $port, string $dbname, string $user, string $pass)
     {
         $dsn = sprintf("mysql:host=%s;port=%s;dbname=%s;charset=utf8", $host, $port, $dbname);
-        $this->pdo = new \PDO(
+        $this->pdo = new PDO(
             $dsn,
             $user,
             $pass,
             [
-            \PDO::MYSQL_ATTR_LOCAL_INFILE => true,
+            PDO::MYSQL_ATTR_LOCAL_INFILE => true,
             ]
         );
     }
@@ -39,7 +41,7 @@ class DataLoader
         return $this->pdo->exec($query);
     }
 
-    public function getPdo(): \PDO
+    public function getPdo(): PDO
     {
         return $this->pdo;
     }

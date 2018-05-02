@@ -16,13 +16,16 @@ use Nette\Utils;
 use Retry\BackOff\ExponentialBackOffPolicy;
 use Retry\Policy\SimpleRetryPolicy;
 use Retry\RetryProxy;
+use Throwable;
+use PDO;
+use PDOStatement;
 
 abstract class Extractor
 {
     public const DEFAULT_MAX_TRIES = 5;
 
     /**
-     * @var \PDO
+     * @var PDO
      */
     protected $db;
 
@@ -66,7 +69,7 @@ abstract class Extractor
 
         try {
             $this->db = $this->createConnection($this->dbParameters);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             if (strstr(strtolower($e->getMessage()), 'could not find driver')) {
                 throw new ApplicationException("Missing driver: " . $e->getMessage());
             }
@@ -130,7 +133,7 @@ abstract class Extractor
 
     /**
      * @param array $params
-     * @return \PDO|mixed
+     * @return PDO|mixed
      */
     abstract public function createConnection(array $params);
 
@@ -174,12 +177,12 @@ abstract class Extractor
         }
 
         try {
-            /** @var \PDOStatement $stmt */
+            /** @var PDOStatement $stmt */
             $stmt = $this->executeQuery(
                 $query,
                 isset($table['retries']) ? (int) $table['retries'] : self::DEFAULT_MAX_TRIES
             );
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             throw $this->handleDbError($e, $table);
         }
 
@@ -211,7 +214,7 @@ abstract class Extractor
         return $output;
     }
 
-    private function handleDbError(\Throwable $e, ?array $table = null, ?int $counter = null): UserException
+    private function handleDbError(Throwable $e, ?array $table = null, ?int $counter = null): UserException
     {
         $message = "";
         if ($table) {
@@ -225,7 +228,7 @@ abstract class Extractor
         return $exception;
     }
 
-    protected function executeQuery(string $query, int $maxTries): \PDOStatement
+    protected function executeQuery(string $query, int $maxTries): PDOStatement
     {
         $retryPolicy = new SimpleRetryPolicy($maxTries, ['PDOException', 'ErrorException']);
         $backOffPolicy = new ExponentialBackOffPolicy(1000);
@@ -239,21 +242,21 @@ abstract class Extractor
                     $this->logger->info(sprintf('%s. Retrying... [%dx]', $lastException->getMessage(), $counter));
                     try {
                         $this->db = $this->createConnection($this->dbParameters);
-                    } catch (\Throwable $e) {
+                    } catch (Throwable $e) {
                     };
                 }
                 try {
-                    /** @var \PDOStatement $stmt */
+                    /** @var PDOStatement $stmt */
                     $stmt = @$this->db->prepare($query);
                     @$stmt->execute();
                     return $stmt;
-                } catch (\Throwable $e) {
+                } catch (Throwable $e) {
                     $lastException = $this->handleDbError($e, null, $counter + 1);
                     $counter++;
                     throw $e;
                 }
             });
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             if ($lastException) {
                 throw $lastException;
             }
@@ -263,16 +266,16 @@ abstract class Extractor
     }
 
     /**
-     * @param \PDOStatement $stmt
+     * @param PDOStatement $stmt
      * @param CsvFile       $csv
      * @param boolean       $includeHeader
      * @return array ['rows', 'lastFetchedRow']
      * @throws CsvException|UserException
      */
-    protected function writeToCsv(\PDOStatement $stmt, CsvFile $csv, bool $includeHeader = true): array
+    protected function writeToCsv(PDOStatement $stmt, CsvFile $csv, bool $includeHeader = true): array
     {
         $output = [];
-        $resultRow = @$stmt->fetch(\PDO::FETCH_ASSOC);
+        $resultRow = @$stmt->fetch(PDO::FETCH_ASSOC);
 
         if (is_array($resultRow) && !empty($resultRow)) {
             // write header and first line
@@ -284,7 +287,7 @@ abstract class Extractor
             // write the rest
             $numRows = 1;
             $lastRow = $resultRow;
-            while ($resultRow = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+            while ($resultRow = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 $csv->writeRow($resultRow);
                 $lastRow = $resultRow;
                 $numRows++;

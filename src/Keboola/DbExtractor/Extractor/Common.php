@@ -6,6 +6,7 @@ namespace Keboola\DbExtractor\Extractor;
 
 use Keboola\DbExtractor\Exception\ApplicationException;
 use Keboola\DbExtractor\Exception\UserException;
+use PDO;
 
 class Common extends Extractor
 {
@@ -17,11 +18,11 @@ class Common extends Extractor
     public const TYPE_AUTO_INCREMENT = 'autoIncrement';
     public const TYPE_TIMESTAMP = 'timestamp';
 
-    public function createConnection(array $params): \PDO
+    public function createConnection(array $params): PDO
     {
         // convert errors to PDOExceptions
         $options = [
-            \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         ];
 
         // check params
@@ -36,8 +37,8 @@ class Common extends Extractor
         $port = isset($params['port']) ? $params['port'] : '3306';
         $dsn = sprintf("mysql:host=%s;port=%s;dbname=%s;charset=utf8", $params['host'], $port, $params['database']);
 
-        $pdo = new \PDO($dsn, $params['user'], $params['password'], $options);
-        $pdo->setAttribute(\PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, false);
+        $pdo = new PDO($dsn, $params['user'], $params['password'], $options);
+        $pdo->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, false);
         $pdo->exec("SET NAMES utf8;");
         return $pdo;
     }
@@ -195,7 +196,7 @@ class Common extends Extractor
         $sql .= " ORDER BY TABLE_SCHEMA, TABLE_NAME";
 
         $res = $this->db->query($sql);
-        $arr = $res->fetchAll(\PDO::FETCH_ASSOC);
+        $arr = $res->fetchAll(PDO::FETCH_ASSOC);
         if (count($arr) === 0) {
             return [];
         }
@@ -233,7 +234,7 @@ class Common extends Extractor
         $sql .= " ORDER BY c.TABLE_SCHEMA, c.TABLE_NAME, ORDINAL_POSITION";
 
         $res = $this->db->query($sql);
-        $rows = $res->fetchAll(\PDO::FETCH_ASSOC);
+        $rows = $res->fetchAll(PDO::FETCH_ASSOC);
 
         foreach ($rows as $i => $column) {
             $curTable = $column['TABLE_SCHEMA'] . '.' . $column['TABLE_NAME'];
