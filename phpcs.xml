@@ -2,6 +2,5 @@
 <ruleset name="Project">
     <rule ref="vendor/keboola/coding-standard/src/ruleset.xml">
         <exclude name="SlevomatCodingStandard.Classes.UnusedPrivateElements.UnusedMethod"/>
-        <!-- <exclude name="SlevomatCodingStandard.TypeHints.TypeHintDeclaration.MissingParameterTypeHint"/> -->
     </rule>
 </ruleset>
