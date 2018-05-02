@@ -24,34 +24,22 @@ abstract class Extractor
 {
     public const DEFAULT_MAX_TRIES = 5;
 
-    /**
-     * @var PDO
-     */
+    /** @var PDO|mixed */
     protected $db;
 
-    /**
-     * @var  array
-     */
+    /** @var  array */
     protected $state;
 
-    /**
-     * @var  array|null with keys type (autoIncrement or timestamp), column, and limit
-     */
+    /** @var  array|null with keys type (autoIncrement or timestamp), column, and limit */
     protected $incrementalFetching;
 
-    /**
-     * @var Logger
-     */
+    /** @var Logger */
     protected $logger;
 
-    /**
-     * @var mixed
-     */
+    /** @var string */
     protected $dataDir;
 
-    /**
-     * @var array|mixed
-     */
+    /** @var array */
     private $dbParameters;
 
     public function __construct(array $parameters, array $state = [], ?Logger $logger = null)
@@ -151,8 +139,8 @@ abstract class Extractor
     abstract public function simpleQuery(array $table, array $columns = array()): string;
 
     /**
-     * @param array    $table
-     * @param string   $columnName
+     * @param array $table
+     * @param string $columnName
      * @param int|null $limit
      * @throws UserException
      */
