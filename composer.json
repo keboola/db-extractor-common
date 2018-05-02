@@ -2,7 +2,7 @@
   "name": "keboola/db-extractor-common",
   "license": "MIT",
   "type": "library",
-  "description": "Common library fro Keboola Database Extractors",
+  "description": "Common library from Keboola Database Extractors",
   "authors": [
     {
       "name": "keboola",
