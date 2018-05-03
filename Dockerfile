@@ -22,7 +22,7 @@ RUN /tmp/composer-install.sh
 
 WORKDIR /code
 
-## Install Composer - deps always cached unless changed
+## deps always cached unless changed
 # First copy only composer files
 COPY composer.* /code/
 # Download dependencies, but don't run scripts or init autoloaders as the app is missing
