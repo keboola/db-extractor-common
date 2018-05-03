@@ -221,7 +221,7 @@ abstract class Extractor
             try {
                 /** @var \PDOStatement $stmt */
                 $stmt = $this->db->prepare($query);
-                @$stmt->execute();
+                $stmt->execute();
                 return $stmt;
             } catch (Throwable $e) {
                 try {
@@ -247,7 +247,7 @@ abstract class Extractor
         $retryProxy = new RetryProxy($this->logger);
 
         $resultRow = $retryProxy->call(function () use ($stmt) {
-            return @$stmt->fetch(PDO::FETCH_ASSOC);
+            return $stmt->fetch(PDO::FETCH_ASSOC);
         });
 
 
