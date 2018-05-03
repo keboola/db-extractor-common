@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Test;
 
+use Keboola\DbExtractor\Exception\UserException;
 use Symfony\Component\Yaml\Yaml;
 
 class ExtractorTest extends \PHPUnit_Framework_TestCase
@@ -16,10 +17,15 @@ class ExtractorTest extends \PHPUnit_Framework_TestCase
 
     protected function getConfig(string $driver, string $format = self::CONFIG_FORMAT_YAML): array
     {
-        if ($format === 'json') {
-            $config = json_decode(file_get_contents($this->dataDir . '/' .$driver . '/config.json'), true);
-        } else {
-            $config = Yaml::parse(file_get_contents($this->dataDir . '/' .$driver . '/config.yml'));
+        switch ($format) {
+            case self::CONFIG_FORMAT_JSON:
+                $config = json_decode(file_get_contents($this->dataDir . '/' .$driver . '/config.json'), true);
+                break;
+            case self::CONFIG_FORMAT_YAML:
+                $config = Yaml::parse(file_get_contents($this->dataDir . '/' .$driver . '/config.yml'));
+                break;
+            default:
+                throw new UserException("Unsupported configuration format: " . $format);
         }
         $config['parameters']['data_dir'] = $this->dataDir;
 
