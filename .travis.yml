@@ -5,6 +5,7 @@ services:
 before-script:
   - docker-compose build
 script:
+  - docker-compose run --rm tests composer install -m
   - docker-compose run --rm tests
 notifications:
   slack:
