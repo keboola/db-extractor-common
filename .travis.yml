@@ -4,7 +4,6 @@ services:
   - docker
 before-script:
   - docker-compose build
-  - docker-compose run --rm tests composer install
 script:
   - docker-compose run --rm tests
 notifications:
