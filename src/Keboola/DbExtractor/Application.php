@@ -116,11 +116,6 @@ class Application extends Container
         }
     }
 
-    /**
-     * @param array $parameters
-     * @return array
-     * @throws UserException
-     */
     private function validateParameters(array $parameters): array
     {
         try {
