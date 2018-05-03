@@ -2,6 +2,9 @@
 FROM php:7.1-fpm
 
 ENV DEBIAN_FRONTEND noninteractive
+ENV COMPOSER_ALLOW_SUPERUSER 1
+ENV COMPOSER_PROCESS_TIMEOUT 3600
+ARG COMPOSER_FLAGS="--prefer-dist --no-interaction"
 
 # Install dependencies
 RUN apt-get update -q \
@@ -9,15 +12,21 @@ RUN apt-get update -q \
 
 RUN docker-php-ext-install pdo_mysql
 
-RUN curl -sS https://getcomposer.org/installer | php \
-  && mv composer.phar /usr/local/bin/composer
+# use recommended php settings
+COPY docker/php-prod.ini /usr/local/etc/php/php.ini
 
-ADD . /code
+# install composer
+COPY docker/composer-install.sh /tmp/composer-install.sh
+RUN chmod +x /tmp/composer-install.sh && ./tmp/composer-install.sh
+
 WORKDIR /code
 
-# Main
-RUN echo "memory_limit = -1" >> /usr/local/etc/php/php.ini
-RUN echo "date.timezone = \"Europe/Prague\"" >> /usr/local/etc/php/php.ini
-
-#install
-RUN composer install --no-interaction
+## Install Composer - deps always cached unless changed
+# First copy only composer files
+COPY composer.* /code/
+# Download dependencies, but don't run scripts or init autoloaders as the app is missing
+RUN composer install $COMPOSER_FLAGS --no-scripts --no-autoloader
+# copy rest of the app
+COPY . /code/
+# run normal composer - all deps are cached already
+RUN composer install $COMPOSER_FLAGS

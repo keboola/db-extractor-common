@@ -7,7 +7,7 @@ services:
       - .:/code
     env_file:
       - ssh-keys.env
-    command: sh -c 'composer install -n && composer ci'
+    command: composer ci
     environment:
       COMMON_DB_USER: root
       COMMON_DB_PASSWORD: somePassword
