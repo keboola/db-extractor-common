@@ -9,7 +9,7 @@ use Monolog\Handler\StreamHandler;
 
 class Logger extends \Monolog\Logger
 {
-    public function __construct($name = '', $debug = false)
+    public function __construct(string $name = '', bool $debug = false)
     {
         $options = getopt("", ['debug']);
         if (isset($options['debug'])) {

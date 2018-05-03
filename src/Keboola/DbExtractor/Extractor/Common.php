@@ -4,20 +4,23 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Extractor;
 
+use Keboola\DbExtractor\Exception\ApplicationException;
 use Keboola\DbExtractor\Exception\UserException;
+use PDO;
 
 class Common extends Extractor
 {
+    public const TYPE_AUTO_INCREMENT = 'autoIncrement';
+    public const TYPE_TIMESTAMP = 'timestamp';
+
+    /** @var array */
     protected $database;
 
-    const TYPE_AUTO_INCREMENT = 'autoIncrement';
-    const TYPE_TIMESTAMP = 'timestamp';
-
-    public function createConnection($params)
+    public function createConnection(array $params): PDO
     {
         // convert errors to PDOExceptions
         $options = [
-            \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         ];
 
         // check params
@@ -32,13 +35,13 @@ class Common extends Extractor
         $port = isset($params['port']) ? $params['port'] : '3306';
         $dsn = sprintf("mysql:host=%s;port=%s;dbname=%s;charset=utf8", $params['host'], $port, $params['database']);
 
-        $pdo = new \PDO($dsn, $params['user'], $params['password'], $options);
-        $pdo->setAttribute(\PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, false);
+        $pdo = new PDO($dsn, $params['user'], $params['password'], $options);
+        $pdo->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, false);
         $pdo->exec("SET NAMES utf8;");
         return $pdo;
     }
 
-    public function testConnection()
+    public function testConnection(): void
     {
         $this->db->query("SELECT 1");
     }
@@ -49,7 +52,7 @@ class Common extends Extractor
      * @param int $limit
      * @throws UserException
      */
-    public function validateIncrementalFetching(array $table, string $columnName, int $limit = null)
+    public function validateIncrementalFetching(array $table, string $columnName, ?int $limit = null): void
     {
         $res = $this->db->query(
             sprintf(
@@ -88,7 +91,7 @@ class Common extends Extractor
         }
     }
 
-    public function simpleQuery(array $table, array $columns = array())
+    public function simpleQuery(array $table, array $columns = array()): string
     {
         $incrementalAddon = null;
         if ($this->incrementalFetching && isset($this->state['lastFetchedRow'])) {
@@ -113,9 +116,15 @@ class Common extends Extractor
         if (count($columns) > 0) {
             $query = sprintf(
                 "SELECT %s FROM %s.%s",
-                implode(', ', array_map(function ($column) {
-                    return $this->quote($column);
-                }, $columns)),
+                implode(
+                    ', ',
+                    array_map(
+                        function ($column) {
+                            return $this->quote($column);
+                        },
+                        $columns
+                    )
+                ),
                 $this->quote($table['schema']),
                 $this->quote($table['tableName'])
             );
@@ -143,7 +152,7 @@ class Common extends Extractor
         return $query;
     }
 
-    public function getTables(array $tables = null)
+    public function getTables(?array $tables = null): array
     {
 
         $sql = "SELECT * FROM INFORMATION_SCHEMA.TABLES as c";
@@ -159,12 +168,24 @@ class Common extends Extractor
         if (!is_null($tables) && count($tables) > 0) {
             $whereClause .= sprintf(
                 " AND c.TABLE_NAME IN (%s) AND c.TABLE_SCHEMA IN (%s)",
-                implode(',', array_map(function ($table) {
-                    return $this->db->quote($table['tableName']);
-                }, $tables)),
-                implode(',', array_map(function ($table) {
-                    return $this->db->quote($table['schema']);
-                }, $tables))
+                implode(
+                    ',',
+                    array_map(
+                        function ($table) {
+                            return $this->db->quote($table['tableName']);
+                        },
+                        $tables
+                    )
+                ),
+                implode(
+                    ',',
+                    array_map(
+                        function ($table) {
+                            return $this->db->quote($table['schema']);
+                        },
+                        $tables
+                    )
+                )
             );
         }
 
@@ -173,7 +194,7 @@ class Common extends Extractor
         $sql .= " ORDER BY TABLE_SCHEMA, TABLE_NAME";
 
         $res = $this->db->query($sql);
-        $arr = $res->fetchAll(\PDO::FETCH_ASSOC);
+        $arr = $res->fetchAll(PDO::FETCH_ASSOC);
         if (count($arr) === 0) {
             return [];
         }
@@ -211,7 +232,7 @@ class Common extends Extractor
         $sql .= " ORDER BY c.TABLE_SCHEMA, c.TABLE_NAME, ORDINAL_POSITION";
 
         $res = $this->db->query($sql);
-        $rows = $res->fetchAll(\PDO::FETCH_ASSOC);
+        $rows = $res->fetchAll(PDO::FETCH_ASSOC);
 
         foreach ($rows as $i => $column) {
             $curTable = $column['TABLE_SCHEMA'] . '.' . $column['TABLE_NAME'];
@@ -256,8 +277,7 @@ class Common extends Extractor
         return array_values($tableDefs);
     }
 
-
-    private function quote($obj)
+    private function quote(string $obj): string
     {
         return "`{$obj}`";
     }

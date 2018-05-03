@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Configuration;
 
+use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
+use Symfony\Component\Config\Definition\Builder\NodeDefinition;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 
@@ -13,7 +15,7 @@ class ConfigDefinition implements ConfigurationInterface
     {
         $treeBuilder = new TreeBuilder();
         $rootNode = $treeBuilder->root('parameters');
-
+        // @formatter:off
         $rootNode
             ->children()
                 ->scalarNode('data_dir')
@@ -52,8 +54,7 @@ class ConfigDefinition implements ConfigurationInterface
                                 ->isRequired()
                                 ->cannotBeEmpty()
                             ->end()
-                            ->scalarNode('query')
-                            ->end()
+                            ->scalarNode('query')->end()
                             ->arrayNode('table')
                                 ->children()
                                     ->scalarNode('schema')->end()
@@ -61,8 +62,7 @@ class ConfigDefinition implements ConfigurationInterface
                                 ->end()
                             ->end()
                             ->arrayNode('columns')
-                                ->prototype('scalar')
-                                ->end()
+                                ->prototype('scalar')->end()
                             ->end()
                             ->scalarNode('outputTable')
                                 ->isRequired()
@@ -75,8 +75,7 @@ class ConfigDefinition implements ConfigurationInterface
                                 ->defaultValue(true)
                             ->end()
                             ->arrayNode('primaryKey')
-                                ->prototype('scalar')
-                                ->end()
+                                ->prototype('scalar')->end()
                             ->end()
                             ->integerNode('retries')
                                 ->min(1)
@@ -84,17 +83,20 @@ class ConfigDefinition implements ConfigurationInterface
                         ->end()
                     ->end()
                 ->end()
-            ->end()
-        ;
-
+            ->end();
+        // @formatter:on
         return $treeBuilder;
     }
 
+    /**
+     * @return ArrayNodeDefinition|NodeDefinition
+     */
     public function addSshNode()
     {
         $builder = new TreeBuilder();
         $node = $builder->root('ssh');
 
+        // @formatter:off
         $node
             ->children()
                 ->booleanNode('enabled')->end()
@@ -111,9 +113,8 @@ class ConfigDefinition implements ConfigurationInterface
                 ->scalarNode('remotePort')->end()
                 ->scalarNode('localPort')->end()
                 ->scalarNode('user')->end()
-            ->end()
-        ;
-
+            ->end();
+        // @formatter:on
         return $node;
     }
 }

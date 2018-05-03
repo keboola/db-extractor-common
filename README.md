@@ -9,14 +9,14 @@ Common classes for creating vendor specific database extractors.
 - [MSSQL](https://github.com/keboola/db-extractor-mssql)
 - [PgSQL](https://github.com/keboola/db-extractor-pgsql)
 - [Oracle](https://github.com/keboola/db-extractor-oracle) (private repository)
-- [Impala](https://github.com/keboola/db-extractor-impala)
+- [Impala](https://github.com/keboola/db-extractor-impala) 
 - [Firebird](https://github.com/keboola/db-extractor-firebird)
 - [DB2](https://github.com/keboola/db-extractor-db2)
 
 ## Development and running tests
 
     docker-compose build
-    docker-compose run --rm dev  # runs the tests
+    docker-compose run --rm tests  # runs the tests
 
 ## Usage
 Add the library to your component's composer:
@@ -39,7 +39,19 @@ You should define `APP_NAME` constant in format `ex-db-VENDOR`.
 
 The $config is loaded from the `config.json` file.  You have to provide values for the `data_dir` and `extractor_class` keys.
 `extractor_class` is the main class of derived extractor, it should extend `Keboola\DbExtractor\Extractor\Extractor`.
-You will need to override the `createConnection($params)`, `testConnection()`, `getTables($tables)`, and `simpleQuery($table, $columns)` methods.
+
+You will need to implement the following methods: 
+- `createConnection(array $params)` 
+- `testConnection()`
+- `simpleQuery(array $table, array $columns = array()): string`
+- `getTables(?array $tables = null): array;`
+
+Note that to support identifier sanitation, the getTables method should return a `sanitizedName` property for each 
+column.  This `sanitizedName` should be created using `Keboola\php-utils\sanitizeColumnName`
+
+If you want to implement incremental fetching, you must implement   
+`validateIncrementalFetching(array $table, string $columnName, ?int $limit = null): void`  
+Please see the sample in the `Common` class: https://github.com/keboola/db-extractor-common/blob/master/src/Keboola/DbExtractor/Extractor/Common.php#L52 
 
 The namespace of your extractor class shoud be `Keboola\DbExtractor\Extractor` and the name of the class should corespond to DB vendor name i.e. PgSQL, Oracle, Impala, Firebrid, DB2 and so on.
 

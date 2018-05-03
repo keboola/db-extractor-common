@@ -4,23 +4,28 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Test;
 
+use Keboola\DbExtractor\Exception\UserException;
 use Symfony\Component\Yaml\Yaml;
 
 class ExtractorTest extends \PHPUnit_Framework_TestCase
 {
+    public const CONFIG_FORMAT_YAML = 'yaml';
+    public const CONFIG_FORMAT_JSON = 'json';
+
+    /** @var string */
     protected $dataDir = ROOT_PATH . "/tests/data";
 
-    /**
-     * @param $driver
-     * @param string $format (yaml or json)
-     * @return mixed
-     */
-    protected function getConfig($driver, $format = 'yaml')
+    protected function getConfig(string $driver, string $format = self::CONFIG_FORMAT_YAML): array
     {
-        if ($format === 'json') {
-            $config = json_decode(file_get_contents($this->dataDir . '/' .$driver . '/config.json'), true);
-        } else {
-            $config = Yaml::parse(file_get_contents($this->dataDir . '/' .$driver . '/config.yml'));
+        switch ($format) {
+            case self::CONFIG_FORMAT_JSON:
+                $config = json_decode(file_get_contents($this->dataDir . '/' .$driver . '/config.json'), true);
+                break;
+            case self::CONFIG_FORMAT_YAML:
+                $config = Yaml::parse(file_get_contents($this->dataDir . '/' .$driver . '/config.yml'));
+                break;
+            default:
+                throw new UserException("Unsupported configuration format: " . $format);
         }
         $config['parameters']['data_dir'] = $this->dataDir;
 
@@ -35,7 +40,7 @@ class ExtractorTest extends \PHPUnit_Framework_TestCase
         return $config;
     }
 
-    protected function getConfigRow($driver)
+    protected function getConfigRow(string $driver): array
     {
         $config = json_decode(file_get_contents($this->dataDir . '/' .$driver . '/configRow.json'), true);
 
@@ -52,7 +57,7 @@ class ExtractorTest extends \PHPUnit_Framework_TestCase
         return $config;
     }
 
-    protected function getEnv($driver, $suffix, $required = false)
+    protected function getEnv(string $driver, string $suffix, bool $required = false): string
     {
         $env = strtoupper($driver) . '_' . $suffix;
         if ($required) {
@@ -63,9 +68,10 @@ class ExtractorTest extends \PHPUnit_Framework_TestCase
         return getenv($env);
     }
 
-    public function getPrivateKey($driver)
+    public function getPrivateKey(string $driver): string
     {
-        // docker-compose .env file does not support new lines in variables so we have to modify the key https://github.com/moby/moby/issues/12997
+        // docker-compose .env file does not support new lines in variables
+        // so we have to modify the key https://github.com/moby/moby/issues/12997
         return str_replace('"', '', str_replace('\n', "\n", $this->getEnv($driver, 'DB_SSH_KEY_PRIVATE')));
     }
 }
