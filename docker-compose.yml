@@ -1,33 +1,13 @@
 version: "2"
 services:
-
-  app:
+  tests:
     build: .
-    image: keboola/db-extractor-common
-    tty: true
-    stdin_open: true
-    env_file:
-      - ssh-keys.env
-    command: composer ci
-    environment:
-      COMMON_DB_USER: root
-      COMMON_DB_PASSWORD: somePassword
-      COMMON_DB_HOST: mysql
-      COMMON_DB_PORT: 3306
-      COMMON_DB_DATABASE: testdb
-    links:
-      - sshproxy
-      - mysql
-
-  dev:
     image: keboola/db-extractor-common
     volumes:
       - .:/code
-    command: composer ci
-    tty: true
-    stdin_open: true
     env_file:
       - ssh-keys.env
+    command: composer ci
     environment:
       COMMON_DB_USER: root
       COMMON_DB_PASSWORD: somePassword
