@@ -10,12 +10,11 @@ use Keboola\Datatype\Definition\GenericStorage;
 use Keboola\DbExtractor\Exception\ApplicationException;
 use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractor\Logger;
+use Keboola\DbExtractor\RetryProxy;
 use Keboola\SSHTunnel\SSH;
 use Keboola\SSHTunnel\SSHException;
 use Nette\Utils;
-use Retry\BackOff\ExponentialBackOffPolicy;
-use Retry\Policy\SimpleRetryPolicy;
-use Retry\RetryProxy;
+
 use Throwable;
 use PDO;
 use PDOStatement;
@@ -168,10 +167,10 @@ abstract class Extractor
             /** @var PDOStatement $stmt */
             $stmt = $this->executeQuery(
                 $query,
-                isset($table['retries']) ? (int) $table['retries'] : self::DEFAULT_MAX_TRIES
+                isset($table['retries']) ? (int) $table['retries'] : null
             );
         } catch (Throwable $e) {
-            throw $this->handleDbError($e, $table);
+            throw $this->handleDbError($e, $table, isset($table['retries']) ? (int) $table['retries'] : null);
         }
 
         try {
@@ -212,58 +211,45 @@ abstract class Extractor
         if ($counter) {
             $message .= sprintf(' Tried %d times.', $counter);
         }
-        $exception = new UserException($message, 0, $e);
-        return $exception;
+        return new UserException($message, 0, $e);
     }
 
-    protected function executeQuery(string $query, int $maxTries): PDOStatement
+    protected function executeQuery(string $query, ?int $maxTries): PDOStatement
     {
-        $retryPolicy = new SimpleRetryPolicy($maxTries, ['PDOException', 'ErrorException']);
-        $backOffPolicy = new ExponentialBackOffPolicy(1000);
-        $proxy = new RetryProxy($retryPolicy, $backOffPolicy);
-        $counter = 0;
-        /** @var \Exception $lastException */
-        $lastException = null;
-        try {
-            $stmt = $proxy->call(function () use ($query, &$counter, &$lastException) {
-                if ($counter > 0) {
-                    $this->logger->info(sprintf('%s. Retrying... [%dx]', $lastException->getMessage(), $counter));
-                    try {
-                        $this->db = $this->createConnection($this->dbParameters);
-                    } catch (Throwable $e) {
-                    };
-                }
+        $proxy = new RetryProxy($this->logger, $maxTries);
+        $stmt = $proxy->call(function () use ($query) {
+            try {
+                /** @var \PDOStatement $stmt */
+                $stmt = $this->db->prepare($query);
+                $stmt->execute();
+                return $stmt;
+            } catch (Throwable $e) {
                 try {
-                    /** @var PDOStatement $stmt */
-                    $stmt = @$this->db->prepare($query);
-                    @$stmt->execute();
-                    return $stmt;
+                    $this->db = $this->createConnection($this->dbParameters);
                 } catch (Throwable $e) {
-                    $lastException = $this->handleDbError($e, null, $counter + 1);
-                    $counter++;
-                    throw $e;
-                }
-            });
-        } catch (Throwable $e) {
-            if ($lastException) {
-                throw $lastException;
+                };
+                throw $e;
             }
-            throw $e;
-        }
+        });
         return $stmt;
     }
 
     /**
      * @param PDOStatement $stmt
-     * @param CsvFile       $csv
-     * @param boolean       $includeHeader
+     * @param CsvFile $csv
+     * @param boolean $includeHeader
      * @return array ['rows', 'lastFetchedRow']
      * @throws CsvException|UserException
      */
     protected function writeToCsv(PDOStatement $stmt, CsvFile $csv, bool $includeHeader = true): array
     {
         $output = [];
-        $resultRow = @$stmt->fetch(PDO::FETCH_ASSOC);
+        $retryProxy = new RetryProxy($this->logger);
+
+        $resultRow = $retryProxy->call(function () use ($stmt) {
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        });
+
 
         if (is_array($resultRow) && !empty($resultRow)) {
             // write header and first line
@@ -275,7 +261,9 @@ abstract class Extractor
             // write the rest
             $numRows = 1;
             $lastRow = $resultRow;
-            while ($resultRow = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            while ($resultRow = $retryProxy->call(function () use ($stmt) {
+                return $stmt->fetch(PDO::FETCH_ASSOC);
+            })) {
                 $csv->writeRow($resultRow);
                 $lastRow = $resultRow;
                 $numRows++;
