@@ -13,7 +13,7 @@ class Common extends Extractor
     public const TYPE_AUTO_INCREMENT = 'autoIncrement';
     public const TYPE_TIMESTAMP = 'timestamp';
 
-    /**@var array */
+    /** @var array */
     protected $database;
 
     public function createConnection(array $params): PDO
