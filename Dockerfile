@@ -17,7 +17,8 @@ COPY docker/php-prod.ini /usr/local/etc/php/php.ini
 
 # install composer
 COPY docker/composer-install.sh /tmp/composer-install.sh
-RUN chmod +x /tmp/composer-install.sh && ./tmp/composer-install.sh
+RUN chmod +x /tmp/composer-install.sh
+RUN /tmp/composer-install.sh
 
 WORKDIR /code
 
