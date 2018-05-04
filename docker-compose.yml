@@ -26,9 +26,7 @@ services:
 
   sshproxy:
     build: ./tests/env/sshproxy
-    volumes:
-      - .:/code
-    command: ./generate-ssh-keys.sh && sh -c 'echo $SSH_KEY_PUBLIC >> ~/.ssh/authorized_keys && /usr/sbin/sshd -D'
+    command: sh -c 'echo $SSH_KEY_PUBLIC >> ~/.ssh/authorized_keys && /usr/sbin/sshd -D'
     environment:
       - SSH_KEY_PUBLIC
     links:
