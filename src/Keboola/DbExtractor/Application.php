@@ -19,6 +19,8 @@ class Application extends Container
 
     public function __construct(array $config, array $state = [])
     {
+        static::setEnvironment();
+
         parent::__construct();
 
         $app = $this;
@@ -197,5 +199,18 @@ class Application extends Container
             throw new UserException(sprintf("Failed to get tables: '%s'", $e->getMessage()), 0, $e);
         }
         return $output;
+    }
+
+    public static function setEnvironment()
+    {
+        error_reporting(E_ALL);
+        set_error_handler(function ($errno, $errstr, $errfile, $errline, array $errcontext): bool {
+            if (!(error_reporting() & $errno)) {
+                // respect error_reporting() level
+                // libraries used in custom components may emit notices that cannot be fixed
+                return false;
+            }
+            throw new ErrorException($errstr, 0, $errno, $errfile, $errline);
+        });
     }
 }

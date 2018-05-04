@@ -13,7 +13,7 @@ class ExtractorTest extends \PHPUnit_Framework_TestCase
     public const CONFIG_FORMAT_JSON = 'json';
 
     /** @var string */
-    protected $dataDir = ROOT_PATH . "/tests/data";
+    protected $dataDir = __DIR__ . "/../../../../tests/data";
 
     protected function getConfig(string $driver, string $format = self::CONFIG_FORMAT_YAML): array
     {

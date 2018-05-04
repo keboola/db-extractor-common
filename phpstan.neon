@@ -1,4 +1,3 @@
 parameters:
     ignoreErrors:
         - '#Constant APP_NAME not found#'
-        - '#Constant ROOT_PATH not found.#'

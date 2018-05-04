@@ -75,8 +75,8 @@ class CommonExtractorTest extends ExtractorTest
                                   PRIMARY KEY (`_weird-I-d`))"
         );
 
-        $inputFile = ROOT_PATH . '/tests/data/escaping.csv';
-        $simpleFile = ROOT_PATH . '/tests/data/simple.csv';
+        $inputFile = $this->dataDir . '/escaping.csv';
+        $simpleFile = $this->dataDir . '/simple.csv';
         $dataLoader->load($inputFile, 'escapingPK');
         $dataLoader->load($inputFile, 'escaping');
         $dataLoader->load($simpleFile, 'simple', 0);
@@ -87,8 +87,8 @@ class CommonExtractorTest extends ExtractorTest
     private function cleanOutputDirectory(): void
     {
         $finder = new Finder();
-        if (file_exists(ROOT_PATH . '/tests/data/out/tables')) {
-            $finder->files()->in(ROOT_PATH . '/tests/data/out/tables');
+        if (file_exists($this->dataDir . '/out/tables')) {
+            $finder->files()->in($this->dataDir . '/out/tables');
             $fs = new Filesystem();
             foreach ($finder as $file) {
                 $fs->remove((string) $file);
@@ -100,8 +100,8 @@ class CommonExtractorTest extends ExtractorTest
     {
         $this->cleanOutputDirectory();
         $result = (new Application($this->getConfig(self::DRIVER)))->run();
-        $this->assertExtractedData(ROOT_PATH . '/tests/data/escaping.csv', $result['imported'][0]['outputTable']);
-        $this->assertExtractedData(ROOT_PATH . '/tests/data/simple.csv', $result['imported'][1]['outputTable']);
+        $this->assertExtractedData($this->dataDir . '/escaping.csv', $result['imported'][0]['outputTable']);
+        $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][1]['outputTable']);
         $manifest = json_decode(
             file_get_contents($this->dataDir . '/out/tables/' . $result['imported'][1]['outputTable'] . ".csv.manifest"),
             true
@@ -115,7 +115,7 @@ class CommonExtractorTest extends ExtractorTest
         $this->cleanOutputDirectory();
         $result = (new Application($this->getConfig(self::DRIVER, parent::CONFIG_FORMAT_JSON)))->run();
 
-        $this->assertExtractedData(ROOT_PATH . '/tests/data/escaping.csv', $result['imported'][0]['outputTable']);
+        $this->assertExtractedData($this->dataDir . '/escaping.csv', $result['imported'][0]['outputTable']);
         $manifest = json_decode(
             file_get_contents($this->dataDir . '/out/tables/' . $result['imported'][0]['outputTable'] . ".csv.manifest"),
             true
@@ -123,7 +123,7 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertArrayNotHasKey('columns', $manifest);
         $this->assertArrayNotHasKey('primary_key', $manifest);
         
-        $this->assertExtractedData(ROOT_PATH . '/tests/data/simple.csv', $result['imported'][1]['outputTable']);
+        $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][1]['outputTable']);
         $manifest = json_decode(
             file_get_contents($this->dataDir . '/out/tables/' . $result['imported'][1]['outputTable'] . ".csv.manifest"),
             true
@@ -139,7 +139,7 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertEquals('success', $result['status']);
         $this->assertEquals('in.c-main.simple', $result['imported']['outputTable']);
         $this->assertEquals(2, $result['imported']['rows']);
-        $this->assertExtractedData(ROOT_PATH . '/tests/data/simple.csv', $result['imported']['outputTable']);
+        $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported']['outputTable']);
         $manifest = json_decode(
             file_get_contents($this->dataDir . '/out/tables/' . $result['imported']['outputTable'] . ".csv.manifest"),
             true
@@ -161,8 +161,8 @@ class CommonExtractorTest extends ExtractorTest
             'sshHost' => 'sshproxy',
         ];
         $result = (new Application($config))->run();
-        $this->assertExtractedData(ROOT_PATH . '/tests/data/escaping.csv', $result['imported'][0]['outputTable']);
-        $this->assertExtractedData(ROOT_PATH . '/tests/data/simple.csv', $result['imported'][1]['outputTable']);
+        $this->assertExtractedData($this->dataDir . '/escaping.csv', $result['imported'][0]['outputTable']);
+        $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][1]['outputTable']);
     }
 
     public function testRunWithSSHDeprecated(): void
@@ -182,8 +182,8 @@ class CommonExtractorTest extends ExtractorTest
         ];
 
         $result = (new Application($config))->run();
-        $this->assertExtractedData(ROOT_PATH . '/tests/data/escaping.csv', $result['imported'][0]['outputTable']);
-        $this->assertExtractedData(ROOT_PATH . '/tests/data/simple.csv', $result['imported'][1]['outputTable']);
+        $this->assertExtractedData($this->dataDir . '/escaping.csv', $result['imported'][0]['outputTable']);
+        $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][1]['outputTable']);
     }
 
     public function testRunWithSSHUserException(): void
@@ -425,7 +425,7 @@ class CommonExtractorTest extends ExtractorTest
         $app = new Application($config);
 
         $result = $app->run();
-        $this->assertExtractedData(ROOT_PATH . '/tests/data/simple.csv', $result['imported'][0]['outputTable']);
+        $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][0]['outputTable']);
 
         $outputManifest = Yaml::parse(
             file_get_contents($manifestFile)
@@ -588,7 +588,7 @@ class CommonExtractorTest extends ExtractorTest
         $result = $app->run();
 
         $outputTableName = $result['imported'][0]['outputTable'];
-        $this->assertExtractedData(ROOT_PATH . '/tests/data/simple.csv', $outputTableName);
+        $this->assertExtractedData($this->dataDir . '/simple.csv', $outputTableName);
         $manifest = json_decode(
             file_get_contents($this->dataDir . '/out/tables/' . $outputTableName . ".csv.manifest"),
             true
