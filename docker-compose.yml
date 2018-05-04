@@ -5,8 +5,6 @@ services:
     image: keboola/db-extractor-common
     volumes:
       - .:/code
-    env_file:
-      - ssh-keys.env
     command: composer ci
     environment:
       COMMON_DB_USER: root
@@ -14,7 +12,9 @@ services:
       COMMON_DB_HOST: mysql
       COMMON_DB_PORT: 3306
       COMMON_DB_DATABASE: testdb
-    links:
+      COMMON_DB_SSH_KEY_PRIVATE: ${SSH_KEY_PRIVATE}
+      COMMON_DB_SSH_KEY_PUBLIC: ${SSH_KEY_PUBLIC}
+    depends_on:
       - sshproxy
       - mysql
 
@@ -26,5 +26,10 @@ services:
 
   sshproxy:
     build: ./tests/env/sshproxy
+    volumes:
+      - .:/code
+    command: ./generate-ssh-keys.sh && sh -c 'echo $SSH_KEY_PUBLIC >> ~/.ssh/authorized_keys && /usr/sbin/sshd -D'
+    environment:
+      - SSH_KEY_PUBLIC
     links:
       - mysql

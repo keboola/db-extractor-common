@@ -3,6 +3,7 @@ language: bash
 services:
   - docker
 before-script:
+  - source ./generate-ssh-keys.sh
   - docker-compose build
 script:
   - docker-compose run --rm tests composer install -n
