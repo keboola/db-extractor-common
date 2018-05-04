@@ -16,6 +16,9 @@ class CommonExtractorTest extends ExtractorTest
 {
     public const DRIVER = 'common';
 
+    /** @var string */
+    protected $appName = 'ex-db-common';
+
     /**
      * @var  \PDO
      */
@@ -23,10 +26,12 @@ class CommonExtractorTest extends ExtractorTest
 
     public function setUp(): void
     {
-        if (!defined('APP_NAME')) {
-            define('APP_NAME', 'ex-db-common');
-        }
         $this->initDatabase();
+    }
+
+    private function getApp(array $config, array $state = []): Application
+    {
+        return parent::getApplication($this->appName, $config, $state);
     }
 
     private function initDatabase(): void
@@ -99,7 +104,7 @@ class CommonExtractorTest extends ExtractorTest
     public function testRunSimple(): void
     {
         $this->cleanOutputDirectory();
-        $result = (new Application($this->getConfig(self::DRIVER)))->run();
+        $result = ($this->getApp($this->getConfig(self::DRIVER)))->run();
         $this->assertExtractedData($this->dataDir . '/escaping.csv', $result['imported'][0]['outputTable']);
         $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][1]['outputTable']);
         $manifest = json_decode(
@@ -113,7 +118,7 @@ class CommonExtractorTest extends ExtractorTest
     public function testRunJsonConfig(): void
     {
         $this->cleanOutputDirectory();
-        $result = (new Application($this->getConfig(self::DRIVER, parent::CONFIG_FORMAT_JSON)))->run();
+        $result = ($this->getApp($this->getConfig(self::DRIVER, parent::CONFIG_FORMAT_JSON)))->run();
 
         $this->assertExtractedData($this->dataDir . '/escaping.csv', $result['imported'][0]['outputTable']);
         $manifest = json_decode(
@@ -135,7 +140,7 @@ class CommonExtractorTest extends ExtractorTest
     public function testRunConfigRow(): void
     {
         $this->cleanOutputDirectory();
-        $result = (new Application($this->getConfigRow(self::DRIVER)))->run();
+        $result = ($this->getApp($this->getConfigRow(self::DRIVER)))->run();
         $this->assertEquals('success', $result['status']);
         $this->assertEquals('in.c-main.simple', $result['imported']['outputTable']);
         $this->assertEquals(2, $result['imported']['rows']);
@@ -160,7 +165,7 @@ class CommonExtractorTest extends ExtractorTest
             ],
             'sshHost' => 'sshproxy',
         ];
-        $result = (new Application($config))->run();
+        $result = ($this->getApp($config))->run();
         $this->assertExtractedData($this->dataDir . '/escaping.csv', $result['imported'][0]['outputTable']);
         $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][1]['outputTable']);
     }
@@ -181,7 +186,7 @@ class CommonExtractorTest extends ExtractorTest
             'remotePort' => '3306',
         ];
 
-        $result = (new Application($config))->run();
+        $result = ($this->getApp($config))->run();
         $this->assertExtractedData($this->dataDir . '/escaping.csv', $result['imported'][0]['outputTable']);
         $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][1]['outputTable']);
     }
@@ -204,7 +209,7 @@ class CommonExtractorTest extends ExtractorTest
             'remotePort' => '3306',
         ];
 
-        (new Application($config))->run();
+        ($this->getApp($config))->run();
     }
 
     public function testRunWithWrongCredentials(): void
@@ -214,7 +219,7 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['db']['#password'] = 'somecrap';
 
         try {
-            (new Application($config))->run();
+            ($this->getApp($config))->run();
             $this->fail("Wrong credentials must raise error.");
         } catch (\Keboola\DbExtractor\Exception\UserException $e) {
         }
@@ -227,7 +232,7 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['tables'][0]['retries'] = 3;
 
         try {
-            (new Application($config))->run();
+            ($this->getApp($config))->run();
         } catch (UserException $e) {
             $this->assertContains('Tried 3 times', $e->getMessage());
         }
@@ -241,7 +246,7 @@ class CommonExtractorTest extends ExtractorTest
         $config = $this->getConfig(self::DRIVER);
         $config['parameters']['tables'][0]['query'] = "SELECT * FROM escaping WHERE col1 = '123'";
 
-        $result = (new Application($config))->run();
+        $result = ($this->getApp($config))->run();
 
         $this->assertEquals('success', $result['status']);
         $this->assertFileNotExists($outputCsvFile);
@@ -253,7 +258,7 @@ class CommonExtractorTest extends ExtractorTest
         $config = $this->getConfig(self::DRIVER);
         $config['action'] = 'testConnection';
         $config['parameters']['tables'] = [];
-        $app = new Application($config);
+        $app = $this->getApp($config);
         $res = $app->run();
 
         $this->assertEquals('success', $res['status']);
@@ -269,7 +274,7 @@ class CommonExtractorTest extends ExtractorTest
             'outputTable' => 'dummy',
         ];
         try {
-            (new Application($config))->run();
+            ($this->getApp($config))->run();
             $this->fail("Failing query must raise exception.");
         } catch (\Keboola\DbExtractor\Exception\UserException $e) {
             // test that the error message contains the query name
@@ -283,7 +288,7 @@ class CommonExtractorTest extends ExtractorTest
         $config['action'] = 'testConnection';
         $config['parameters']['tables'] = [];
         $config['parameters']['db']['#password'] = 'bullshit';
-        $app = new Application($config);
+        $app = $this->getApp($config);
         $exceptionThrown = false;
         try {
             $app->run();
@@ -299,7 +304,7 @@ class CommonExtractorTest extends ExtractorTest
         $config = $this->getConfig(self::DRIVER);
         $config['action'] = 'getTables';
 
-        $app = new Application($config);
+        $app = $this->getApp($config);
 
         $result = $app->run();
 
@@ -422,7 +427,7 @@ class CommonExtractorTest extends ExtractorTest
 
         $manifestFile = $this->dataDir . '/out/tables/in.c-main.simple.csv.manifest';
 
-        $app = new Application($config);
+        $app = $this->getApp($config);
 
         $result = $app->run();
         $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][0]['outputTable']);
@@ -571,7 +576,7 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['tables'] = [];
 
         try {
-            $app = new Application($config);
+            $app = $this->getApp($config);
             $app->run();
 
             $this->fail('Running non-existing actions should fail with UserException');
@@ -584,7 +589,7 @@ class CommonExtractorTest extends ExtractorTest
         $config = $this->getConfig(self::DRIVER);
         unset($config['parameters']['tables'][0]);
 
-        $app = new Application($config);
+        $app = $this->getApp($config);
         $result = $app->run();
 
         $outputTableName = $result['imported'][0]['outputTable'];
@@ -602,7 +607,7 @@ class CommonExtractorTest extends ExtractorTest
         $config = $this->getConfig(self::DRIVER);
         $config['parameters']['tables'][0]['table'] = ['schema' => 'testdb', 'tableName' => 'escaping'];
         try {
-            $app = new Application($config);
+            $app = $this->getApp($config);
             $app->run();
             $this->fail('table and query parameters cannot both be present');
         } catch (\Keboola\DbExtractor\Exception\UserException $e) {
@@ -615,7 +620,7 @@ class CommonExtractorTest extends ExtractorTest
         $config = $this->getConfig(self::DRIVER);
         unset($config['parameters']['tables'][0]['query']);
         try {
-            $app = new Application($config);
+            $app = $this->getApp($config);
             $app->run();
             $this->fail('one of table or query is required');
         } catch (\Keboola\DbExtractor\Exception\UserException $e) {
@@ -628,7 +633,7 @@ class CommonExtractorTest extends ExtractorTest
         $config = $this->getConfig(self::DRIVER);
         $config['parameters']['tables'][0]['outputTable'] = "in.c-main.something/ weird";
         unset($config['parameters']['tables'][1]);
-        $result = (new Application($config))->run();
+        $result = ($this->getApp($config))->run();
 
         $this->assertEquals('success', $result['status']);
         $this->assertFileExists($this->dataDir . '/out/tables/in.c-main.something-weird.csv');
@@ -641,7 +646,7 @@ class CommonExtractorTest extends ExtractorTest
         $config['incrementalFethcingColumn'] = 'timestamp';
         $this->createAutoIncrementAndTimestampTable();
 
-        $result = (new Application($config))->run();
+        $result = ($this->getApp($config))->run();
 
         $this->assertEquals('success', $result['status']);
         $this->assertEquals(
@@ -659,14 +664,14 @@ class CommonExtractorTest extends ExtractorTest
 
         sleep(2);
         // the next fetch should be empty
-        $emptyResult = (new Application($config, $result['state']))->run();
+        $emptyResult = ($this->getApp($config, $result['state']))->run();
         $this->assertEquals(0, $emptyResult['imported']['rows']);
 
         sleep(2);
         //now add a couple rows and run it again.
         $this->db->exec('INSERT INTO auto_increment_timestamp (`name`) VALUES (\'charles\'), (\'william\')');
 
-        $newResult = (new Application($config, $result['state']))->run();
+        $newResult = ($this->getApp($config, $result['state']))->run();
 
         //check that output state contains expected information
         $this->assertArrayHasKey('state', $newResult);
@@ -683,7 +688,7 @@ class CommonExtractorTest extends ExtractorTest
         $config['incrementalFethcingColumn'] = 'id';
         $this->createAutoIncrementAndTimestampTable();
 
-        $result = (new Application($config))->run();
+        $result = ($this->getApp($config))->run();
 
         $this->assertEquals('success', $result['status']);
         $this->assertEquals(
@@ -701,14 +706,14 @@ class CommonExtractorTest extends ExtractorTest
 
         sleep(2);
         // the next fetch should be empty
-        $emptyResult = (new Application($config, $result['state']))->run();
+        $emptyResult = ($this->getApp($config, $result['state']))->run();
         $this->assertEquals(0, $emptyResult['imported']['rows']);
 
         sleep(2);
         //now add a couple rows and run it again.
         $this->db->exec('INSERT INTO auto_increment_timestamp (`name`) VALUES (\'charles\'), (\'william\')');
 
-        $newResult = (new Application($config, $result['state']))->run();
+        $newResult = ($this->getApp($config, $result['state']))->run();
 
         //check that output state contains expected information
         $this->assertArrayHasKey('state', $newResult);
@@ -723,7 +728,7 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['incrementalFetchingLimit'] = 1;
         $this->createAutoIncrementAndTimestampTable();
 
-        $result = (new Application($config))->run();
+        $result = ($this->getApp($config))->run();
 
         $this->assertEquals('success', $result['status']);
         $this->assertEquals(
@@ -741,7 +746,7 @@ class CommonExtractorTest extends ExtractorTest
 
         sleep(2);
         // the next fetch should contain the second row
-        $result = (new Application($config, $result['state']))->run();
+        $result = ($this->getApp($config, $result['state']))->run();
         $this->assertEquals(
             [
                 'outputTable' => 'in.c-main.auto-increment-timestamp',
@@ -763,7 +768,7 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['incrementalFetchingColumn'] = 'fakeCol'; // column does not exist
 
         try {
-            $result = (new Application($config))->run();
+            $result = ($this->getApp($config))->run();
             $this->fail('specified autoIncrement column does not exist, should fail.');
         } catch (UserException $e) {
             $this->assertStringStartsWith("Column [fakeCol]", $e->getMessage());
@@ -772,7 +777,7 @@ class CommonExtractorTest extends ExtractorTest
         // column exists but is not auto-increment nor updating timestamp so should fail
         $config['parameters']['incrementalFetchingColumn'] = 'name';
         try {
-            $result = (new Application($config))->run();
+            $result = ($this->getApp($config))->run();
             $this->fail('specified column is not auto increment nor timestamp, should fail.');
         } catch (UserException $e) {
             $this->assertStringStartsWith("Column [name] specified for incremental fetching", $e->getMessage());
@@ -787,7 +792,7 @@ class CommonExtractorTest extends ExtractorTest
         unset($config['parameters']['table']);
 
         try {
-            $result = (new Application($config))->run();
+            $result = ($this->getApp($config))->run();
             $this->fail('cannot use incremental fetching with advanced query, should fail.');
         } catch (UserException $e) {
             $this->assertStringStartsWith("Invalid Configuration", $e->getMessage());

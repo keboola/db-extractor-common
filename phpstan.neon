@@ -1,3 +1,2 @@
 parameters:
     ignoreErrors:
-        - '#Constant APP_NAME not found#'

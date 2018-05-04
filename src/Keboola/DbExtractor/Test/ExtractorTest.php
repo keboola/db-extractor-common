@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Test;
 
+use Keboola\DbExtractor\Application;
 use Keboola\DbExtractor\Exception\UserException;
 use Symfony\Component\Yaml\Yaml;
 
@@ -73,5 +74,10 @@ class ExtractorTest extends \PHPUnit_Framework_TestCase
         // docker-compose .env file does not support new lines in variables
         // so we have to modify the key https://github.com/moby/moby/issues/12997
         return str_replace('"', '', str_replace('\n', "\n", $this->getEnv($driver, 'DB_SSH_KEY_PRIVATE')));
+    }
+
+    protected function getApplication(string $appName, array $config, array $state = []): Application
+    {
+        return new Application($appName, $config, $state);
     }
 }

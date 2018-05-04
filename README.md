@@ -35,8 +35,6 @@ https://github.com/keboola/db-extractor-mysql/blob/master/src/run.php
 
 Note that as of version 7, configuration rows are supported so it is not necessary to support .yml configs or table array configurations.
 
-You should define `APP_NAME` constant in format `ex-db-VENDOR`.
-
 The $config is loaded from the `config.json` file.  You have to provide values for the `data_dir` and `extractor_class` keys.
 `extractor_class` is the main class of derived extractor, it should extend `Keboola\DbExtractor\Extractor\Extractor`.
 
