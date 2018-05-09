@@ -201,7 +201,7 @@ class Application extends Container
         return $output;
     }
 
-    public static function setEnvironment()
+    public static function setEnvironment(): void
     {
         error_reporting(E_ALL);
         set_error_handler(function ($errno, $errstr, $errfile, $errline, array $errcontext): bool {
