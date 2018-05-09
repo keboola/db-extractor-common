@@ -11,14 +11,17 @@ use Pimple\Container;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 use Symfony\Component\Config\Definition\Exception\Exception as ConfigException;
 use Symfony\Component\Config\Definition\Processor;
+use ErrorException;
 
 class Application extends Container
 {
     /** @var ConfigurationInterface */
     private $configDefinition;
 
-    public function __construct(array $config, array $state = [])
+    public function __construct(string $appName, array $config, array $state = [])
     {
+        static::setEnvironment();
+
         parent::__construct();
 
         $app = $this;
@@ -29,8 +32,8 @@ class Application extends Container
 
         $this['state'] = $state;
 
-        $this['logger'] = function () {
-            return new Logger(APP_NAME);
+        $this['logger'] = function () use ($appName) {
+            return new Logger($appName);
         };
 
         $this['extractor_factory'] = function () use ($app) {
@@ -197,5 +200,18 @@ class Application extends Container
             throw new UserException(sprintf("Failed to get tables: '%s'", $e->getMessage()), 0, $e);
         }
         return $output;
+    }
+
+    public static function setEnvironment(): void
+    {
+        error_reporting(E_ALL);
+        set_error_handler(function ($errno, $errstr, $errfile, $errline, array $errcontext): bool {
+            if (!(error_reporting() & $errno)) {
+                // respect error_reporting() level
+                // libraries used in custom components may emit notices that cannot be fixed
+                return false;
+            }
+            throw new ErrorException($errstr, 0, $errno, $errfile, $errline);
+        });
     }
 }
