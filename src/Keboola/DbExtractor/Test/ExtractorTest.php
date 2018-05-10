@@ -6,6 +6,7 @@ namespace Keboola\DbExtractor\Test;
 
 use Keboola\DbExtractor\Application;
 use Keboola\DbExtractor\Exception\UserException;
+use Keboola\DbExtractor\Logger;
 use Symfony\Component\Yaml\Yaml;
 
 class ExtractorTest extends \PHPUnit_Framework_TestCase
@@ -78,6 +79,6 @@ class ExtractorTest extends \PHPUnit_Framework_TestCase
 
     protected function getApplication(string $appName, array $config, array $state = []): Application
     {
-        return new Application($appName, $config, $state);
+        return new Application($config, new Logger($appName), $state);
     }
 }

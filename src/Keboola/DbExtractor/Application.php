@@ -18,7 +18,7 @@ class Application extends Container
     /** @var ConfigurationInterface */
     private $configDefinition;
 
-    public function __construct(string $appName, array $config, array $state = [])
+    public function __construct(array $config, Logger $logger, array $state = [])
     {
         static::setEnvironment();
 
@@ -32,9 +32,7 @@ class Application extends Container
 
         $this['state'] = $state;
 
-        $this['logger'] = function () use ($appName) {
-            return new Logger($appName);
-        };
+        $this['logger'] = $logger;
 
         $this['extractor_factory'] = function () use ($app) {
             return new ExtractorFactory($app['parameters'], $app['state']);
