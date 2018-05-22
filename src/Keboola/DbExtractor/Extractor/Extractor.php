@@ -39,7 +39,7 @@ abstract class Extractor
     protected $dataDir;
 
     /** @var array */
-    private $dbParameters;
+    protected $dbParameters;
 
     public function __construct(array $parameters, array $state = [], ?Logger $logger = null)
     {
