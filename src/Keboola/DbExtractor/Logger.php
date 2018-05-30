@@ -8,7 +8,7 @@ use Keboola\DbExtractor\Logger\LineFormatter;
 use Monolog\Handler\StreamHandler;
 use Monolog\Logger as MonologLogger;
 
-class Logger extends \Monolog\Logger
+class Logger extends MonologLogger
 {
     public function __construct(string $name = '', bool $debug = false)
     {
