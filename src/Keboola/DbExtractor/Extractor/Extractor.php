@@ -105,9 +105,17 @@ abstract class Extractor
             )
         );
         $this->logger->info("Creating SSH tunnel to '" . $tunnelParams['sshHost'] . "'");
+        $proxy = new RetryProxy(
+            $this->logger,
+            RetryProxy::DEFAULT_MAX_TRIES,
+            RetryProxy::DEFAULT_BACKOFF_INTERVAL,
+            ['SSHException', 'Exception']
+        );
         try {
-            $ssh = new SSH();
-            $ssh->openTunnel($tunnelParams);
+            $proxy->call(function () use ($tunnelParams):void {
+                $ssh = new SSH();
+                $ssh->openTunnel($tunnelParams);
+            });
         } catch (SSHException $e) {
             throw new UserException($e->getMessage(), 0, $e);
         }
