@@ -332,9 +332,23 @@ abstract class Extractor
                 $tableDetails = $tables[0];
                 $columnMetadata = [];
                 $sanitizedPks = [];
-                foreach ($tableDetails['columns'] as $column) {
-                    if (count($table['columns']) > 0 && !in_array($column['name'], $table['columns'])) {
-                        continue;
+                $iterColumns = $table['columns'];
+                if (count($iterColumns) === 0) {
+                    $iterColumns = array_map(function($column) {
+                        return $column['name'];
+                    }, $tableDetails['columns']);
+                }
+                foreach ($iterColumns as $ind => $columnName) {
+                    $column = null;
+                    foreach ($tableDetails['columns'] as $detailColumn) {
+                        if ($detailColumn['name'] === $columnName) {
+                            $column = $detailColumn;
+                        }
+                    }
+                    if (!$column) {
+                        throw new UserException(
+                            sprintf("The given column '%s' was not found in the table.", $columnName)
+                        );
                     }
                     // use sanitized name for primary key if available
                     if (in_array($column['name'], $table['primaryKey']) && array_key_exists('sanitizedName', $column)) {
