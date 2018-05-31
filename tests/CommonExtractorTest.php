@@ -817,6 +817,7 @@ class CommonExtractorTest extends ExtractorTest
         // check the data
         $expectedData = iterator_to_array(new CsvFile($this->dataDir.'/columnsOrderCheck.csv'));
         $outputData = iterator_to_array(new CsvFile($this->dataDir.'/out/tables/in.c-main.columnscheck.csv'));
+        $this->assertCount(2, $outputData);
         foreach ($outputData as $rowNum => $line) {
             // assert timestamp
             $this->assertNotFalse(strtotime($line[0]));
