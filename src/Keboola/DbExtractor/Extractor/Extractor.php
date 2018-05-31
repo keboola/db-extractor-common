@@ -334,7 +334,7 @@ abstract class Extractor
                 $sanitizedPks = [];
                 $iterColumns = $table['columns'];
                 if (count($iterColumns) === 0) {
-                    $iterColumns = array_map(function($column) {
+                    $iterColumns = array_map(function ($column) {
                         return $column['name'];
                     }, $tableDetails['columns']);
                 }
