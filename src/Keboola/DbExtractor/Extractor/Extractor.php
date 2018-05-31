@@ -354,39 +354,15 @@ abstract class Extractor
                     if (in_array($column['name'], $table['primaryKey']) && array_key_exists('sanitizedName', $column)) {
                         $sanitizedPks[] = $column['sanitizedName'];
                     }
-                    $datatypeKeys = ['type', 'length', 'nullable', 'default', 'format'];
-                    $datatype = new GenericStorage(
-                        $column['type'],
-                        array_intersect_key($column, array_flip($datatypeKeys))
-                    );
                     $columnName = $column['name'];
                     if (array_key_exists('sanitizedName', $column)) {
                         $columnName = $column['sanitizedName'];
                     }
-                    $columnMetadata[$columnName] = $datatype->toMetadata();
-                    $nonDatatypeKeys = array_diff_key($column, array_flip($datatypeKeys));
-                    foreach ($nonDatatypeKeys as $key => $value) {
-                        if ($key === 'name') {
-                            $columnMetadata[$columnName][] = [
-                                'key' => "KBC.sourceName",
-                                'value' => $value,
-                            ];
-                        } else {
-                            $columnMetadata[$columnName][] = [
-                                'key' => "KBC." . $key,
-                                'value' => $value,
-                            ];
-                        }
-                    }
+                    $columnMetadata[$columnName] = $this->getColumnMetadata($column);
                     $manifestColumns[] = $columnName;
                 }
-                unset($tableDetails['columns']);
-                foreach ($tableDetails as $key => $value) {
-                    $manifestData['metadata'][] = [
-                        "key" => "KBC." . $key,
-                        "value" => $value,
-                    ];
-                }
+                $manifestData['metadata'] = $this->getTableLevelMetadata($tableDetails);
+
                 $manifestData['column_metadata'] = $columnMetadata;
                 $manifestData['columns'] = $manifestColumns;
                 if (!empty($sanitizedPks)) {
@@ -395,6 +371,46 @@ abstract class Extractor
             }
         }
         return file_put_contents($outFilename, json_encode($manifestData));
+    }
+
+    private function getColumnMetadata(array $column): array
+    {
+        $datatypeKeys = ['type', 'length', 'nullable', 'default', 'format'];
+        $datatype = new GenericStorage(
+            $column['type'],
+            array_intersect_key($column, array_flip($datatypeKeys))
+        );
+        $columnMetadata = $datatype->toMetadata();
+        $nonDatatypeKeys = array_diff_key($column, array_flip($datatypeKeys));
+        foreach ($nonDatatypeKeys as $key => $value) {
+            if ($key === 'name') {
+                $columnMetadata[] = [
+                    'key' => "KBC.sourceName",
+                    'value' => $value,
+                ];
+            } else {
+                $columnMetadata[] = [
+                    'key' => "KBC." . $key,
+                    'value' => $value,
+                ];
+            }
+        }
+        return $columnMetadata;
+    }
+
+    private function getTableLevelMetadata(array $tableDetails): array
+    {
+        $metadata = [];
+        foreach ($tableDetails as $key => $value) {
+            if ($key === 'columns') {
+                continue;
+            }
+            $metadata[] = [
+                "key" => "KBC." . $key,
+                "value" => $value,
+            ];
+        }
+        return $metadata;
     }
 
     protected function getOutputFilename(string $outputTableName): string
