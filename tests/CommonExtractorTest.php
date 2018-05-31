@@ -799,6 +799,26 @@ class CommonExtractorTest extends ExtractorTest
         }
     }
 
+    public function testColumnOrdering(): void
+    {
+        $this->createAutoIncrementAndTimestampTable();
+        $config = $this->getIncrementalFetchingConfig();
+        $config['parameters']['columns'] = ['timestamp', 'id', 'name'];
+        $config['parameters']['outputTable'] = 'in.c-main.columnsCheck';
+        $result = $this->getApp($config)->run();
+
+        $outputManifestFile = $this->dataDir . '/out/tables/in.c-main.columnsCheck.csv.manifest';
+
+        $outputManifest = json_decode(file_get_contents($outputManifestFile), true);
+
+        // check that the manifest has the correct column ordering
+        $this->assertEquals($config['parameters']['columns'], $outputManifest['columns']);
+        // check the data
+        $expectedData = file_get_contents($this->dataDir.'/columnsOrderCheck');
+        $outputData = file_get_contents($this->dataDir.'/out/tables/in.c-main.columnsCheck.csv');
+        $this->assertEquals($expectedData, $outputData);
+    }
+
     private function getIncrementalFetchingConfig(): array
     {
         $config = $this->getConfigRow(self::DRIVER);
