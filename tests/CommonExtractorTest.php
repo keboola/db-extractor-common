@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Tests;
 
+use Keboola\Csv\CsvFile;
 use Keboola\DbExtractor\Application;
 use Keboola\DbExtractor\Exception\UserException;
 use Symfony\Component\Filesystem\Filesystem;
@@ -796,6 +797,32 @@ class CommonExtractorTest extends ExtractorTest
             $this->fail('cannot use incremental fetching with advanced query, should fail.');
         } catch (UserException $e) {
             $this->assertStringStartsWith("Invalid Configuration", $e->getMessage());
+        }
+    }
+
+    public function testColumnOrdering(): void
+    {
+        $this->createAutoIncrementAndTimestampTable();
+        $config = $this->getIncrementalFetchingConfig();
+        $config['parameters']['columns'] = ['timestamp', 'id', 'name'];
+        $config['parameters']['outputTable'] = 'in.c-main.columnsCheck';
+        $result = $this->getApp($config)->run();
+        $this->assertEquals('success', $result['status']);
+        $outputManifestFile = $this->dataDir . '/out/tables/in.c-main.columnscheck.csv.manifest';
+
+        $outputManifest = json_decode(file_get_contents($outputManifestFile), true);
+
+        // check that the manifest has the correct column ordering
+        $this->assertEquals($config['parameters']['columns'], $outputManifest['columns']);
+        // check the data
+        $expectedData = iterator_to_array(new CsvFile($this->dataDir.'/columnsOrderCheck.csv'));
+        $outputData = iterator_to_array(new CsvFile($this->dataDir.'/out/tables/in.c-main.columnscheck.csv'));
+        $this->assertCount(2, $outputData);
+        foreach ($outputData as $rowNum => $line) {
+            // assert timestamp
+            $this->assertNotFalse(strtotime($line[0]));
+            $this->assertEquals($line[1], $expectedData[$rowNum][1]);
+            $this->assertEquals($line[2], $expectedData[$rowNum][2]);
         }
     }
 
