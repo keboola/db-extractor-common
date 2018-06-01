@@ -762,6 +762,26 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertEquals(2, $result['state']['lastFetchedRow']);
     }
 
+    public function testIncrementalFetchingDisabled(): void
+    {
+        $this->createAutoIncrementAndTimestampTable();
+        $config = $this->getIncrementalFetchingConfig();
+        $config['parameters']['incrementalFetchingColumn'] = ''; // unset
+        $result = ($this->getApp($config))->run();
+
+        $this->assertEquals(
+            [
+                'outputTable' => 'in.c-main.auto-increment-timestamp',
+                'rows' => 2,
+            ],
+            $result['imported']
+        );
+
+        //check that output state contains expected information
+        $this->assertArrayHasKey('state', $result);
+        $this->assertEmpty($result['state']);
+    }
+
     public function testIncrementalFetchingInvalidColumns(): void
     {
         $this->createAutoIncrementAndTimestampTable();
