@@ -62,7 +62,7 @@ abstract class Extractor
             }
             throw new UserException("Error connecting to DB: " . $e->getMessage(), 0, $e);
         }
-        if (isset($parameters['incrementalFetchingColumn'])) {
+        if (isset($parameters['incrementalFetchingColumn']) && $parameters['incrementalFetchingColumn'] !== "") {
             $this->validateIncrementalFetching(
                 $parameters['table'],
                 $parameters['incrementalFetchingColumn'],
