@@ -39,7 +39,7 @@ abstract class Extractor
     protected $dataDir;
 
     /** @var array */
-    protected $dbParameters;
+    private $dbParameters;
 
     public function __construct(array $parameters, array $state = [], ?Logger $logger = null)
     {
@@ -379,5 +379,10 @@ abstract class Extractor
     {
         $sanitizedTablename = Utils\Strings::webalize($outputTableName, '._');
         return $this->dataDir . '/out/tables/' . $sanitizedTablename . '.csv';
+    }
+
+    protected function getDbParameters(): array
+    {
+        return $this->dbParameters;
     }
 }
