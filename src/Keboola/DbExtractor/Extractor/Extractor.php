@@ -187,12 +187,11 @@ abstract class Extractor
              throw new ApplicationException("Write to CSV failed: " . $e->getMessage(), 0, $e);
         }
 
-        if ($result['rows'] > 0) {
-            $this->createManifest($table);
-        } else {
+        $this->createManifest($table);
+        if ($result['rows'] === 0) {
             $this->logger->warn(
                 sprintf(
-                    "Query returned empty result. Nothing was imported for table [%s]",
+                    "Table [%s] returned an empty result set.",
                     $table['name']
                 )
             );
@@ -290,7 +289,12 @@ abstract class Extractor
             $output['rows'] = $numRows;
             return $output;
         }
-        // no rows found.  If incremental fetching is turned on, we need to preserve the last state
+        // no rows found.
+        // touch the output csv if headerless
+        if (!$includeHeader) {
+            $csv->writeRow([]);
+        }
+        // If incremental fetching is turned on, we need to preserve the last state
         if ($this->incrementalFetching['column'] && isset($this->state['lastFetchedRow'])) {
             $output = $this->state;
         }
