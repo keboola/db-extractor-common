@@ -243,6 +243,8 @@ class CommonExtractorTest extends ExtractorTest
     {
         $outputCsvFile = $this->dataDir . '/out/tables/in.c-main.escaping.csv';
         $outputManifestFile = $this->dataDir . '/out/tables/in.c-main.escaping.csv.manifest';
+        @unlink($outputCsvFile);
+        @unlink($outputManifestFile);
 
         $config = $this->getConfig(self::DRIVER);
         $config['parameters']['tables'][0]['query'] = "SELECT * FROM escaping WHERE col1 = '123'";
@@ -250,8 +252,31 @@ class CommonExtractorTest extends ExtractorTest
         $result = ($this->getApp($config))->run();
 
         $this->assertEquals('success', $result['status']);
-        $this->assertFileNotExists($outputCsvFile);
-        $this->assertFileNotExists($outputManifestFile);
+        // It should create an empty csv and a manifest
+        $this->assertFileExists($outputCsvFile);
+        $this->assertFileExists($outputManifestFile);
+    }
+
+    public function testRunEmptyTable(): void
+    {
+        $outputCsvFile = $this->dataDir . '/out/tables/in.c-main.escaping.csv';
+        $outputManifestFile = $this->dataDir . '/out/tables/in.c-main.escaping.csv.manifest';
+        @unlink($outputCsvFile);
+        @unlink($outputManifestFile);
+
+        $config = $this->getConfig(self::DRIVER);
+        $this->db->exec("TRUNCATE TABLE `escaping`;");
+        unset($config['parameters']['tables'][0]['query']);
+        $config['parameters']['tables'][0]['table'] = [
+          "tableName" => "escaping",
+          "schema" => "testdb",
+        ];
+        $result = ($this->getApp($config))->run();
+
+        $this->assertEquals('success', $result['status']);
+        // It should create an empty csv and a manifest
+        $this->assertFileExists($outputCsvFile);
+        $this->assertFileExists($outputManifestFile);
     }
 
     public function testTestConnection(): void
