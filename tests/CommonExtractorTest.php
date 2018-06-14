@@ -106,7 +106,7 @@ class CommonExtractorTest extends ExtractorTest
     {
         $this->cleanOutputDirectory();
         $result = ($this->getApp($this->getConfig(self::DRIVER)))->run();
-        $this->assertExtractedData($this->dataDir . '/escaping.csv', $result['imported'][0]['outputTable']);
+        $this->assertExtractedData($this->dataDir . '/escaping.csv', $result['imported'][0]['outputTable'], false);
         $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][1]['outputTable']);
         $manifest = json_decode(
             file_get_contents($this->dataDir . '/out/tables/' . $result['imported'][1]['outputTable'] . ".csv.manifest"),
@@ -121,7 +121,7 @@ class CommonExtractorTest extends ExtractorTest
         $this->cleanOutputDirectory();
         $result = ($this->getApp($this->getConfig(self::DRIVER, parent::CONFIG_FORMAT_JSON)))->run();
 
-        $this->assertExtractedData($this->dataDir . '/escaping.csv', $result['imported'][0]['outputTable']);
+        $this->assertExtractedData($this->dataDir . '/escaping.csv', $result['imported'][0]['outputTable'], false);
         $manifest = json_decode(
             file_get_contents($this->dataDir . '/out/tables/' . $result['imported'][0]['outputTable'] . ".csv.manifest"),
             true
@@ -167,7 +167,7 @@ class CommonExtractorTest extends ExtractorTest
             'sshHost' => 'sshproxy',
         ];
         $result = ($this->getApp($config))->run();
-        $this->assertExtractedData($this->dataDir . '/escaping.csv', $result['imported'][0]['outputTable']);
+        $this->assertExtractedData($this->dataDir . '/escaping.csv', $result['imported'][0]['outputTable'], false);
         $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][1]['outputTable']);
     }
 
@@ -188,7 +188,7 @@ class CommonExtractorTest extends ExtractorTest
         ];
 
         $result = ($this->getApp($config))->run();
-        $this->assertExtractedData($this->dataDir . '/escaping.csv', $result['imported'][0]['outputTable']);
+        $this->assertExtractedData($this->dataDir . '/escaping.csv', $result['imported'][0]['outputTable'], false);
         $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][1]['outputTable']);
     }
 
@@ -253,8 +253,12 @@ class CommonExtractorTest extends ExtractorTest
 
         $this->assertEquals('success', $result['status']);
         // It should create an empty csv and a manifest
-        $this->assertFileExists($outputCsvFile);
+        $this->assertFileNotExists($outputCsvFile);
         $this->assertFileExists($outputManifestFile);
+
+        $manifest = json_decode(file_get_contents($outputManifestFile), true);
+        $this->assertArrayHasKey('columns', $manifest);
+        $this->assertEquals(['col1', 'col2'], $manifest['columns']);
     }
 
     public function testRunEmptyTable(): void
@@ -275,8 +279,11 @@ class CommonExtractorTest extends ExtractorTest
 
         $this->assertEquals('success', $result['status']);
         // It should create an empty csv and a manifest
-        $this->assertFileExists($outputCsvFile);
+        $this->assertFileNotExists($outputCsvFile);
         $this->assertFileExists($outputManifestFile);
+        $manifest = json_decode(file_get_contents($outputManifestFile), true);
+        $this->assertArrayHasKey('columns', $manifest);
+        $this->assertEquals(['col1', 'col2'], $manifest['columns']);
     }
 
     public function testTestConnection(): void
@@ -911,8 +918,13 @@ class CommonExtractorTest extends ExtractorTest
         $outputCsvFile = $this->dataDir . '/out/tables/' . $outputName . '.csv';
         $outputManifestFile = $this->dataDir . '/out/tables/' . $outputName . '.csv.manifest';
 
+        $expectedOutput = iterator_to_array(new CsvFile($expectedCsvFile));
+        if (!$headerExpected) {
+            array_shift($expectedOutput);
+        }
+
         $this->assertFileExists($outputCsvFile);
         $this->assertFileExists($outputManifestFile);
-        $this->assertEquals(file_get_contents($expectedCsvFile), file_get_contents($outputCsvFile));
+        $this->assertEquals($expectedOutput, iterator_to_array(new CsvFile($outputCsvFile)));
     }
 }
