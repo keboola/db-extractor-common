@@ -182,11 +182,15 @@ abstract class Extractor
         }
 
         try {
-            $result = $this->writeToCsv($stmt, $csv, $isAdvancedQuery);
+            $result = $this->writeToCsv($stmt, $csv, false);
         } catch (CsvException $e) {
              throw new ApplicationException("Write to CSV failed: " . $e->getMessage(), 0, $e);
         }
 
+        if ($isAdvancedQuery) {
+            $advancedQueryMetadata = $this->getQueryMetadata($table['query']);
+            $table['columns'] = array_keys($advancedQueryMetadata);
+        }
         $this->createManifest($table);
         if ($result['rows'] === 0) {
             $this->logger->warn(
@@ -290,10 +294,6 @@ abstract class Extractor
             return $output;
         }
         // no rows found.
-        // touch the output csv if headerless
-        if (!$includeHeader) {
-            $csv->writeRow([]);
-        }
         // If incremental fetching is turned on, we need to preserve the last state
         if ($this->incrementalFetching['column'] && isset($this->state['lastFetchedRow'])) {
             $output = $this->state;
@@ -327,7 +327,6 @@ abstract class Extractor
         if (!empty($table['primaryKey'])) {
             $manifestData['primary_key'] = $table['primaryKey'];
         }
-
         $manifestColumns = [];
 
         if (isset($table['table']) && !is_null($table['table'])) {
@@ -373,6 +372,11 @@ abstract class Extractor
                     $manifestData['primary_key'] = $sanitizedPks;
                 }
             }
+        } else {
+            // advanced query should have columns
+            if (!empty($table['columns'])) {
+                $manifestData['columns'] = $table['columns'];
+            }
         }
         return file_put_contents($outFilename, json_encode($manifestData));
     }
@@ -415,6 +419,30 @@ abstract class Extractor
             ];
         }
         return $metadata;
+    }
+
+    protected function getQueryMetadata(string $query, int $maxTries = self::DEFAULT_MAX_TRIES): array
+    {
+        $sql = sprintf("SELECT * FROM (%s) AS tmpTable LIMIT 0;", $query);
+        $proxy = new RetryProxy($this->logger, $maxTries);
+        return $proxy->call(function () use ($sql): array {
+            try {
+                $output = [];
+                /** @var \PDOStatement $stmt */
+                $result = $this->db->query($sql);
+                for ($i = 0; $i < $result->columnCount(); $i++) {
+                    $columnMeta = $result->getColumnMeta($i);
+                    $output[$columnMeta['name']] = $columnMeta;
+                }
+                return $output;
+            } catch (Throwable $e) {
+                try {
+                    $this->db = $this->createConnection($this->dbParameters);
+                } catch (Throwable $e) {
+                };
+                throw $e;
+            }
+        });
     }
 
     protected function getOutputFilename(string $outputTableName): string
