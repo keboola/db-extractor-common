@@ -126,7 +126,7 @@ class CommonExtractorTest extends ExtractorTest
             file_get_contents($this->dataDir . '/out/tables/' . $result['imported'][0]['outputTable'] . ".csv.manifest"),
             true
         );
-        $this->assertArrayNotHasKey('columns', $manifest);
+        $this->assertArrayHasKey('columns', $manifest);
         $this->assertArrayNotHasKey('primary_key', $manifest);
         
         $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][1]['outputTable']);
