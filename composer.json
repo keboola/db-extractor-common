@@ -12,7 +12,7 @@
   "require": {
     "php": ">=7.1",
     "keboola/csv": "^1.1",
-    "keboola/php-datatypes": "^2.0.1",
+    "keboola/php-datatypes": "^3.2",
     "pimple/pimple": "^3.0",
     "monolog/monolog": "^1.17",
     "symfony/process": "^3.0",
