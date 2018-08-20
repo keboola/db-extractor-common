@@ -24,6 +24,8 @@ abstract class Extractor
 {
     public const DEFAULT_MAX_TRIES = 5;
 
+    public const DATATYPE_KEYS = ['type', 'length', 'nullable', 'default', 'format'];
+
     /** @var PDO|mixed */
     protected $db;
 
@@ -321,7 +323,7 @@ abstract class Extractor
         }
         return new CsvFile($this->getOutputFilename($outputTable));
     }
-
+    
     /**
      * @param array $table
      * @return bool|int
@@ -388,15 +390,19 @@ abstract class Extractor
         return file_put_contents($outFilename, json_encode($manifestData));
     }
 
-    private function getColumnMetadata(array $column): array
+    protected function getDatatypeMetadata(array $column): array
     {
-        $datatypeKeys = ['type', 'length', 'nullable', 'default', 'format'];
         $datatype = new GenericStorage(
             $column['type'],
-            array_intersect_key($column, array_flip($datatypeKeys))
+            array_intersect_key($column, array_flip(self::DATATYPE_KEYS))
         );
-        $columnMetadata = $datatype->toMetadata();
-        $nonDatatypeKeys = array_diff_key($column, array_flip($datatypeKeys));
+        return $datatype->toMetadata();
+    }
+
+    private function getColumnMetadata(array $column): array
+    {
+        $columnMetadata = $this->getDatatypeMetadata($column);
+        $nonDatatypeKeys = array_diff_key($column, array_flip(self::DATATYPE_KEYS));
         foreach ($nonDatatypeKeys as $key => $value) {
             if ($key === 'name') {
                 $columnMetadata[] = [
