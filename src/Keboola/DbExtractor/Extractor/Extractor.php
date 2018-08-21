@@ -323,7 +323,7 @@ abstract class Extractor
         }
         return new CsvFile($this->getOutputFilename($outputTable));
     }
-    
+
     /**
      * @param array $table
      * @return bool|int
