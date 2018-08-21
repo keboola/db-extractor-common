@@ -390,18 +390,13 @@ abstract class Extractor
         return file_put_contents($outFilename, json_encode($manifestData));
     }
 
-    protected function getDatatypeMetadata(array $column): array
+    public function getColumnMetadata(array $column): array
     {
         $datatype = new GenericStorage(
             $column['type'],
             array_intersect_key($column, array_flip(self::DATATYPE_KEYS))
         );
-        return $datatype->toMetadata();
-    }
-
-    private function getColumnMetadata(array $column): array
-    {
-        $columnMetadata = $this->getDatatypeMetadata($column);
+        $columnMetadata = $datatype->toMetadata();
         $nonDatatypeKeys = array_diff_key($column, array_flip(self::DATATYPE_KEYS));
         foreach ($nonDatatypeKeys as $key => $value) {
             if ($key === 'name') {
@@ -419,7 +414,7 @@ abstract class Extractor
         return $columnMetadata;
     }
 
-    private function getTableLevelMetadata(array $tableDetails): array
+    public function getTableLevelMetadata(array $tableDetails): array
     {
         $metadata = [];
         foreach ($tableDetails as $key => $value) {
