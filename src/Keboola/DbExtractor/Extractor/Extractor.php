@@ -390,7 +390,7 @@ abstract class Extractor
         return file_put_contents($outFilename, json_encode($manifestData));
     }
 
-    public function getColumnMetadata(array $column): array
+    public static function getColumnMetadata(array $column): array
     {
         $datatype = new GenericStorage(
             $column['type'],
@@ -414,7 +414,7 @@ abstract class Extractor
         return $columnMetadata;
     }
 
-    public function getTableLevelMetadata(array $tableDetails): array
+    public static function getTableLevelMetadata(array $tableDetails): array
     {
         $metadata = [];
         foreach ($tableDetails as $key => $value) {
