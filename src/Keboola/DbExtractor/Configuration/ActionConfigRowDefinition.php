@@ -9,7 +9,7 @@ use Symfony\Component\Config\Definition\Builder\NodeDefinition;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 
-class ConfigRowDefinition implements ConfigurationInterface
+class ActionConfigRowDefinition implements ConfigurationInterface
 {
     public function getConfigTreeBuilder(): TreeBuilder
     {
@@ -33,50 +33,16 @@ class ConfigRowDefinition implements ConfigurationInterface
                         ->scalarNode('host')->end()
                         ->scalarNode('port')->end()
                         ->scalarNode('database')
-                            ->isRequired()
                             ->cannotBeEmpty()
                         ->end()
                         ->scalarNode('user')
                             ->isRequired()
                         ->end()
-                        ->scalarNode('password')->end()
-                        ->scalarNode('#password')->end()
+                        ->scalarNode('#password')
+                            ->isRequired()
+                        ->end()
                         ->append($this->addSshNode())
                     ->end()
-                ->end()
-                ->integerNode('id')
-                    ->min(0)
-                ->end()
-                ->scalarNode('name')
-                    ->cannotBeEmpty()
-                ->end()
-                ->scalarNode('query')->end()
-                ->arrayNode('table')
-                    ->children()
-                        ->scalarNode('schema')->end()
-                        ->scalarNode('tableName')->end()
-                    ->end()
-                ->end()
-                ->arrayNode('columns')
-                    ->prototype('scalar')->end()
-                ->end()
-                ->scalarNode('outputTable')
-                    ->isRequired()
-                    ->cannotBeEmpty()
-                ->end()
-                ->booleanNode('incremental')
-                    ->defaultValue(false)
-                ->end()
-                ->scalarNode('incrementalFetchingColumn')->end()
-                ->scalarNode('incrementalFetchingLimit')->end()
-                ->booleanNode('enabled')
-                    ->defaultValue(true)
-                ->end()
-                ->arrayNode('primaryKey')
-                    ->prototype('scalar')->end()
-                ->end()
-                ->integerNode('retries')
-                    ->min(1)
                 ->end()
             ->end();
         // @formatter:on

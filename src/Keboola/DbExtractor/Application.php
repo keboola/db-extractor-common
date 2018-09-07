@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor;
 
+use Keboola\DbExtractor\Configuration\ActionConfigRowDefinition;
 use Keboola\DbExtractor\Configuration\ConfigDefinition;
 use Keboola\DbExtractor\Configuration\ConfigRowDefinition;
 use Keboola\DbExtractor\Exception\UserException;
@@ -44,7 +45,11 @@ class Application extends Container
         if (isset($this['parameters']['tables'])) {
             $this->configDefinition = new ConfigDefinition();
         } else {
-            $this->configDefinition = new ConfigRowDefinition();
+            if ($this['action'] === 'run') {
+                $this->configDefinition = new ConfigRowDefinition();
+            } else {
+                $this->configDefinition = new ActionConfigRowDefinition();
+            }
         }
     }
 
