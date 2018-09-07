@@ -126,16 +126,18 @@ class Application extends Container
                 [$parameters]
             );
 
-            if (isset($processedParameters['tables'])) {
-                foreach ($processedParameters['tables'] as $table) {
-                    $this->validateTableParameters($table);
-                }
-            } else {
-                $this->validateTableParameters($processedParameters);
-            }
-
             if (!empty($processedParameters['db']['#password'])) {
                 $processedParameters['db']['password'] = $processedParameters['db']['#password'];
+            }
+
+            if ($this['action'] === 'run') {
+                if (isset($processedParameters['tables'])) {
+                    foreach ($processedParameters['tables'] as $table) {
+                        $this->validateTableParameters($table);
+                    }
+                } else {
+                    $this->validateTableParameters($processedParameters);
+                }
             }
 
             return $processedParameters;
