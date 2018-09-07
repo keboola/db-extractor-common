@@ -846,6 +846,23 @@ class CommonExtractorTest extends ExtractorTest
         }
     }
 
+    public function testActionTestConnectionWithoutDeepConfigValidation(): void
+    {
+        $config = [
+            'action' => 'testConnection',
+            'parameters' => [
+                'db' => $this->getConfigDbNode(self::DRIVER),
+                'data_dir' => $this->dataDir,
+                'extractor_class' => ucfirst(self::DRIVER),
+            ],
+        ];
+
+        $result = ($this->getApp($config))->run();
+        $this->assertCount(1, $result);
+        $this->assertArrayHasKey('status', $result);
+        $this->assertEquals('success', $result['status']);
+    }
+
     private function getIncrementalFetchingConfig(): array
     {
         $config = $this->getConfigRow(self::DRIVER);

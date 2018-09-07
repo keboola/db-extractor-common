@@ -17,6 +17,17 @@ class ExtractorTest extends \PHPUnit_Framework_TestCase
     /** @var string */
     protected $dataDir = __DIR__ . "/../../../../tests/data";
 
+    protected function getConfigDbNode(string $driver): array
+    {
+        return [
+            'user' => $this->getEnv($driver, 'DB_USER', true),
+            '#password' => $this->getEnv($driver, 'DB_PASSWORD', true),
+            'host' => $this->getEnv($driver, 'DB_HOST'),
+            'port' => $this->getEnv($driver, 'DB_PORT'),
+            'database' => $this->getEnv($driver, 'DB_DATABASE'),
+        ];
+    }
+
     protected function getConfig(string $driver, string $format = self::CONFIG_FORMAT_YAML): array
     {
         switch ($format) {
@@ -30,13 +41,7 @@ class ExtractorTest extends \PHPUnit_Framework_TestCase
                 throw new UserException("Unsupported configuration format: " . $format);
         }
         $config['parameters']['data_dir'] = $this->dataDir;
-
-        $config['parameters']['db']['user'] = $this->getEnv($driver, 'DB_USER', true);
-        $config['parameters']['db']['#password'] = $this->getEnv($driver, 'DB_PASSWORD', true);
-        $config['parameters']['db']['host'] = $this->getEnv($driver, 'DB_HOST');
-        $config['parameters']['db']['port'] = $this->getEnv($driver, 'DB_PORT');
-        $config['parameters']['db']['database'] = $this->getEnv($driver, 'DB_DATABASE');
-
+        $config['parameters']['db'] = $this->getConfigDbNode($driver);
         $config['parameters']['extractor_class'] = ucfirst($driver);
         
         return $config;
@@ -47,13 +52,7 @@ class ExtractorTest extends \PHPUnit_Framework_TestCase
         $config = json_decode(file_get_contents($this->dataDir . '/' .$driver . '/configRow.json'), true);
 
         $config['parameters']['data_dir'] = $this->dataDir;
-
-        $config['parameters']['db']['user'] = $this->getEnv($driver, 'DB_USER', true);
-        $config['parameters']['db']['#password'] = $this->getEnv($driver, 'DB_PASSWORD', true);
-        $config['parameters']['db']['host'] = $this->getEnv($driver, 'DB_HOST');
-        $config['parameters']['db']['port'] = $this->getEnv($driver, 'DB_PORT');
-        $config['parameters']['db']['database'] = $this->getEnv($driver, 'DB_DATABASE');
-
+        $config['parameters']['db'] = $this->getConfigDbNode($driver);
         $config['parameters']['extractor_class'] = ucfirst($driver);
 
         return $config;
