@@ -7,15 +7,16 @@ namespace Keboola\DbExtractor\Test;
 use Keboola\DbExtractor\Application;
 use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractor\Logger;
+use PHPUnit\Framework\TestCase;
 use Symfony\Component\Yaml\Yaml;
 
-class ExtractorTest extends \PHPUnit_Framework_TestCase
+class ExtractorTest extends TestCase
 {
     public const CONFIG_FORMAT_YAML = 'yaml';
     public const CONFIG_FORMAT_JSON = 'json';
 
     /** @var string */
-    protected $dataDir = __DIR__ . "/../../../../tests/data";
+    protected $dataDir = __DIR__ . "/../../../../tests/Old/data";
 
     protected function getConfigDbNode(string $driver): array
     {

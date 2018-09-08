@@ -5,4 +5,4 @@ composer.phar
 composer.lock
 runtests.sh
 /ssh.*
-/tests/data/out/tables/
+/tests/Old/data/out/tables/

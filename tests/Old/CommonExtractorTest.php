@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Keboola\DbExtractor\Tests;
+namespace Keboola\DbExtractor\Tests\Old;
 
 use Keboola\Csv\CsvFile;
 use Keboola\DbExtractor\Application;
 use Keboola\DbExtractor\Exception\UserException;
+use Keboola\DbExtractor\Test\DataLoader;
+use Keboola\DbExtractor\Test\ExtractorTest;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\Yaml\Yaml;
-use Keboola\DbExtractor\Test\ExtractorTest;
-use Keboola\DbExtractor\Test\DataLoader;
 
 class CommonExtractorTest extends ExtractorTest
 {
@@ -195,7 +195,7 @@ class CommonExtractorTest extends ExtractorTest
     public function testRunWithSSHUserException(): void
     {
         $this->cleanOutputDirectory();
-        $this->setExpectedException('Keboola\DbExtractor\Exception\UserException');
+        $this->expectException(UserException::class);
 
         $config = $this->getConfig(self::DRIVER);
         $config['parameters']['db']['ssh'] = [
@@ -219,11 +219,9 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['db']['host'] = 'somebulshit';
         $config['parameters']['db']['#password'] = 'somecrap';
 
-        try {
-            ($this->getApp($config))->run();
-            $this->fail("Wrong credentials must raise error.");
-        } catch (\Keboola\DbExtractor\Exception\UserException $e) {
-        }
+        $this->expectException(UserException::class);
+        $app = $this->getApp($config);
+        $app->run();
     }
 
     public function testRetries(): void
@@ -572,17 +570,14 @@ class CommonExtractorTest extends ExtractorTest
 
     public function testNonExistingAction(): void
     {
+        $this->doesNotPerformAssertions();
         $config = $this->getConfig(self::DRIVER);
         $config['action'] = 'sample';
         $config['parameters']['tables'] = [];
 
-        try {
-            $app = $this->getApp($config);
-            $app->run();
-
-            $this->fail('Running non-existing actions should fail with UserException');
-        } catch (\Keboola\DbExtractor\Exception\UserException $e) {
-        }
+        $this->expectException(UserException::class);
+        $app = $this->getApp($config);
+        $app->run();
     }
 
     public function testTableColumnsQuery(): void
