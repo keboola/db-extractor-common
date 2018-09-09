@@ -139,7 +139,7 @@ abstract class Extractor
 
     /**
      * @param array|null $tables - an optional array of tables with tableName and schema properties
-     * @return mixed
+     * @return array
      */
     abstract public function getTables(?array $tables = null): array;
 

@@ -27,8 +27,8 @@
   "require-dev": {
     "phpunit/phpunit": "^7.3",
     "keboola/coding-standard": "^6.0",
-    "symfony/finder": "*",
-    "phpstan/phpstan": "^0.8"
+    "symfony/finder": "^4.1",
+    "phpstan/phpstan-shim": "^0.10"
   },
   "autoload": {
     "psr-4": {
