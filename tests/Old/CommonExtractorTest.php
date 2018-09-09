@@ -45,7 +45,12 @@ class CommonExtractorTest extends ExtractorTest
             $this->getEnv(self::DRIVER, 'DB_PASSWORD')
         );
 
-        $dataLoader->getPdo()->exec(sprintf("DROP DATABASE IF EXISTS `%s`", $this->getEnv(self::DRIVER, 'DB_DATABASE')));
+        $dataLoader->getPdo()->exec(
+            sprintf(
+                "DROP DATABASE IF EXISTS `%s`",
+                $this->getEnv(self::DRIVER, 'DB_DATABASE')
+            )
+        );
         $dataLoader->getPdo()->exec(
             sprintf(
                 "
@@ -109,7 +114,9 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertExtractedData($this->dataDir . '/escaping.csv', $result['imported'][0]['outputTable']);
         $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][1]['outputTable']);
         $manifest = json_decode(
-            file_get_contents($this->dataDir . '/out/tables/' . $result['imported'][1]['outputTable'] . ".csv.manifest"),
+            file_get_contents(
+                sprintf("%s/out/tables/%s.csv.manifest", $this->dataDir, $result['imported'][1]['outputTable'])
+            ),
             true
         );
         $this->assertEquals(["weird_I_d", 'S_oPaulo'], $manifest['columns']);
@@ -123,7 +130,9 @@ class CommonExtractorTest extends ExtractorTest
 
         $this->assertExtractedData($this->dataDir . '/escaping.csv', $result['imported'][0]['outputTable']);
         $manifest = json_decode(
-            file_get_contents($this->dataDir . '/out/tables/' . $result['imported'][0]['outputTable'] . ".csv.manifest"),
+            file_get_contents(
+                sprintf("%s/out/tables/%s.csv.manifest", $this->dataDir, $result['imported'][0]['outputTable'])
+            ),
             true
         );
         $this->assertArrayNotHasKey('columns', $manifest);
@@ -131,7 +140,9 @@ class CommonExtractorTest extends ExtractorTest
         
         $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][1]['outputTable']);
         $manifest = json_decode(
-            file_get_contents($this->dataDir . '/out/tables/' . $result['imported'][1]['outputTable'] . ".csv.manifest"),
+            file_get_contents(
+                sprintf("%s/out/tables/%s.csv.manifest", $this->dataDir, $result['imported'][1]['outputTable'])
+            ),
             true
         );
         $this->assertEquals(["weird_I_d", 'S_oPaulo'], $manifest['columns']);
@@ -147,7 +158,9 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertEquals(2, $result['imported']['rows']);
         $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported']['outputTable']);
         $manifest = json_decode(
-            file_get_contents($this->dataDir . '/out/tables/' . $result['imported']['outputTable'] . ".csv.manifest"),
+            file_get_contents(
+                sprintf("%s/out/tables/%s.csv.manifest", $this->dataDir, $result['imported']['outputTable'])
+            ),
             true
         );
         $this->assertEquals(["weird_I_d", 'S_oPaulo'], $manifest['columns']);
@@ -591,7 +604,7 @@ class CommonExtractorTest extends ExtractorTest
         $outputTableName = $result['imported'][0]['outputTable'];
         $this->assertExtractedData($this->dataDir . '/simple.csv', $outputTableName);
         $manifest = json_decode(
-            file_get_contents($this->dataDir . '/out/tables/' . $outputTableName . ".csv.manifest"),
+            file_get_contents(sprintf("%s/out/tables/%s.csv.manifest", $this->dataDir, $outputTableName)),
             true
         );
         $this->assertEquals(["weird_I_d", 'S_oPaulo'], $manifest['columns']);
