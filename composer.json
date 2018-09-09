@@ -41,10 +41,7 @@
     }
   },
   "scripts": {
-    "old-tests": "phpunit tests/Old",
-    "tests": [
-      "@old-tests"
-    ],
+    "tests": "phpunit",
     "phpstan": "phpstan analyse --no-progress --level=max ./src ./tests -c phpstan.neon",
     "phpcs": "phpcs -n --ignore=vendor --extensions=php .",
     "phpcbf": "phpcbf -n --ignore=vendor --extensions=php .",
