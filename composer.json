@@ -11,7 +11,7 @@
   ],
   "require": {
     "php": ">=7.1",
-    "keboola/csv": "^1.1",
+    "keboola/csv": "^2.0",
     "keboola/php-datatypes": "^3.2",
     "pimple/pimple": "^3.2",
     "monolog/monolog": "^1.23",

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Tests;
 
-use Keboola\Csv\CsvFile;
+use Keboola\Csv\CsvReader;
 use Keboola\DbExtractor\Application;
 use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractor\Test\DataLoader;
@@ -843,8 +843,8 @@ class CommonExtractorTest extends ExtractorTest
         // check that the manifest has the correct column ordering
         $this->assertEquals($config['parameters']['columns'], $outputManifest['columns']);
         // check the data
-        $expectedData = iterator_to_array(new CsvFile($this->dataDir.'/columnsOrderCheck.csv'));
-        $outputData = iterator_to_array(new CsvFile($this->dataDir.'/out/tables/in.c-main.columnscheck.csv'));
+        $expectedData = iterator_to_array(new CsvReader($this->dataDir.'/columnsOrderCheck.csv'));
+        $outputData = iterator_to_array(new CsvReader($this->dataDir.'/out/tables/in.c-main.columnscheck.csv'));
         $this->assertCount(2, $outputData);
         foreach ($outputData as $rowNum => $line) {
             // assert timestamp
