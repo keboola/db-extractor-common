@@ -42,7 +42,10 @@
     }
   },
   "scripts": {
-    "tests": "./wait-for-it.sh mysql:3306 -t 30 -- ./vendor/bin/phpunit",
+    "old-tests": "./wait-for-it.sh mysql:3306 -t 30 -- ./vendor/bin/phpunit tests/Old",
+    "tests": [
+      "@old-tests"
+    ],
     "phpstan": "phpstan analyse --no-progress --level=max ./src ./tests -c phpstan.neon",
     "phpcs": "phpcs -n --ignore=vendor --extensions=php .",
     "phpcbf": "phpcbf -n --ignore=vendor --extensions=php .",

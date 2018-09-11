@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Keboola\DbExtractor\Tests;
+namespace Keboola\DbExtractor\Tests\Old;
 
 use Keboola\Csv\CsvReader;
 use Keboola\DbExtractor\Application;
