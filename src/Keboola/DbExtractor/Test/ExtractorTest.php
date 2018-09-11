@@ -16,7 +16,7 @@ class ExtractorTest extends TestCase
     public const CONFIG_FORMAT_JSON = 'json';
 
     /** @var string */
-    protected $dataDir = __DIR__ . "/../../../../tests/data";
+    protected $dataDir = __DIR__ . "/../../../../tests/Old/data";
 
     protected function getConfigDbNode(string $driver): array
     {
