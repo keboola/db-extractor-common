@@ -87,7 +87,10 @@ class RetryProxy implements RetryProxyInterface
                 $this->backOffPolicy->backOff($backOffContext);
             }
         };
-        if ($lastException = $retryContext->getLastException()) {
+
+        /** @var \Throwable|null $lastException */
+        $lastException = $retryContext->getLastException();
+        if ($lastException) {
             throw $lastException;
         }
         throw new RetryException('Action call is failed.');
