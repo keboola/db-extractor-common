@@ -185,7 +185,6 @@ abstract class Extractor
             $result = $this->writeToCsv($stmt, $csvWriter, $isAdvancedQuery);
 
             if ($result['rows'] === 0) {
-                var_dump($this->getOutputFilename($outputTable));
                 unlink($this->getOutputFilename($outputTable));
             }
         } catch (CsvException $e) {
