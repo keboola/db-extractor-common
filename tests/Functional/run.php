@@ -1,12 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 require_once __DIR__ . '/../../vendor/autoload.php';
 
 use Keboola\DbExtractor\Application;
 use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractor\Logger;
 
-$datadirPath = rtrim(getenv('KBC_DATADIR'), '/');
+$datadirPath = rtrim((string) getenv('KBC_DATADIR'), '/');
 
 $config = json_decode((string) file_get_contents($datadirPath . '/config.json'), true);
 $logger = new Logger('datadir-tests');
