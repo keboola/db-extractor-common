@@ -19,7 +19,7 @@ class DatadirTest extends AbstractDatadirTestCase
     {
         $configuration = json_decode((string) file_get_contents($testDirectory . '/config.json'), true);
         $configuration['parameters']['data_dir'] = $testDirectory;
-        $configuration['parameters']['extractor_class'] = 'common';
+        $configuration['parameters']['extractor_class'] = 'Common';
         return$configuration;
     }
 
