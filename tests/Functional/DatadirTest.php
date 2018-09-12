@@ -23,20 +23,36 @@ class DatadirTest extends AbstractDatadirTestCase
         return$configuration;
     }
 
+    private function getCredentials(): array
+    {
+        return [
+            'host' => 'mysql',
+            'port' => 3306,
+            'user' => 'root',
+            '#password' => 'somePassword',
+            'database' => 'testdb',
+        ];
+    }
+
+    private function getDataLoader(array $credentials): DataLoader
+    {
+        return new DataLoader(
+            $credentials['host'],
+            (string) $credentials['port'],
+            $credentials['database'],
+            $credentials['user'],
+            $credentials['#password']
+        );
+    }
+
     public function testActionTestConnection(): void
     {
         $testDirectory = __DIR__ . '/action-test-connection';
 
         $configuration = $this->getConfig($testDirectory);
+        $credentials = $this->getCredentials();
 
-        $credentials = $configuration['parameters']['db'];
-        $dataLoader = new DataLoader(
-            $credentials['host'],
-            $credentials['port'],
-            $credentials['database'],
-            $credentials['user'],
-            $credentials['#password']
-        );
+        $dataLoader = $this->getDataLoader($credentials);
         $dataLoader->getPdo()->exec(sprintf(
             "DROP DATABASE IF EXISTS `%s`",
             $credentials['database']
