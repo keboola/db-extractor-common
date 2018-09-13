@@ -20,24 +20,24 @@ class DatadirTest extends AbstractDatadirTestCase
         $this->dataLoader->getPdo()->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
     }
 
-    private function createDatabase(): void
+    private function createDatabase(string $database): void
     {
         $this->dataLoader->getPdo()->exec(sprintf(
             "DROP DATABASE IF EXISTS `%s`",
-            $this->getCredentials()['database']
+            $database
         ));
 
         $this->dataLoader->getPdo()->exec(sprintf(
             "CREATE DATABASE `%s`
             DEFAULT CHARACTER SET utf8
             DEFAULT COLLATE utf8_general_ci",
-            $this->getCredentials()['database']
+            $database
         ));
     }
 
-    private function createTable(string $tableName): void
+    private function createTable(string $database, string $tableName): void
     {
-        $this->dataLoader->getPdo()->exec(sprintf("use %s", $this->getCredentials()['database']));
+        $this->dataLoader->getPdo()->exec(sprintf("use %s", $database));
         $this->dataLoader->getPdo()->exec(
             "CREATE TABLE {$tableName} (
             col1 VARCHAR(128) NOT NULL, 
@@ -85,10 +85,10 @@ class DatadirTest extends AbstractDatadirTestCase
     {
         $testDirectory = __DIR__ . '/empty-data';
 
-        $this->createDatabase();
-
         $configuration = $this->getConfig($testDirectory);
         $credentials = $this->getCredentials();
+
+        $this->createDatabase($credentials['database']);
 
         $response = ['status' => 'success'];
 
@@ -115,12 +115,13 @@ class DatadirTest extends AbstractDatadirTestCase
     {
         $testDirectory = __DIR__ . '/empty-data';
 
-        $this->createDatabase();
-        $this->createTable('table1');
-        $this->createTable('table2');
-
         $configuration = $this->getConfig($testDirectory);
         $credentials = $this->getCredentials();
+
+        $database = $credentials['database'];
+        $this->createDatabase($database);
+        $this->createTable($database, 'table1');
+        $this->createTable($database, 'table2');
 
         $response = [
             'tables' => [
