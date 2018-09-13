@@ -81,28 +81,23 @@ class DatadirTest extends AbstractDatadirTestCase
         );
     }
 
-    public function testActionTestConnection(): void
+    private function runCommonTest(
+        string $testDirectory,
+        array $configuration,
+        int $expectedReturnCode,
+        ?string $expectedStdout,
+        ?string $expectedStderr
+    ): void
     {
-        $testDirectory = __DIR__ . '/empty-data';
-
-        $configuration = $this->getConfig($testDirectory);
-        $credentials = $this->getCredentials();
-
-        $this->createDatabase($credentials['database']);
-
-        $response = ['status' => 'success'];
-
         $specification = new DatadirTestSpecification(
             $testDirectory . '/source/data',
-            0,
-            json_encode($response, JSON_PRETTY_PRINT),
-            null,
+            $expectedReturnCode,
+            $expectedStdout,
+            $expectedStderr,
             $testDirectory . '/expected/data/out'
         );
         $tempDatadir = $this->getTempDatadir($specification);
 
-        $configuration['action'] = 'testConnection';
-        $configuration['parameters']['db'] = $credentials;
         file_put_contents(
             $tempDatadir->getTmpFolder() . '/config.json',
             json_encode($configuration, JSON_PRETTY_PRINT)
@@ -111,17 +106,42 @@ class DatadirTest extends AbstractDatadirTestCase
         $this->assertMatchesSpecification($specification, $process, $tempDatadir->getTmpFolder());
     }
 
-    public function testActionGetTables(): void
+    public function testActionTestConnection(): void
     {
+        $this->markTestSkipped();
+
         $testDirectory = __DIR__ . '/empty-data';
 
-        $configuration = $this->getConfig($testDirectory);
         $credentials = $this->getCredentials();
 
-        $database = $credentials['database'];
-        $this->createDatabase($database);
-        $this->createTable($database, 'table1');
-        $this->createTable($database, 'table2');
+        $configuration = $this->getConfig($testDirectory);
+        $configuration['action'] = 'testConnection';
+        $configuration['parameters']['db'] = $credentials;
+
+        $expectedStdout = json_encode(['status' => 'success'], JSON_PRETTY_PRINT);
+
+        $this->createDatabase($credentials['database']);
+
+        $this->runCommonTest(
+            $testDirectory,
+            $configuration,
+            0,
+            $expectedStdout,
+            null
+        );
+    }
+
+    public function testActionGetTables(): void
+    {
+        $this->markTestSkipped();
+
+        $testDirectory = __DIR__ . '/empty-data';
+
+        $credentials = $this->getCredentials();
+
+        $configuration = $this->getConfig($testDirectory);
+        $configuration['action'] = 'getTables';
+        $configuration['parameters']['db'] = $credentials;
 
         $response = [
             'tables' => [
@@ -186,23 +206,363 @@ class DatadirTest extends AbstractDatadirTestCase
             ],
             'status' => 'success',
         ];
+        $expectedStdout = json_encode($response, JSON_PRETTY_PRINT);
 
-        $specification = new DatadirTestSpecification(
-            $testDirectory . '/source/data',
+        $database = $credentials['database'];
+        $this->createDatabase($database);
+        $this->createTable($database, 'table1');
+        $this->createTable($database, 'table2');
+
+        $this->runCommonTest(
+            $testDirectory,
+            $configuration,
             0,
-            json_encode($response, JSON_PRETTY_PRINT),
-            null,
-            $testDirectory . '/expected/data/out'
+            $expectedStdout,
+            null
         );
-        $tempDatadir = $this->getTempDatadir($specification);
+    }
 
-        $configuration['action'] = 'getTables';
+    public function testUndefinedAction(): void
+    {
+        $testDirectory = __DIR__ . '/empty-data';
+
+        $credentials = $this->getCredentials();
+
+        $configuration = $this->getConfig($testDirectory);
+        $configuration['action'] = 'funkyAction';
         $configuration['parameters']['db'] = $credentials;
-        file_put_contents(
-            $tempDatadir->getTmpFolder() . '/config.json',
-            json_encode($configuration, JSON_PRETTY_PRINT)
+
+        $database = $credentials['database'];
+        $this->createDatabase($database);
+
+        $this->runCommonTest(
+            $testDirectory,
+            $configuration,
+            1,
+            null,
+            'Action \'funkyAction\' does not exist.' . PHP_EOL
         );
-        $process = $this->runScript($tempDatadir->getTmpFolder());
-        $this->assertMatchesSpecification($specification, $process, $tempDatadir->getTmpFolder());
+    }
+
+    public function testExportTableByOldConfigWithDefinedQueryAndTables(): void
+    {
+        $testDirectory = __DIR__ . '/empty-data';
+
+        $credentials = $this->getCredentials();
+
+        $configuration = $this->getConfig($testDirectory);
+        $configuration['parameters']['db'] = $credentials;
+        $configuration['parameters']['tables'] = [
+            [
+                'id' => 1,
+                'name' => 'table1',
+                'outputTable' => 'table1',
+                'query' => 'SELECT * FROM table1',
+                'table' => [
+                    'schema' => 'testdb',
+                    'tableName' => 'table1',
+                ],
+            ],
+        ];
+
+        $database = $credentials['database'];
+        $this->createDatabase($database);
+        $this->createTable($database, 'table1');
+
+        $this->runCommonTest(
+            $testDirectory,
+            $configuration,
+            1,
+            null,
+            'Invalid Configuration in "table1". Both table and query cannot be set together.' . PHP_EOL
+        );
+    }
+
+    public function testExportTableByOldConfigWithoutDefinedQueryAndTables(): void
+    {
+        $testDirectory = __DIR__ . '/empty-data';
+
+        $credentials = $this->getCredentials();
+
+        $configuration = $this->getConfig($testDirectory);
+        $configuration['parameters']['db'] = $credentials;
+        $configuration['parameters']['tables'] = [
+            [
+                'id' => 1,
+                'name' => 'table1',
+                'outputTable' => 'table1',
+            ],
+        ];
+
+        $database = $credentials['database'];
+        $this->createDatabase($database);
+        $this->createTable($database, 'table1');
+
+        $this->runCommonTest(
+            $testDirectory,
+            $configuration,
+            1,
+            null,
+            'Invalid Configuration in "table1". One of table or query is required.' . PHP_EOL
+        );
+    }
+
+    public function testExportTableByOldConfigWithoutOutputTable(): void
+    {
+        $testDirectory = __DIR__ . '/empty-data';
+
+        $credentials = $this->getCredentials();
+
+        $configuration = $this->getConfig($testDirectory);
+        $configuration['parameters']['db'] = $credentials;
+        $configuration['parameters']['tables'] = [
+            [
+                'id' => 1,
+                'name' => 'table1',
+                'query' => 'SELECT * FROM table1',
+            ],
+        ];
+
+        $database = $credentials['database'];
+        $this->createDatabase($database);
+        $this->createTable($database, 'table1');
+
+        $this->runCommonTest(
+            $testDirectory,
+            $configuration,
+            1,
+            null,
+            'The child node "outputTable" at path "parameters.tables.0" must be configured.' . PHP_EOL
+        );
+    }
+
+    public function testExportTableByOldConfigOnNonExistingDatabase(): void
+    {
+        $testDirectory = __DIR__ . '/basic-data';
+
+        $credentials = $this->getCredentials();
+
+        $configuration = $this->getConfig($testDirectory);
+        $configuration['parameters']['db'] = $credentials;
+        $configuration['parameters']['tables'] = [
+            [
+                'id' => 1,
+                'name' => 'table1',
+                'table' => [
+                    'schema' => 'invaliddb',
+                    'tableName' => 'table1',
+                ],
+                'outputTable' => 'table1',
+            ],
+        ];
+
+        $database = $credentials['database'];
+        $table = 'table1';
+        $this->createDatabase($database);
+        $this->createTable($database, $table);
+
+        $this->runCommonTest(
+            $testDirectory,
+            $configuration,
+            1,
+            null,
+            '[table1]: DB query failed: SQLSTATE[42S02]:'
+            . ' Base table or view not found: 1146 Table \'invaliddb.table1\' doesn\'t exist' . PHP_EOL
+        );
+    }
+
+    public function testExportTableByOldConfigOnNonExistingTable(): void
+    {
+        $testDirectory = __DIR__ . '/basic-data';
+
+        $credentials = $this->getCredentials();
+
+        $configuration = $this->getConfig($testDirectory);
+        $configuration['parameters']['db'] = $credentials;
+        $configuration['parameters']['tables'] = [
+            [
+                'id' => 1,
+                'name' => 'table1',
+                'table' => [
+                    'schema' => 'testdb',
+                    'tableName' => 'invalidTable',
+                ],
+                'outputTable' => 'table1',
+            ],
+        ];
+
+        $database = $credentials['database'];
+        $table = 'table1';
+        $this->createDatabase($database);
+        $this->createTable($database, $table);
+
+        $this->runCommonTest(
+            $testDirectory,
+            $configuration,
+            1,
+            null,
+            '[table1]: DB query failed: SQLSTATE[42S02]:'
+            . ' Base table or view not found: 1146 Table \'testdb.invalidTable\' doesn\'t exist' . PHP_EOL
+        );
+    }
+
+    public function testExportTableByOldConfigWithDefinedQuerySuccessfully(): void
+    {
+        $testDirectory = __DIR__ . '/basic-data';
+
+        $credentials = $this->getCredentials();
+
+        $configuration = $this->getConfig($testDirectory);
+        $configuration['parameters']['db'] = $credentials;
+        $configuration['parameters']['tables'] = [
+            [
+                'id' => 1,
+                'name' => 'table1',
+                'query' => 'SELECT * FROM table1',
+                'outputTable' => 'table1',
+            ],
+        ];
+
+        $response = [
+            'status' => 'success',
+            'imported' => [
+                [
+                    'outputTable' => 'table1',
+                    'rows' => 2,
+                ]
+            ],
+            'state' => [],
+        ];
+
+        $database = $credentials['database'];
+        $table = 'table1';
+        $this->createDatabase($database);
+        $this->createTable($database, $table);
+
+        $this->dataLoader->getPdo()->exec(
+            sprintf("INSERT INTO %s VALUES ('%s', '%s'), ('%s', '%s')",
+            $table,
+            'row1',
+            'r1',
+            'row2',
+            'r2'
+        ));
+
+        $this->runCommonTest(
+            $testDirectory,
+            $configuration,
+            0,
+            'Exporting to table1' . PHP_EOL . json_encode($response, JSON_PRETTY_PRINT),
+            null
+        );
+    }
+
+    public function testExportTableByOldConfigWithDefinedTableSuccessfully(): void
+    {
+        $testDirectory = __DIR__ . '/basic-data';
+
+        $credentials = $this->getCredentials();
+
+        $configuration = $this->getConfig($testDirectory);
+        $configuration['parameters']['db'] = $credentials;
+        $configuration['parameters']['tables'] = [
+            [
+                'id' => 1,
+                'name' => 'table1',
+                'table' => [
+                    'schema' => 'testdb',
+                    'tableName' => 'table1',
+                ],
+                'outputTable' => 'table1',
+            ],
+        ];
+
+        $response = [
+            'status' => 'success',
+            'imported' => [
+                [
+                    'outputTable' => 'table1',
+                    'rows' => 2,
+                ]
+            ],
+            'state' => [],
+        ];
+
+        $database = $credentials['database'];
+        $table = 'table1';
+        $this->createDatabase($database);
+        $this->createTable($database, $table);
+
+        $this->dataLoader->getPdo()->exec(
+            sprintf("INSERT INTO %s VALUES ('%s', '%s'), ('%s', '%s')",
+                $table,
+                'row1',
+                'r1',
+                'row2',
+                'r2'
+            ));
+
+        $this->runCommonTest(
+            $testDirectory,
+            $configuration,
+            0,
+            'Exporting to table1' . PHP_EOL . json_encode($response, JSON_PRETTY_PRINT),
+            null
+        );
+    }
+
+    public function testExportTableByOldConfigWithDefinedTableAndOneColumnSuccessfully(): void
+    {
+        $testDirectory = __DIR__ . '/basic-data';
+
+        $credentials = $this->getCredentials();
+
+        $configuration = $this->getConfig($testDirectory);
+        $configuration['parameters']['db'] = $credentials;
+        $configuration['parameters']['tables'] = [
+            [
+                'id' => 1,
+                'name' => 'table1',
+                'table' => [
+                    'schema' => 'testdb',
+                    'tableName' => 'table1',
+                ],
+                'columns' => ['col1'],
+                'outputTable' => 'table1',
+            ],
+        ];
+
+        $response = [
+            'status' => 'success',
+            'imported' => [
+                [
+                    'outputTable' => 'table1',
+                    'rows' => 2,
+                ]
+            ],
+            'state' => [],
+        ];
+
+        $database = $credentials['database'];
+        $table = 'table1';
+        $this->createDatabase($database);
+        $this->createTable($database, $table);
+
+        $this->dataLoader->getPdo()->exec(
+            sprintf("INSERT INTO %s VALUES ('%s', '%s'), ('%s', '%s')",
+                $table,
+                'row1',
+                'r1',
+                'row2',
+                'r2'
+            ));
+
+        $this->runCommonTest(
+            $testDirectory,
+            $configuration,
+            0,
+            'Exporting to table1' . PHP_EOL . json_encode($response, JSON_PRETTY_PRINT),
+            null
+        );
     }
 }
