@@ -172,7 +172,7 @@ abstract class Extractor
         $maxTries = isset($table['retries']) ? (int) $table['retries'] : self::DEFAULT_MAX_TRIES;
 
         $proxy = new RetryProxy($this->logger, $maxTries);
-        try{
+        try {
             $result = $proxy->call(function () use ($query, $maxTries, $outputTable, $isAdvancedQuery) {
                 /** @var PDOStatement $stmt */
                 $stmt = $this->executeQuery($query, $maxTries);
