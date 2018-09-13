@@ -123,12 +123,8 @@ class RetryTest extends ExtractorTest
         return $lineCount;
     }
 
-    public function testRabbit(): void
+    private function waitForConnection()
     {
-        exec(self::KILLER_EXECUTABLE . ' 1', $output, $ret);
-        $output = implode('', $output);
-        self::assertEquals(0, $ret, $output);
-        self::assertContains('Rabbit of Caerbannog', $output);
         $retries = 0;
         while (true) {
             try {
@@ -143,6 +139,16 @@ class RetryTest extends ExtractorTest
                 }
             }
         }
+    }
+
+    public function testRabbit(): void
+    {
+        $this->waitForConnection();
+        exec(self::KILLER_EXECUTABLE . ' 1', $output, $ret);
+        $output = implode('', $output);
+        self::assertEquals(0, $ret, $output);
+        self::assertContains('Rabbit of Caerbannog', $output);
+        $this->waitForConnection();
         self::assertNotEmpty($this->pdo);
     }
 
