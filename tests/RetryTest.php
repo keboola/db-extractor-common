@@ -123,7 +123,7 @@ class RetryTest extends ExtractorTest
         return $lineCount;
     }
 
-    private function waitForConnection()
+    private function waitForConnection(): void
     {
         $retries = 0;
         while (true) {
