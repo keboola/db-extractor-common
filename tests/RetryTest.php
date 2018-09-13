@@ -155,10 +155,7 @@ class RetryTest extends ExtractorTest
         $sourceFileName = $temp->getTmpFolder() . '/large.csv';
         $this->setupLargeTable($sourceFileName);
 
-        $app = $this->getApplication('ex-db-common', $config);
-
-        //exec('php ' . __DIR__ . '/../../killerRabbit.php 1', $output, $ret);
-        //var_export($output);
+       $app = $this->getApplication('ex-db-common', $config);
 
         // exec async
         exec(self::KILLER_EXECUTABLE . ' 1 > /dev/null &');
