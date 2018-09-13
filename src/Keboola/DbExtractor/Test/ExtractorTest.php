@@ -55,7 +55,10 @@ class ExtractorTest extends TestCase
 
     protected function getConfigRow(string $driver): array
     {
-        $config = json_decode((string) file_get_contents($this->dataDir . '/' .$driver . '/configRow.json'), true);
+        $config = json_decode(
+            (string) file_get_contents($this->dataDir . '/' .$driver . '/configRow.json'),
+            true
+        );
 
         $config['parameters']['data_dir'] = $this->dataDir;
         $config['parameters']['db'] = $this->getConfigDbNode($driver);
