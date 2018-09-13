@@ -155,7 +155,7 @@ class RetryTest extends ExtractorTest
         $sourceFileName = $temp->getTmpFolder() . '/large.csv';
         $this->setupLargeTable($sourceFileName);
 
-       $app = $this->getApplication('ex-db-common', $config);
+        $app = $this->getApplication('ex-db-common', $config);
 
         // exec async
         exec(self::KILLER_EXECUTABLE . ' 1 > /dev/null &');
