@@ -11,7 +11,7 @@ use PDO;
 
 class RetryTest extends ExtractorTest
 {
-    private const ROW_COUNT = 300000;
+    private const ROW_COUNT = 1000000;
 
     private const KILLER_EXECUTABLE =  'php ' . __DIR__ . '/killerRabbit.php';
 
