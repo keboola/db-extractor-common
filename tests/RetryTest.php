@@ -21,7 +21,6 @@ class RetryTest extends ExtractorTest
 
     public function setUp(): void
     {
-        $this->dataDir = __DIR__ . '/../../data';
         // intentionally don't call parent, we use a different PDO connection
         $this->dbParams = [
             'user' => getenv('TEST_RDS_USERNAME'),
