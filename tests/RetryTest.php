@@ -99,7 +99,6 @@ class RetryTest extends ExtractorTest
             'incremental' => false,
             'primaryKey' => null,
             'enabled' => true,
-            'advancedMode' => true,
         ]];
         return $config;
     }
