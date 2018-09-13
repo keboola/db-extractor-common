@@ -11,7 +11,7 @@ use PDO;
 
 class RetryTest extends ExtractorTest
 {
-    private const ROW_COUNT = 100000;
+    private const ROW_COUNT = 300000;
 
     private const KILLER_EXECUTABLE =  'php ' . __DIR__ . '/killerRabbit.php';
 
@@ -115,8 +115,7 @@ class RetryTest extends ExtractorTest
     {
         $lineCount = 0;
         $handle = fopen($fileName, "r");
-        while (!feof($handle)) {
-            fgets($handle);
+        while (fgets($handle) !== false) {
             $lineCount++;
         }
         fclose($handle);
@@ -126,12 +125,15 @@ class RetryTest extends ExtractorTest
     private function waitForConnection(): void
     {
         $retries = 0;
+        echo 'Waiting for connection' . PHP_EOL;
         while (true) {
             try {
                 $conn = $this->getConnection();
+                $conn->query('SELECT NOW();')->execute();
                 $this->pdo = $conn;
                 break;
             } catch (\PDOException $e) {
+                echo 'Waiting for connection ' . $e->getMessage() . PHP_EOL;
                 sleep(5);
                 $retries++;
                 if ($retries > 10) {
@@ -143,12 +145,15 @@ class RetryTest extends ExtractorTest
 
     public function testRabbit(): void
     {
-        $this->waitForConnection();
-        exec(self::KILLER_EXECUTABLE . ' 1', $output, $ret);
+        exec(self::KILLER_EXECUTABLE . ' 0', $output, $ret);
         $output = implode('', $output);
+        echo $output;
+        // wait for the reboot to start (otherwise waitForConnection() would pass with the old connection
+        sleep(10);
+        $this->waitForConnection();
+
         self::assertEquals(0, $ret, $output);
         self::assertContains('Rabbit of Caerbannog', $output);
-        $this->waitForConnection();
         self::assertNotEmpty($this->pdo);
     }
 
@@ -164,7 +169,7 @@ class RetryTest extends ExtractorTest
         $app = $this->getApplication('ex-db-common', $config);
 
         // exec async
-        exec(self::KILLER_EXECUTABLE . ' 1 > /dev/null &');
+        exec(self::KILLER_EXECUTABLE . ' 2 > /dev/null &');
         //exec(self::KILLER_EXECUTABLE . ' 2 > NUL');
         $result = $app->run();
 

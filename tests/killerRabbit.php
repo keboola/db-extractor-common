@@ -17,13 +17,30 @@ $client = new \Aws\Rds\RdsClient([
     'version' => '2014-10-31',
 ]);
 
-echo 'Sleeping ' . $argv[1] . ' seconds.';
+$retries = 0;
+while (true) {
+    $result = $client->describeDBInstances(['DBInstanceIdentifier' => getenv('TEST_RDS_ID')]);
+    $state = $result->toArray()['DBInstances'][0]['DBInstanceStatus'];
+    if ($state != 'available') {
+        echo sprintf('Instance is in state "%s".' . PHP_EOL, $state);
+        sleep(5);
+        $retries++;
+        if ($retries > 10) {
+            exit('Instance seems dead.');
+        }
+    } else {
+        echo sprintf('Instance is available "%s".' . PHP_EOL, $state);
+        break;
+    }
+}
+
+echo sprintf('Sleeping %s seconds.' . PHP_EOL, $argv[1]);
 sleep((int) $argv[1]);
-echo 'Rebooting instance';
+echo 'Rebooting instance' . PHP_EOL;
 
 $client->rebootDBInstance([
     'DBInstanceIdentifier' => getenv('TEST_RDS_ID'),
     'ForceFailover' => false,
 ]);
 
-echo 'Rabbit of Caerbannog';
+echo 'Rabbit of Caerbannog' . PHP_EOL;
