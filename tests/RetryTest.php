@@ -11,7 +11,9 @@ use PDO;
 
 class RetryTest extends ExtractorTest
 {
-    public const ROW_COUNT = 1000000;
+    private const ROW_COUNT = 100000;
+
+    private const KILLER_EXECUTABLE =  'php ' . __DIR__ . '/killerRabbit.php';
 
     /** @var  array */
     private $dbParams;
@@ -22,6 +24,11 @@ class RetryTest extends ExtractorTest
     public function setUp(): void
     {
         // intentionally don't call parent, we use a different PDO connection
+        $this->pdo = $this->getConnection();
+    }
+
+    private function getConnection(): PDO
+    {
         $this->dbParams = [
             'user' => getenv('TEST_RDS_USERNAME'),
             '#password' => getenv('TEST_RDS_PASSWORD'),
@@ -39,7 +46,7 @@ class RetryTest extends ExtractorTest
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::MYSQL_ATTR_LOCAL_INFILE => true,
         ];
-        $this->pdo = new PDO($dsn, $this->dbParams['user'], $this->dbParams['#password'], $options);
+        return new PDO($dsn, $this->dbParams['user'], $this->dbParams['#password'], $options);
     }
 
     private function setupLargeTable(string $sourceFileName): void
@@ -74,7 +81,7 @@ class RetryTest extends ExtractorTest
                 )
             );
             $this->pdo->exec($createTableSql);
-            $fileName = (string) $csv;
+            $fileName = strtr((string) $csv, '\\', '/');
             $query = "
                 LOAD DATA LOCAL INFILE '{$fileName}'
                 INTO TABLE `odin4test`.`sales`
@@ -104,13 +111,48 @@ class RetryTest extends ExtractorTest
         return $config;
     }
 
+    private function getLineCount(string $fileName): int
+    {
+        $lineCount = 0;
+        $handle = fopen($fileName, "r");
+        while (!feof($handle)) {
+            fgets($handle);
+            $lineCount++;
+        }
+        fclose($handle);
+        return $lineCount;
+    }
+
+    public function testRabbit(): void
+    {
+        exec(self::KILLER_EXECUTABLE . ' 1', $output, $ret);
+        $output = implode('', $output);
+        self::assertEquals(0, $ret, $output);
+        self::assertContains('Rabbit of Caerbannog', $output);
+        $retries = 0;
+        while (true) {
+            try {
+                $conn = $this->getConnection();
+                $this->pdo = $conn;
+                break;
+            } catch (\PDOException $e) {
+                sleep(5);
+                $retries++;
+                if ($retries > 10) {
+                    throw new \Exception('Killer Rabbit was too successful.');
+                }
+            }
+        }
+        self::assertNotEmpty($this->pdo);
+    }
+
     public function testRunMainRetry(): void
     {
         $config = $this->getRetryConfig();
 
         $temp = new Temp();
         $temp->initRunFolder();
-        $sourceFileName = $temp->getTmpFolder() . 'large.csv';
+        $sourceFileName = $temp->getTmpFolder() . '/large.csv';
         $this->setupLargeTable($sourceFileName);
 
         $app = $this->getApplication('ex-db-common', $config);
@@ -119,8 +161,8 @@ class RetryTest extends ExtractorTest
         //var_export($output);
 
         // exec async
-        exec('php ' . __DIR__ . '/../../killerRabbit.php 3 > /dev/null &');
-        //exec('php ' . __DIR__ . '/../../killerRabbit.php 1 > NUL');
+        exec(self::KILLER_EXECUTABLE . ' 1 > /dev/null &');
+        //exec(self::KILLER_EXECUTABLE . ' 2 > NUL');
         $result = $app->run();
 
         $outputCsvFile = $this->dataDir . '/out/tables/' . $result['imported'][0]['outputTable'] . '.csv';
@@ -128,6 +170,6 @@ class RetryTest extends ExtractorTest
         $this->assertEquals('success', $result['status']);
         $this->assertFileExists($outputCsvFile);
         $this->assertFileExists($this->dataDir . '/out/tables/' . $result['imported'][0]['outputTable'] . '.csv.manifest');
-        $this->assertEquals(self::ROW_COUNT, count(file($outputCsvFile)));
+        $this->assertEquals(self::ROW_COUNT, $this->getLineCount($outputCsvFile));
     }
 }

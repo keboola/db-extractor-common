@@ -18,7 +18,7 @@ $client = new \Aws\Rds\RdsClient([
 ]);
 
 echo 'Sleeping ' . $argv[1] . ' seconds.';
-sleep($argv[1]);
+sleep((int) $argv[1]);
 echo 'Rebooting instance';
 
 $client->rebootDBInstance([
