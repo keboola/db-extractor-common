@@ -159,7 +159,6 @@ abstract class Extractor
     public function export(array $table): array
     {
         $outputTable = $table['outputTable'];
-        $csv = $this->createOutputCsv($outputTable);
 
         $this->logger->info("Exporting to " . $outputTable);
 
@@ -170,20 +169,18 @@ abstract class Extractor
         } else {
             $query = $table['query'];
         }
-        try {
-            /** @var PDOStatement $stmt */
-            $stmt = $this->executeQuery(
-                $query,
-                isset($table['retries']) ? (int) $table['retries'] : null
-            );
-        } catch (Throwable $e) {
-            throw $this->handleDbError($e, $table, isset($table['retries']) ? (int) $table['retries'] : null);
-        }
+        $maxTries = isset($table['retries']) ? (int) $table['retries'] : self::DEFAULT_MAX_TRIES;
 
-        try {
-            $result = $this->writeToCsv($stmt, $csv, $isAdvancedQuery);
-        } catch (CsvException $e) {
-             throw new ApplicationException("Write to CSV failed: " . $e->getMessage(), 0, $e);
+        $proxy = new RetryProxy($this->logger, $maxTries);
+        try{
+            $result = $proxy->call(function () use ($query, $maxTries, $outputTable, $isAdvancedQuery) {
+                /** @var PDOStatement $stmt */
+                $stmt = $this->executeQuery($query, $maxTries);
+                $csv = $this->createOutputCsv($outputTable);
+                return $this->writeToCsv($stmt, $csv, $isAdvancedQuery);
+            });
+        } catch (Throwable $e) {
+            throw $this->handleDbError($e, $table);
         }
         if ($result['rows'] > 0) {
             $this->createManifest($table);
