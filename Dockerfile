@@ -15,6 +15,12 @@ RUN docker-php-ext-install pdo_mysql
 # use recommended php settings
 COPY docker/php-prod.ini /usr/local/etc/php/php.ini
 
+# add debugger
+RUN pecl channel-update pecl.php.net \
+    && pecl config-set php_ini /usr/local/etc/php.ini \
+    && pecl install xdebug \
+    && docker-php-ext-enable xdebug
+
 # install composer
 COPY docker/composer-install.sh /tmp/composer-install.sh
 RUN chmod +x /tmp/composer-install.sh
