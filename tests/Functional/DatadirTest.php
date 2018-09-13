@@ -13,7 +13,7 @@ class DatadirTest extends AbstractDatadirTestCase
     /** @var DataLoader */
     private $dataLoader;
 
-    public function setUp()
+    public function setUp(): void
     {
         parent::setUp();
         $this->dataLoader = $this->getDataLoader($this->getCredentials());
@@ -151,7 +151,7 @@ class DatadirTest extends AbstractDatadirTestCase
                             'default' => null,
                             'ordinalPosition' => '2',
                         ],
-                    ]
+                    ],
                 ],
                 [
                     'name' => 'table2',
@@ -180,7 +180,7 @@ class DatadirTest extends AbstractDatadirTestCase
                             'default' => null,
                             'ordinalPosition' => '2',
                         ],
-                    ]
+                    ],
                 ],
             ],
             'status' => 'success',
