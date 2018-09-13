@@ -170,16 +170,12 @@ abstract class Extractor
         } else {
             $query = $table['query'];
         }
-        $startTime = time();
-        echo "\nStart time: " . $startTime . "\n";
         try {
             /** @var PDOStatement $stmt */
             $stmt = $this->executeQuery(
                 $query,
                 isset($table['retries']) ? (int) $table['retries'] : null
             );
-            $queryExecutedInterval = time() - $startTime;
-            echo "\nQuery executed in " . $queryExecutedInterval . " seconds. at " . time() . "\n";
         } catch (Throwable $e) {
             throw $this->handleDbError($e, $table, isset($table['retries']) ? (int) $table['retries'] : null);
         }
@@ -189,8 +185,6 @@ abstract class Extractor
         } catch (CsvException $e) {
              throw new ApplicationException("Write to CSV failed: " . $e->getMessage(), 0, $e);
         }
-        $csvExecTime = time() - $startTime - (int) $queryExecutedInterval;
-        echo "\nCSV took " . $csvExecTime . " seconds to write.\n";
         if ($result['rows'] > 0) {
             $this->createManifest($table);
         } else {

@@ -123,8 +123,6 @@ class RetryTest extends ExtractorTest
         //exec('php ' . __DIR__ . '/../../killerRabbit.php 1 > NUL');
         $result = $app->run();
 
-        var_dump($result);
-
         $outputCsvFile = $this->dataDir . '/out/tables/' . $result['imported'][0]['outputTable'] . '.csv';
 
         $this->assertEquals('success', $result['status']);
