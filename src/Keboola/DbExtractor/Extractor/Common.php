@@ -75,15 +75,13 @@ class Common extends Extractor
         if ($columns[0]['EXTRA'] === 'auto_increment') {
             $this->incrementalFetching['column'] = $columnName;
             $this->incrementalFetching['type'] = self::TYPE_AUTO_INCREMENT;
-        } else if ($columns[0]['EXTRA'] === 'on update CURRENT_TIMESTAMP'
-            && $columns[0]['COLUMN_DEFAULT'] === 'CURRENT_TIMESTAMP') {
+        } else if ($columns[0]['EXTRA'] === 'on update CURRENT_TIMESTAMP' && $columns[0]['COLUMN_DEFAULT'] === 'CURRENT_TIMESTAMP') {
             $this->incrementalFetching['column'] = $columnName;
             $this->incrementalFetching['type'] = self::TYPE_TIMESTAMP;
         } else {
             throw new UserException(
                 sprintf(
-                    'Column [%s] specified for incremental fetching is not an auto increment'
-                    . ' column or an auto update timestamp',
+                    'Column [%s] specified for incremental fetching is not an auto increment column or an auto update timestamp',
                     $columnName
                 )
             );
@@ -206,8 +204,7 @@ class Common extends Extractor
 
         foreach ($arr as $table) {
             $tableNameArray[] = $table['TABLE_NAME'];
-            $tableNameWithSchema = $table['TABLE_SCHEMA'] . '.' . $table['TABLE_NAME'];
-            $tableDefs[$tableNameWithSchema] = [
+            $tableDefs[$table['TABLE_SCHEMA'] . '.' . $table['TABLE_NAME']] = [
                 'name' => $table['TABLE_NAME'],
                 'sanitizedName' => \Keboola\Utils\sanitizeColumnName($table['TABLE_NAME']),
                 'schema' => (isset($table['TABLE_SCHEMA'])) ? $table['TABLE_SCHEMA'] : '',
@@ -215,7 +212,7 @@ class Common extends Extractor
                 'rowCount' => (isset($table['TABLE_ROWS'])) ? $table['TABLE_ROWS'] : '',
             ];
             if ($table["AUTO_INCREMENT"]) {
-                $tableDefs[$tableNameWithSchema]['autoIncrement'] = $table['AUTO_INCREMENT'];
+                $tableDefs[$table['TABLE_SCHEMA'] . '.' . $table['TABLE_NAME']]['autoIncrement'] = $table['AUTO_INCREMENT'];
             }
         }
 
@@ -271,8 +268,7 @@ class Common extends Extractor
                 if ($column['EXTRA'] === 'auto_increment') {
                     $curColumn['autoIncrement'] = $tableDefs[$curTable]['autoIncrement'];
                 }
-                if ($column['EXTRA'] === 'on update CURRENT_TIMESTAMP'
-                    && $column['COLUMN_DEFAULT'] === 'CURRENT_TIMESTAMP') {
+                if ($column['EXTRA'] === 'on update CURRENT_TIMESTAMP' && $column['COLUMN_DEFAULT'] === 'CURRENT_TIMESTAMP') {
                     $tableDefs[$curTable]['timestampUpdateColumn'] = $column['COLUMN_NAME'];
                 }
             }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Keboola\DbExtractor\Configuration;
 
 use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
+use Symfony\Component\Config\Definition\Builder\NodeDefinition;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 
@@ -13,8 +14,6 @@ class ActionConfigRowDefinition implements ConfigurationInterface
     public function getConfigTreeBuilder(): TreeBuilder
     {
         $treeBuilder = new TreeBuilder();
-
-        /** @var ArrayNodeDefinition */
         $rootNode = $treeBuilder->root('parameters');
 
         // @formatter:off
@@ -51,11 +50,12 @@ class ActionConfigRowDefinition implements ConfigurationInterface
         return $treeBuilder;
     }
 
-    public function addSshNode(): ArrayNodeDefinition
+    /**
+     * @return ArrayNodeDefinition|NodeDefinition
+     */
+    public function addSshNode()
     {
         $builder = new TreeBuilder();
-
-        /** @var ArrayNodeDefinition */
         $node = $builder->root('ssh');
 
         // @formatter:off

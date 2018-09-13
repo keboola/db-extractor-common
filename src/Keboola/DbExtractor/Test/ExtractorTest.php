@@ -7,10 +7,9 @@ namespace Keboola\DbExtractor\Test;
 use Keboola\DbExtractor\Application;
 use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractor\Logger;
-use PHPUnit\Framework\TestCase;
 use Symfony\Component\Yaml\Yaml;
 
-class ExtractorTest extends TestCase
+class ExtractorTest extends \PHPUnit_Framework_TestCase
 {
     public const CONFIG_FORMAT_YAML = 'yaml';
     public const CONFIG_FORMAT_JSON = 'json';
@@ -33,15 +32,10 @@ class ExtractorTest extends TestCase
     {
         switch ($format) {
             case self::CONFIG_FORMAT_JSON:
-                $config = json_decode(
-                    (string) file_get_contents($this->dataDir . '/' .$driver . '/config.json'),
-                    true
-                );
+                $config = json_decode(file_get_contents($this->dataDir . '/' .$driver . '/config.json'), true);
                 break;
             case self::CONFIG_FORMAT_YAML:
-                $config = Yaml::parse(
-                    (string) file_get_contents($this->dataDir . '/' .$driver . '/config.yml')
-                );
+                $config = Yaml::parse(file_get_contents($this->dataDir . '/' .$driver . '/config.yml'));
                 break;
             default:
                 throw new UserException("Unsupported configuration format: " . $format);
@@ -55,7 +49,7 @@ class ExtractorTest extends TestCase
 
     protected function getConfigRow(string $driver): array
     {
-        $config = json_decode((string) file_get_contents($this->dataDir . '/' .$driver . '/configRow.json'), true);
+        $config = json_decode(file_get_contents($this->dataDir . '/' .$driver . '/configRow.json'), true);
 
         $config['parameters']['data_dir'] = $this->dataDir;
         $config['parameters']['db'] = $this->getConfigDbNode($driver);
@@ -72,7 +66,7 @@ class ExtractorTest extends TestCase
                 throw new \Exception($env . " environment variable must be set.");
             }
         }
-        return (string) getenv($env);
+        return getenv($env);
     }
 
     public function getPrivateKey(string $driver): string
