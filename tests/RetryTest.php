@@ -81,7 +81,7 @@ class RetryTest extends ExtractorTest
                 )
             );
             $this->pdo->exec($createTableSql);
-            $fileName = strtr((string) $csv, '\\', '/');
+            $fileName = (string) $csv;
             $query = "
                 LOAD DATA LOCAL INFILE '{$fileName}'
                 INTO TABLE `odin4test`.`sales`
