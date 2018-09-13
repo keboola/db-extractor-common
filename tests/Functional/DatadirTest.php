@@ -87,8 +87,7 @@ class DatadirTest extends AbstractDatadirTestCase
         int $expectedReturnCode,
         ?string $expectedStdout,
         ?string $expectedStderr
-    ): void
-    {
+    ): void {
         $specification = new DatadirTestSpecification(
             $testDirectory . '/source/data',
             $expectedReturnCode,
@@ -97,6 +96,8 @@ class DatadirTest extends AbstractDatadirTestCase
             $testDirectory . '/expected/data/out'
         );
         $tempDatadir = $this->getTempDatadir($specification);
+
+        $configuration['parameters']['data_dir'] = $tempDatadir->getTmpFolder();
 
         file_put_contents(
             $tempDatadir->getTmpFolder() . '/config.json',
@@ -108,8 +109,6 @@ class DatadirTest extends AbstractDatadirTestCase
 
     public function testActionTestConnection(): void
     {
-        $this->markTestSkipped();
-
         $testDirectory = __DIR__ . '/empty-data';
 
         $credentials = $this->getCredentials();
@@ -133,8 +132,6 @@ class DatadirTest extends AbstractDatadirTestCase
 
     public function testActionGetTables(): void
     {
-        $this->markTestSkipped();
-
         $testDirectory = __DIR__ . '/empty-data';
 
         $credentials = $this->getCredentials();
@@ -338,7 +335,7 @@ class DatadirTest extends AbstractDatadirTestCase
 
     public function testExportTableByOldConfigOnNonExistingDatabase(): void
     {
-        $testDirectory = __DIR__ . '/basic-data';
+        $testDirectory = __DIR__ . '/empty-data-empty-csv-file';
 
         $credentials = $this->getCredentials();
 
@@ -373,7 +370,7 @@ class DatadirTest extends AbstractDatadirTestCase
 
     public function testExportTableByOldConfigOnNonExistingTable(): void
     {
-        $testDirectory = __DIR__ . '/basic-data';
+        $testDirectory = __DIR__ . '/empty-data-empty-csv-file';
 
         $credentials = $this->getCredentials();
 
@@ -408,20 +405,12 @@ class DatadirTest extends AbstractDatadirTestCase
 
     public function testExportTableByOldConfigWithDefinedQuerySuccessfully(): void
     {
-        $testDirectory = __DIR__ . '/basic-data';
+        $testDirectory = __DIR__ . '/basic-data-query';
 
         $credentials = $this->getCredentials();
 
         $configuration = $this->getConfig($testDirectory);
         $configuration['parameters']['db'] = $credentials;
-        $configuration['parameters']['tables'] = [
-            [
-                'id' => 1,
-                'name' => 'table1',
-                'query' => 'SELECT * FROM table1',
-                'outputTable' => 'table1',
-            ],
-        ];
 
         $response = [
             'status' => 'success',
@@ -429,7 +418,7 @@ class DatadirTest extends AbstractDatadirTestCase
                 [
                     'outputTable' => 'table1',
                     'rows' => 2,
-                ]
+                ],
             ],
             'state' => [],
         ];
@@ -439,8 +428,8 @@ class DatadirTest extends AbstractDatadirTestCase
         $this->createDatabase($database);
         $this->createTable($database, $table);
 
-        $this->dataLoader->getPdo()->exec(
-            sprintf("INSERT INTO %s VALUES ('%s', '%s'), ('%s', '%s')",
+        $this->dataLoader->getPdo()->exec(sprintf(
+            "INSERT INTO %s VALUES ('%s', '%s'), ('%s', '%s')",
             $table,
             'row1',
             'r1',
@@ -459,7 +448,7 @@ class DatadirTest extends AbstractDatadirTestCase
 
     public function testExportTableByOldConfigWithDefinedTableSuccessfully(): void
     {
-        $testDirectory = __DIR__ . '/basic-data';
+        $testDirectory = __DIR__ . '/basic-data-table';
 
         $credentials = $this->getCredentials();
 
@@ -483,7 +472,7 @@ class DatadirTest extends AbstractDatadirTestCase
                 [
                     'outputTable' => 'table1',
                     'rows' => 2,
-                ]
+                ],
             ],
             'state' => [],
         ];
@@ -493,14 +482,14 @@ class DatadirTest extends AbstractDatadirTestCase
         $this->createDatabase($database);
         $this->createTable($database, $table);
 
-        $this->dataLoader->getPdo()->exec(
-            sprintf("INSERT INTO %s VALUES ('%s', '%s'), ('%s', '%s')",
-                $table,
-                'row1',
-                'r1',
-                'row2',
-                'r2'
-            ));
+        $this->dataLoader->getPdo()->exec(sprintf(
+            "INSERT INTO %s VALUES ('%s', '%s'), ('%s', '%s')",
+            $table,
+            'row1',
+            'r1',
+            'row2',
+            'r2'
+        ));
 
         $this->runCommonTest(
             $testDirectory,
@@ -513,24 +502,12 @@ class DatadirTest extends AbstractDatadirTestCase
 
     public function testExportTableByOldConfigWithDefinedTableAndOneColumnSuccessfully(): void
     {
-        $testDirectory = __DIR__ . '/basic-data';
+        $testDirectory = __DIR__ . '/basic-data-one-column';
 
         $credentials = $this->getCredentials();
 
         $configuration = $this->getConfig($testDirectory);
         $configuration['parameters']['db'] = $credentials;
-        $configuration['parameters']['tables'] = [
-            [
-                'id' => 1,
-                'name' => 'table1',
-                'table' => [
-                    'schema' => 'testdb',
-                    'tableName' => 'table1',
-                ],
-                'columns' => ['col1'],
-                'outputTable' => 'table1',
-            ],
-        ];
 
         $response = [
             'status' => 'success',
@@ -538,7 +515,7 @@ class DatadirTest extends AbstractDatadirTestCase
                 [
                     'outputTable' => 'table1',
                     'rows' => 2,
-                ]
+                ],
             ],
             'state' => [],
         ];
@@ -548,14 +525,14 @@ class DatadirTest extends AbstractDatadirTestCase
         $this->createDatabase($database);
         $this->createTable($database, $table);
 
-        $this->dataLoader->getPdo()->exec(
-            sprintf("INSERT INTO %s VALUES ('%s', '%s'), ('%s', '%s')",
-                $table,
-                'row1',
-                'r1',
-                'row2',
-                'r2'
-            ));
+        $this->dataLoader->getPdo()->exec(sprintf(
+            "INSERT INTO %s VALUES ('%s', '%s'), ('%s', '%s')",
+            $table,
+            'row1',
+            'r1',
+            'row2',
+            'r2'
+        ));
 
         $this->runCommonTest(
             $testDirectory,
