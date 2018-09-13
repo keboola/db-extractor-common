@@ -172,7 +172,7 @@ abstract class Extractor
         $maxTries = isset($table['retries']) ? (int) $table['retries'] : self::DEFAULT_MAX_TRIES;
 
         // this will retry on CsvException
-        $proxy = new RetryProxy($this->logger, $maxTries, RetryProxy::DEFAULT_BACKOFF_INTERVAL, ["CsvException"]);
+        $proxy = new RetryProxy($this->logger, $maxTries);
         try {
             $result = $proxy->call(function () use ($query, $maxTries, $outputTable, $isAdvancedQuery) {
                 /** @var PDOStatement $stmt */
@@ -180,8 +180,10 @@ abstract class Extractor
                 $csv = $this->createOutputCsv($outputTable);
                 return $this->writeToCsv($stmt, $csv, $isAdvancedQuery);
             });
+        } catch (CsvException $e) {
+            throw new ApplicationException("Failed writing CSV File: " . $e->getMessage(), $e->getCode(), $e);
         } catch (Throwable $e) {
-            throw $this->handleDbError($e, $table);
+            throw $this->handleDbError($e, $table, $maxTries);
         }
         if ($result['rows'] > 0) {
             $this->createManifest($table);
@@ -205,7 +207,7 @@ abstract class Extractor
         return $output;
     }
 
-    private function handleDbError(Throwable $e, ?array $table = null, ?int $counter = null): UserException
+    protected function handleDbError(Throwable $e, ?array $table = null, ?int $counter = null): UserException
     {
         $message = "";
         if ($table) {
@@ -243,52 +245,48 @@ abstract class Extractor
      * @param CsvFile $csv
      * @param boolean $includeHeader
      * @return array ['rows', 'lastFetchedRow']
-     * @throws CsvException|UserException
      */
     protected function writeToCsv(PDOStatement $stmt, CsvFile $csv, bool $includeHeader = true): array
     {
         $output = [];
-        try {
-            $resultRow = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            if (is_array($resultRow) && !empty($resultRow)) {
-                // write header and first line
-                if ($includeHeader) {
-                    $csv->writeRow(array_keys($resultRow));
-                }
+        $resultRow = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (is_array($resultRow) && !empty($resultRow)) {
+            // write header and first line
+            if ($includeHeader) {
+                $csv->writeRow(array_keys($resultRow));
+            }
+            $csv->writeRow($resultRow);
+
+            // write the rest
+            $numRows = 1;
+            $lastRow = $resultRow;
+            while ($resultRow = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 $csv->writeRow($resultRow);
-
-                // write the rest
-                $numRows = 1;
                 $lastRow = $resultRow;
-                while ($resultRow = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                    $csv->writeRow($resultRow);
-                    $lastRow = $resultRow;
-                    $numRows++;
-                }
-                if (isset($this->incrementalFetching['column'])) {
-                    if (!array_key_exists($this->incrementalFetching['column'], $lastRow)) {
-                        throw new UserException(
-                            sprintf(
-                                "The specified incremental fetching column %s not found in the table",
-                                $this->incrementalFetching['column']
-                            )
-                        );
-                    }
-                    $output['lastFetchedRow'] = $lastRow[$this->incrementalFetching['column']];
-                }
-                $output['rows'] = $numRows;
-                return $output;
+                $numRows++;
             }
-            // no rows found.  If incremental fetching is turned on, we need to preserve the last state
-            if ($this->incrementalFetching['column'] && isset($this->state['lastFetchedRow'])) {
-                $output = $this->state;
+            if (isset($this->incrementalFetching['column'])) {
+                if (!array_key_exists($this->incrementalFetching['column'], $lastRow)) {
+                    throw new UserException(
+                        sprintf(
+                            "The specified incremental fetching column %s not found in the table",
+                            $this->incrementalFetching['column']
+                        )
+                    );
+                }
+                $output['lastFetchedRow'] = $lastRow[$this->incrementalFetching['column']];
             }
-            $output['rows'] = 0;
+            $output['rows'] = $numRows;
             return $output;
-        } catch (Throwable $e) {
-            throw new CsvException("Error writing to csv file: " . $e->getMessage());
         }
+        // no rows found.  If incremental fetching is turned on, we need to preserve the last state
+        if ($this->incrementalFetching['column'] && isset($this->state['lastFetchedRow'])) {
+            $output = $this->state;
+        }
+        $output['rows'] = 0;
+        return $output;
     }
 
     protected function createOutputCsv(string $outputTable): CsvFile
