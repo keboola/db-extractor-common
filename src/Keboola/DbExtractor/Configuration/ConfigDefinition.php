@@ -13,8 +13,6 @@ class ConfigDefinition implements ConfigurationInterface
     public function getConfigTreeBuilder() : \Symfony\Component\Config\Definition\Builder\TreeBuilder
     {
         $treeBuilder = new TreeBuilder();
-
-        /** @var ArrayNodeDefinition */
         $rootNode = $treeBuilder->root('parameters');
         // @formatter:off
         $rootNode
@@ -92,8 +90,6 @@ class ConfigDefinition implements ConfigurationInterface
     public function addSshNode(): ArrayNodeDefinition
     {
         $builder = new TreeBuilder();
-
-        /** @var ArrayNodeDefinition */
         $node = $builder->root('ssh');
 
         // @formatter:off

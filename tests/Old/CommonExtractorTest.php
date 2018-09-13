@@ -112,11 +112,7 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertExtractedData($this->dataDir . '/escaping.csv', $result['imported'][0]['outputTable']);
         $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][1]['outputTable']);
         $manifest = json_decode(
-            (string) file_get_contents(sprintf(
-                "%s/out/tables/%s.csv.manifest",
-                $this->dataDir,
-                $result['imported'][1]['outputTable']
-            )),
+            file_get_contents($this->dataDir . '/out/tables/' . $result['imported'][1]['outputTable'] . ".csv.manifest"),
             true
         );
         $this->assertEquals(["weird_I_d", 'S_oPaulo'], $manifest['columns']);
@@ -130,11 +126,7 @@ class CommonExtractorTest extends ExtractorTest
 
         $this->assertExtractedData($this->dataDir . '/escaping.csv', $result['imported'][0]['outputTable']);
         $manifest = json_decode(
-            (string) file_get_contents(sprintf(
-                "%s/out/tables/%s.csv.manifest",
-                $this->dataDir,
-                $result['imported'][0]['outputTable']
-            )),
+            file_get_contents($this->dataDir . '/out/tables/' . $result['imported'][0]['outputTable'] . ".csv.manifest"),
             true
         );
         $this->assertArrayNotHasKey('columns', $manifest);
@@ -142,11 +134,7 @@ class CommonExtractorTest extends ExtractorTest
         
         $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][1]['outputTable']);
         $manifest = json_decode(
-            (string) file_get_contents(sprintf(
-                "%s/out/tables/%s.csv.manifest",
-                $this->dataDir,
-                $result['imported'][1]['outputTable']
-            )),
+            file_get_contents($this->dataDir . '/out/tables/' . $result['imported'][1]['outputTable'] . ".csv.manifest"),
             true
         );
         $this->assertEquals(["weird_I_d", 'S_oPaulo'], $manifest['columns']);
@@ -162,11 +150,7 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertEquals(2, $result['imported']['rows']);
         $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported']['outputTable']);
         $manifest = json_decode(
-            (string) file_get_contents(sprintf(
-                "%s/out/tables/%s.csv.manifest",
-                $this->dataDir,
-                $result['imported']['outputTable']
-            )),
+            file_get_contents($this->dataDir . '/out/tables/' . $result['imported']['outputTable'] . ".csv.manifest"),
             true
         );
         $this->assertEquals(["weird_I_d", 'S_oPaulo'], $manifest['columns']);
@@ -214,7 +198,7 @@ class CommonExtractorTest extends ExtractorTest
     public function testRunWithSSHUserException(): void
     {
         $this->cleanOutputDirectory();
-        $this->expectException(UserException::class);
+        $this->setExpectedException('Keboola\DbExtractor\Exception\UserException');
 
         $config = $this->getConfig(self::DRIVER);
         $config['parameters']['db']['ssh'] = [
@@ -238,9 +222,11 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['db']['host'] = 'somebulshit';
         $config['parameters']['db']['#password'] = 'somecrap';
 
-        $this->expectException(UserException::class);
-        $app = $this->getApp($config);
-        $app->run();
+        try {
+            ($this->getApp($config))->run();
+            $this->fail("Wrong credentials must raise error.");
+        } catch (\Keboola\DbExtractor\Exception\UserException $e) {
+        }
     }
 
     public function testRetries(): void
@@ -451,7 +437,7 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][0]['outputTable']);
 
         $outputManifest = Yaml::parse(
-            (string) file_get_contents($manifestFile)
+            file_get_contents($manifestFile)
         );
 
         $this->assertArrayHasKey('destination', $outputManifest);
@@ -593,9 +579,13 @@ class CommonExtractorTest extends ExtractorTest
         $config['action'] = 'sample';
         $config['parameters']['tables'] = [];
 
-        $this->expectException(UserException::class);
-        $app = $this->getApp($config);
-        $app->run();
+        try {
+            $app = $this->getApp($config);
+            $app->run();
+
+            $this->fail('Running non-existing actions should fail with UserException');
+        } catch (\Keboola\DbExtractor\Exception\UserException $e) {
+        }
     }
 
     public function testTableColumnsQuery(): void
@@ -609,7 +599,7 @@ class CommonExtractorTest extends ExtractorTest
         $outputTableName = $result['imported'][0]['outputTable'];
         $this->assertExtractedData($this->dataDir . '/simple.csv', $outputTableName);
         $manifest = json_decode(
-            (string) file_get_contents($this->dataDir . '/out/tables/' . $outputTableName . ".csv.manifest"),
+            file_get_contents($this->dataDir . '/out/tables/' . $outputTableName . ".csv.manifest"),
             true
         );
         $this->assertEquals(["weird_I_d", 'S_oPaulo'], $manifest['columns']);
@@ -843,16 +833,13 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertEquals('success', $result['status']);
         $outputManifestFile = $this->dataDir . '/out/tables/in.c-main.columnscheck.csv.manifest';
 
-        $outputManifest = json_decode(
-            (string) file_get_contents($outputManifestFile),
-            true
-        );
+        $outputManifest = json_decode(file_get_contents($outputManifestFile), true);
 
         // check that the manifest has the correct column ordering
         $this->assertEquals($config['parameters']['columns'], $outputManifest['columns']);
         // check the data
-        $expectedData = iterator_to_array(new CsvReader($this->dataDir.'/columnsOrderCheck.csv'));
-        $outputData = iterator_to_array(new CsvReader($this->dataDir.'/out/tables/in.c-main.columnscheck.csv'));
+        $expectedData = iterator_to_array(new CsvFile($this->dataDir.'/columnsOrderCheck.csv'));
+        $outputData = iterator_to_array(new CsvFile($this->dataDir.'/out/tables/in.c-main.columnscheck.csv'));
         $this->assertCount(2, $outputData);
         foreach ($outputData as $rowNum => $line) {
             // assert timestamp

@@ -13,8 +13,6 @@ class ConfigRowDefinition implements ConfigurationInterface
     public function getConfigTreeBuilder(): TreeBuilder
     {
         $treeBuilder = new TreeBuilder();
-
-        /** @var ArrayNodeDefinition */
         $rootNode = $treeBuilder->root('parameters');
 
         // @formatter:off
@@ -88,8 +86,6 @@ class ConfigRowDefinition implements ConfigurationInterface
     public function addSshNode(): ArrayNodeDefinition
     {
         $builder = new TreeBuilder();
-
-        /** @var ArrayNodeDefinition */
         $node = $builder->root('ssh');
 
         // @formatter:off
