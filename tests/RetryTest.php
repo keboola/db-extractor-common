@@ -119,7 +119,7 @@ class RetryTest extends ExtractorTest
         //var_export($output);
 
         // exec async
-        exec('php ' . __DIR__ . '/../../killerRabbit.php 1 > /dev/null &');
+        exec('php ' . __DIR__ . '/../../killerRabbit.php 3 > /dev/null &');
         //exec('php ' . __DIR__ . '/../../killerRabbit.php 1 > NUL');
         $result = $app->run();
 
