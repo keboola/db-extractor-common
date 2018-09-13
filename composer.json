@@ -26,7 +26,7 @@
   },
   "require-dev": {
     "aws/aws-sdk-php": "^3.67",
-    "phpunit/phpunit": "4.6.*",
+    "phpunit/phpunit": "^5.0",
     "keboola/coding-standard": "^2.0",
     "symfony/finder": "*",
     "phpstan/phpstan": "^0.8"
