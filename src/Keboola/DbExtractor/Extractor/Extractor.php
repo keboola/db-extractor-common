@@ -171,7 +171,8 @@ abstract class Extractor
         }
         $maxTries = isset($table['retries']) ? (int) $table['retries'] : self::DEFAULT_MAX_TRIES;
 
-        $proxy = new RetryProxy($this->logger, $maxTries);
+        // this will retry on CsvException
+        $proxy = new RetryProxy($this->logger, $maxTries, RetryProxy::DEFAULT_BACKOFF_INTERVAL, ["CsvException"]);
         try {
             $result = $proxy->call(function () use ($query, $maxTries, $outputTable, $isAdvancedQuery) {
                 /** @var PDOStatement $stmt */
