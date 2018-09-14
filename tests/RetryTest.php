@@ -195,7 +195,7 @@ class RetryTest extends ExtractorTest
         exec(self::KILLER_EXECUTABLE . ' 2 > /dev/null &');
 
         try {
-            $result = $app->run();
+            $app->run();
             $this->fail("Should have failed on Dead Connection");
         } catch (UserException $ue) {
             $this->assertTrue($ue->getPrevious() instanceof DeadConnectionException);
