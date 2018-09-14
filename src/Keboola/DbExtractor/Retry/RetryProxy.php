@@ -2,8 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Keboola\DbExtractor;
+namespace Keboola\DbExtractor\Retry;
 
+use Keboola\DbExtractor\Logger;
 use Retry\Policy\RetryPolicyInterface;
 use Retry\Policy\SimpleRetryPolicy;
 use Retry\BackOff\BackOffPolicyInterface;
