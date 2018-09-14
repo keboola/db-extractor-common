@@ -1,3 +1,4 @@
+.env
 vendor/
 /data/
 .idea/

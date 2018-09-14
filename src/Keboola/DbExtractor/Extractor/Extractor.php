@@ -170,7 +170,6 @@ abstract class Extractor
         } else {
             $query = $table['query'];
         }
-
         try {
             /** @var PDOStatement $stmt */
             $stmt = $this->executeQuery(
@@ -186,7 +185,6 @@ abstract class Extractor
         } catch (CsvException $e) {
              throw new ApplicationException("Write to CSV failed: " . $e->getMessage(), 0, $e);
         }
-
         if ($result['rows'] > 0) {
             $this->createManifest($table);
         } else {
