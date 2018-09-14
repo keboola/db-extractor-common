@@ -281,4 +281,9 @@ class Common extends Extractor
     {
         return "`{$obj}`";
     }
+
+    protected function isAlive()
+    {
+        $this->db->query("SELECT 1;");
+    }
 }

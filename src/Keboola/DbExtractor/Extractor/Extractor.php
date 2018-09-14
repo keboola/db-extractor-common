@@ -178,7 +178,9 @@ abstract class Extractor
                 /** @var PDOStatement $stmt */
                 $stmt = $this->executeQuery($query, $maxTries);
                 $csv = $this->createOutputCsv($outputTable);
-                return $this->writeToCsv($stmt, $csv, $isAdvancedQuery);
+                $result = $this->writeToCsv($stmt, $csv, $isAdvancedQuery);
+                $this->isAlive();
+                return $result;
             });
         } catch (CsvException $e) {
             throw new ApplicationException("Failed writing CSV File: " . $e->getMessage(), $e->getCode(), $e);
@@ -218,6 +220,12 @@ abstract class Extractor
             $message .= sprintf(' Tried %d times.', $counter);
         }
         return new UserException($message, 0, $e);
+    }
+
+    protected function isAlive()
+    {
+        // needs to be implemented in extractors.
+        // implementations should throw an exception if the connection is dead
     }
 
     protected function executeQuery(string $query, ?int $maxTries): PDOStatement
@@ -262,11 +270,13 @@ abstract class Extractor
             // write the rest
             $numRows = 1;
             $lastRow = $resultRow;
+
             while ($resultRow = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 $csv->writeRow($resultRow);
                 $lastRow = $resultRow;
                 $numRows++;
             }
+
             if (isset($this->incrementalFetching['column'])) {
                 if (!array_key_exists($this->incrementalFetching['column'], $lastRow)) {
                     throw new UserException(
