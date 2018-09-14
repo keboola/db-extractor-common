@@ -72,18 +72,18 @@ class RetryProxy implements RetryProxyInterface
             } catch (\Exception $thrownException) {
                 try {
                     $this->retryPolicy->registerException($retryContext, $thrownException);
-                    $this->logger->info(
-                        sprintf(
-                            '%s. Retrying... [%dx]',
-                            $thrownException->getMessage(),
-                            $retryContext->getRetryCount()
-                        )
-                    );
                 } catch (\Throwable $policyException) {
                     throw new TerminatedRetryException('Terminated retry after error in policy.');
                 }
             }
             if ($this->retryPolicy->canRetry($retryContext)) {
+                $this->logger->info(
+                    sprintf(
+                        '%s. Retrying... [%dx]',
+                        $thrownException->getMessage(),
+                        $retryContext->getRetryCount()
+                    )
+                );
                 $this->backOffPolicy->backOff($backOffContext);
             }
         } while ($this->retryPolicy->canRetry($retryContext));
