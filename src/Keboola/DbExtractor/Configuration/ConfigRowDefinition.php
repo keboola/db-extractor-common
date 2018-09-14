@@ -76,7 +76,7 @@ class ConfigRowDefinition implements ConfigurationInterface
                     ->prototype('scalar')->end()
                 ->end()
                 ->integerNode('retries')
-                    ->min(1)
+                    ->min(0)
                 ->end()
             ->end();
         // @formatter:on

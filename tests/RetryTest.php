@@ -104,7 +104,7 @@ class RetryTest extends ExtractorTest
         $config['parameters']['tables'] = [[
             'id' => 1,
             'name' => 'sales',
-            'query' => 'SELECT * FROM sales limit 100000',
+            'query' => 'SELECT * FROM sales',
             'outputTable' => 'in.c-main.sales',
             'incremental' => false,
             'primaryKey' => null,
