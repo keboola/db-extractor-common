@@ -173,7 +173,7 @@ class RetryTest extends ExtractorTest
 
         // exec async
         exec(self::KILLER_EXECUTABLE . ' 2 > /dev/null &');
-        //exec(self::KILLER_EXECUTABLE . ' 2 > NUL');
+
         $result = $app->run();
 
         $outputCsvFile = $this->dataDir . '/out/tables/' . $result['imported'][0]['outputTable'] . '.csv';
@@ -193,7 +193,6 @@ class RetryTest extends ExtractorTest
 
         // exec async
         exec(self::KILLER_EXECUTABLE . ' 2 > /dev/null &');
-        //exec(self::KILLER_EXECUTABLE . ' 2 > NUL');
 
         try {
             $result = $app->run();
