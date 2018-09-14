@@ -282,13 +282,4 @@ class Common extends Extractor
     {
         return "`{$obj}`";
     }
-
-    protected function isAlive(): void
-    {
-        try {
-            $this->db->query("SELECT 1;");
-        } catch (\Throwable $e) {
-            throw new DeadConnectionException("Dead connection: " . $e->getMessage(), $e->getCode(), $e);
-        }
-    }
 }

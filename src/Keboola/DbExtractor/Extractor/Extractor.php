@@ -215,6 +215,15 @@ abstract class Extractor
         return $output;
     }
 
+    protected function isAlive(): void
+    {
+        try {
+            $this->testConnection();
+        } catch (\Throwable $e) {
+            throw new DeadConnectionException("Dead connection: " . $e->getMessage(), $e->getCode(), $e);
+        }
+    }
+
     protected function handleDbError(Throwable $e, ?array $table = null, ?int $counter = null): UserException
     {
         $message = "";
@@ -226,12 +235,6 @@ abstract class Extractor
             $message .= sprintf(' Tried %d times.', $counter);
         }
         return new UserException($message, 0, $e);
-    }
-
-    protected function isAlive(): void
-    {
-        // needs to be implemented in extractors.
-        // implementations should throw an DeadConnectionException if the connection is dead
     }
 
     protected function executeQuery(string $query, ?int $maxTries): PDOStatement
