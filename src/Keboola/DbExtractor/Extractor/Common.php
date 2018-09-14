@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Keboola\DbExtractor\Extractor;
 
 use Keboola\DbExtractor\Exception\ApplicationException;
+use Keboola\DbExtractor\Exception\DeadConnectionException;
 use Keboola\DbExtractor\Exception\UserException;
 use PDO;
 
@@ -282,8 +283,12 @@ class Common extends Extractor
         return "`{$obj}`";
     }
 
-    protected function isAlive()
+    protected function isAlive(): void
     {
-        $this->db->query("SELECT 1;");
+        try {
+            $this->db->query("SELECT 1;");
+        } catch (\Throwable $e) {
+            throw new DeadConnectionException("Dead connection: " . $e->getMessage(), $e->getCode(), $e);
+        }
     }
 }

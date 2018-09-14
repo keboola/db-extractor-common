@@ -8,6 +8,7 @@ use Keboola\Csv\CsvFile;
 use Keboola\Csv\Exception as CsvException;
 use Keboola\Datatype\Definition\GenericStorage;
 use Keboola\DbExtractor\Exception\ApplicationException;
+use Keboola\DbExtractor\Exception\DeadConnectionException;
 use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractor\Logger;
 use Keboola\DbExtractor\RetryProxy;
@@ -172,7 +173,12 @@ abstract class Extractor
         $maxTries = isset($table['retries']) ? (int) $table['retries'] : self::DEFAULT_MAX_TRIES;
 
         // this will retry on CsvException
-        $proxy = new RetryProxy($this->logger, $maxTries);
+        $proxy = new RetryProxy(
+            $this->logger,
+            $maxTries,
+            RetryProxy::DEFAULT_BACKOFF_INTERVAL,
+            ['DeadConnectionException']
+        );
         try {
             $result = $proxy->call(function () use ($query, $maxTries, $outputTable, $isAdvancedQuery) {
                 /** @var PDOStatement $stmt */
@@ -222,10 +228,10 @@ abstract class Extractor
         return new UserException($message, 0, $e);
     }
 
-    protected function isAlive()
+    protected function isAlive(): void
     {
         // needs to be implemented in extractors.
-        // implementations should throw an exception if the connection is dead
+        // implementations should throw an DeadConnectionException if the connection is dead
     }
 
     protected function executeQuery(string $query, ?int $maxTries): PDOStatement
