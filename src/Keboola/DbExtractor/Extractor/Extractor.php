@@ -177,7 +177,7 @@ abstract class Extractor
             $this->logger,
             $maxTries,
             RetryProxy::DEFAULT_BACKOFF_INTERVAL,
-            ['DeadConnectionException']
+            ['Keboola\DbExtractor\Exception\DeadConnectionException']
         );
         try {
             $result = $proxy->call(function () use ($query, $maxTries, $outputTable, $isAdvancedQuery) {

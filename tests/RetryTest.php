@@ -104,12 +104,12 @@ class RetryTest extends ExtractorTest
         $config['parameters']['tables'] = [[
             'id' => 1,
             'name' => 'sales',
-            'query' => 'SELECT * FROM sales',
+            'query' => 'SELECT * FROM sales limit 100000',
             'outputTable' => 'in.c-main.sales',
             'incremental' => false,
             'primaryKey' => null,
             'enabled' => true,
-            'retries' => 10
+            'retries' => 10,
         ]];
         return $config;
     }
@@ -187,7 +187,7 @@ class RetryTest extends ExtractorTest
     public function testDeadConnectionException(): void
     {
         $config = $this->getRetryConfig();
-        $onfig['parameters']['tables'][0]['retries'] = 0;
+        $config['parameters']['tables'][0]['retries'] = 0;
 
         $app = $this->getApplication('ex-db-common', $config);
 
