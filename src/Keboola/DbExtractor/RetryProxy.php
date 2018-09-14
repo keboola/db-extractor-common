@@ -84,7 +84,6 @@ class RetryProxy implements RetryProxyInterface
                 }
             }
             if ($this->retryPolicy->canRetry($retryContext)) {
-                $this->logger->info('backing off');
                 $this->backOffPolicy->backOff($backOffContext);
             }
         } while ($this->retryPolicy->canRetry($retryContext));
