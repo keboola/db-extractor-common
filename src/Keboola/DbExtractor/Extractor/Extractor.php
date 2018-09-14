@@ -11,7 +11,7 @@ use Keboola\DbExtractor\Exception\ApplicationException;
 use Keboola\DbExtractor\Exception\DeadConnectionException;
 use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractor\Logger;
-use Keboola\DbExtractor\RetryProxy;
+use Keboola\DbExtractor\Retry\RetryProxy;
 use Keboola\SSHTunnel\SSH;
 use Keboola\SSHTunnel\SSHException;
 use Nette\Utils;
