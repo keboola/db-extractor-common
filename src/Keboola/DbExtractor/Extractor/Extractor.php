@@ -8,6 +8,7 @@ use Keboola\Csv\CsvFile;
 use Keboola\Csv\Exception as CsvException;
 use Keboola\Datatype\Definition\GenericStorage;
 use Keboola\DbExtractor\Exception\ApplicationException;
+use Keboola\DbExtractor\Exception\DeadConnectionException;
 use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractor\Logger;
 use Keboola\DbExtractor\RetryProxy;
@@ -159,7 +160,6 @@ abstract class Extractor
     public function export(array $table): array
     {
         $outputTable = $table['outputTable'];
-        $csv = $this->createOutputCsv($outputTable);
 
         $this->logger->info("Exporting to " . $outputTable);
 
@@ -170,20 +170,28 @@ abstract class Extractor
         } else {
             $query = $table['query'];
         }
-        try {
-            /** @var PDOStatement $stmt */
-            $stmt = $this->executeQuery(
-                $query,
-                isset($table['retries']) ? (int) $table['retries'] : null
-            );
-        } catch (Throwable $e) {
-            throw $this->handleDbError($e, $table, isset($table['retries']) ? (int) $table['retries'] : null);
-        }
+        $maxTries = isset($table['retries']) ? (int) $table['retries'] : self::DEFAULT_MAX_TRIES;
 
+        // this will retry on CsvException
+        $proxy = new RetryProxy(
+            $this->logger,
+            $maxTries,
+            RetryProxy::DEFAULT_BACKOFF_INTERVAL,
+            ['Keboola\DbExtractor\Exception\DeadConnectionException']
+        );
         try {
-            $result = $this->writeToCsv($stmt, $csv, $isAdvancedQuery);
+            $result = $proxy->call(function () use ($query, $maxTries, $outputTable, $isAdvancedQuery) {
+                /** @var PDOStatement $stmt */
+                $stmt = $this->executeQuery($query, $maxTries);
+                $csv = $this->createOutputCsv($outputTable);
+                $result = $this->writeToCsv($stmt, $csv, $isAdvancedQuery);
+                $this->isAlive();
+                return $result;
+            });
         } catch (CsvException $e) {
-             throw new ApplicationException("Write to CSV failed: " . $e->getMessage(), 0, $e);
+            throw new ApplicationException("Failed writing CSV File: " . $e->getMessage(), $e->getCode(), $e);
+        } catch (Throwable $e) {
+            throw $this->handleDbError($e, $table, $maxTries);
         }
         if ($result['rows'] > 0) {
             $this->createManifest($table);
@@ -207,7 +215,16 @@ abstract class Extractor
         return $output;
     }
 
-    private function handleDbError(Throwable $e, ?array $table = null, ?int $counter = null): UserException
+    protected function isAlive(): void
+    {
+        try {
+            $this->testConnection();
+        } catch (\Throwable $e) {
+            throw new DeadConnectionException("Dead connection: " . $e->getMessage(), $e->getCode(), $e);
+        }
+    }
+
+    protected function handleDbError(Throwable $e, ?array $table = null, ?int $counter = null): UserException
     {
         $message = "";
         if ($table) {
@@ -245,17 +262,12 @@ abstract class Extractor
      * @param CsvFile $csv
      * @param boolean $includeHeader
      * @return array ['rows', 'lastFetchedRow']
-     * @throws CsvException|UserException
      */
     protected function writeToCsv(PDOStatement $stmt, CsvFile $csv, bool $includeHeader = true): array
     {
         $output = [];
-        $retryProxy = new RetryProxy($this->logger);
 
-        $resultRow = $retryProxy->call(function () use ($stmt) {
-            return $stmt->fetch(PDO::FETCH_ASSOC);
-        });
-
+        $resultRow = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (is_array($resultRow) && !empty($resultRow)) {
             // write header and first line
@@ -267,13 +279,13 @@ abstract class Extractor
             // write the rest
             $numRows = 1;
             $lastRow = $resultRow;
-            while ($resultRow = $retryProxy->call(function () use ($stmt) {
-                return $stmt->fetch(PDO::FETCH_ASSOC);
-            })) {
+
+            while ($resultRow = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 $csv->writeRow($resultRow);
                 $lastRow = $resultRow;
                 $numRows++;
             }
+
             if (isset($this->incrementalFetching['column'])) {
                 if (!array_key_exists($this->incrementalFetching['column'], $lastRow)) {
                     throw new UserException(

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Keboola\DbExtractor\Tests;
 
 use Keboola\Csv\CsvFile;
+use Keboola\DbExtractor\Exception\DeadConnectionException;
+use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractor\Test\ExtractorTest;
 use Keboola\Temp\Temp;
 use PDO;
@@ -107,6 +109,7 @@ class RetryTest extends ExtractorTest
             'incremental' => false,
             'primaryKey' => null,
             'enabled' => true,
+            'retries' => 10,
         ]];
         return $config;
     }
@@ -170,7 +173,7 @@ class RetryTest extends ExtractorTest
 
         // exec async
         exec(self::KILLER_EXECUTABLE . ' 2 > /dev/null &');
-        //exec(self::KILLER_EXECUTABLE . ' 2 > NUL');
+
         $result = $app->run();
 
         $outputCsvFile = $this->dataDir . '/out/tables/' . $result['imported'][0]['outputTable'] . '.csv';
@@ -179,5 +182,24 @@ class RetryTest extends ExtractorTest
         $this->assertFileExists($outputCsvFile);
         $this->assertFileExists($this->dataDir . '/out/tables/' . $result['imported'][0]['outputTable'] . '.csv.manifest');
         $this->assertEquals(self::ROW_COUNT, $this->getLineCount($outputCsvFile));
+    }
+
+    public function testDeadConnectionException(): void
+    {
+        $config = $this->getRetryConfig();
+        $config['parameters']['tables'][0]['retries'] = 0;
+
+        $app = $this->getApplication('ex-db-common', $config);
+
+        // exec async
+        exec(self::KILLER_EXECUTABLE . ' 2 > /dev/null &');
+
+        try {
+            $app->run();
+            $this->fail("Should have failed on Dead Connection");
+        } catch (UserException $ue) {
+            $this->assertTrue($ue->getPrevious() instanceof DeadConnectionException);
+            $this->assertContains('Dead connection', $ue->getMessage());
+        }
     }
 }

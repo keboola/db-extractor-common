@@ -39,7 +39,7 @@ class RetryProxy implements RetryProxyInterface
     ) {
         if ($retryPolicy === null) {
             $retryPolicy = new SimpleRetryPolicy(
-                $maxTries ? $maxTries : self::DEFAULT_MAX_TRIES,
+                $maxTries ?? self::DEFAULT_MAX_TRIES,
                 $expectedExceptions ? $expectedExceptions : self::DEFAULT_EXCEPTED_EXCEPTIONS
             );
         }
@@ -66,27 +66,28 @@ class RetryProxy implements RetryProxyInterface
     {
         $retryContext   = $this->retryPolicy->open();
         $backOffContext = $this->backOffPolicy->start($retryContext);
-        while ($this->retryPolicy->canRetry($retryContext)) {
+        do {
             try {
                 return call_user_func_array($action, $arguments);
             } catch (\Exception $thrownException) {
                 try {
                     $this->retryPolicy->registerException($retryContext, $thrownException);
-                    $this->logger->info(
-                        sprintf(
-                            '%s. Retrying... [%dx]',
-                            $thrownException->getMessage(),
-                            $retryContext->getRetryCount()
-                        )
-                    );
                 } catch (\Throwable $policyException) {
                     throw new TerminatedRetryException('Terminated retry after error in policy.');
                 }
             }
             if ($this->retryPolicy->canRetry($retryContext)) {
+                $this->logger->info(
+                    sprintf(
+                        '%s. Retrying... [%dx]',
+                        $thrownException->getMessage(),
+                        $retryContext->getRetryCount()
+                    )
+                );
                 $this->backOffPolicy->backOff($backOffContext);
             }
-        };
+        } while ($this->retryPolicy->canRetry($retryContext));
+
         if ($lastException = $retryContext->getLastException()) {
             throw $lastException;
         }
