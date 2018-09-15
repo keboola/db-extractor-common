@@ -198,8 +198,8 @@ abstract class Extractor
         } else {
             $this->logger->warn(
                 sprintf(
-                    "Query returned empty result. Nothing was imported for table [%s]",
-                    $table['name']
+                    "Query returned empty result. Nothing was imported to [%s]",
+                    $table['outputTable']
                 )
             );
         }
@@ -228,7 +228,7 @@ abstract class Extractor
     {
         $message = "";
         if ($table) {
-            $message = sprintf("[%s]: ", $table['name']);
+            $message = sprintf("[%s]: ", $table['outputTable']);
         }
         $message .= sprintf('DB query failed: %s', $e->getMessage());
         if ($counter) {
