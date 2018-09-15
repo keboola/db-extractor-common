@@ -279,7 +279,7 @@ class CommonExtractorTest extends ExtractorTest
             $this->fail("Failing query must raise exception.");
         } catch (\Keboola\DbExtractor\Exception\UserException $e) {
             // test that the error message contains the query name
-            $this->assertContains('[bad]', $e->getMessage());
+            $this->assertContains('[dummy]', $e->getMessage());
         }
     }
 
