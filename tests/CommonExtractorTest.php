@@ -863,6 +863,19 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertEquals('success', $result['status']);
     }
 
+    public function testConfigWithNoName(): void
+    {
+        $config = $this->getConfigRow(self::DRIVER);
+        unset($config['parameters']['name']);
+        unset($config['parameters']['table']);
+        // we want to test the no results case
+        $config['parameters']['query'] = "SELECT 1 LIMIT 0";
+        $result = ($this->getApp($config))->run();
+
+        $this->assertArrayHasKey('status', $result);
+        $this->assertEquals('success', $result['status']);
+    }
+
     private function getIncrementalFetchingConfig(): array
     {
         $config = $this->getConfigRow(self::DRIVER);
