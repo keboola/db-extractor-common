@@ -190,7 +190,11 @@ abstract class Extractor
             });
         } catch (CsvException $e) {
             throw new ApplicationException("Failed writing CSV File: " . $e->getMessage(), $e->getCode(), $e);
-        } catch (Throwable $e) {
+        } catch (\PDOException $e) {
+            throw $this->handleDbError($e, $table, $maxTries);
+        } catch (\ErrorException $e) {
+            throw $this->handleDbError($e, $table, $maxTries);
+        } catch (DeadConnectionException $e) {
             throw $this->handleDbError($e, $table, $maxTries);
         }
         if ($result['rows'] > 0) {
