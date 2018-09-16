@@ -279,7 +279,7 @@ class CommonExtractorTest extends ExtractorTest
             $this->fail("Failing query must raise exception.");
         } catch (\Keboola\DbExtractor\Exception\UserException $e) {
             // test that the error message contains the query name
-            $this->assertContains('[bad]', $e->getMessage());
+            $this->assertContains('[dummy]', $e->getMessage());
         }
     }
 
@@ -859,6 +859,19 @@ class CommonExtractorTest extends ExtractorTest
 
         $result = ($this->getApp($config))->run();
         $this->assertCount(1, $result);
+        $this->assertArrayHasKey('status', $result);
+        $this->assertEquals('success', $result['status']);
+    }
+
+    public function testConfigWithNoName(): void
+    {
+        $config = $this->getConfigRow(self::DRIVER);
+        unset($config['parameters']['name']);
+        unset($config['parameters']['table']);
+        // we want to test the no results case
+        $config['parameters']['query'] = "SELECT 1 LIMIT 0";
+        $result = ($this->getApp($config))->run();
+
         $this->assertArrayHasKey('status', $result);
         $this->assertEquals('success', $result['status']);
     }
