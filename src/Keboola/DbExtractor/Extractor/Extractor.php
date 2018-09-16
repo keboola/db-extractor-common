@@ -220,7 +220,7 @@ abstract class Extractor
         try {
             $this->testConnection();
         } catch (\Throwable $e) {
-            throw new DeadConnectionException("Dead connection: " . $e->getMessage(), $e->getCode(), $e);
+            throw new DeadConnectionException("Dead connection: " . $e->getMessage());
         }
     }
 
