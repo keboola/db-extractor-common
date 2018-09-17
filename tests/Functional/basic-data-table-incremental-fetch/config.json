@@ -1,0 +1,12 @@
+{
+  "parameters": {
+    "name": "table1",
+    "outputTable": "table1",
+        "table": {
+          "schema": "testdb",
+          "tableName": "table1"
+        },
+      }
+    ]
+  }
+}

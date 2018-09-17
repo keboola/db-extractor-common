@@ -1108,4 +1108,63 @@ class DatadirTest extends AbstractDatadirTestCase
             null
         );
     }
+
+    public function testExportTableByConfigRowsWithDefinedTableIncrementalFetchingSuccessfully(): void
+    {
+        $testDirectory = __DIR__ . '/basic-data-table-incremental-fetch';
+
+        $credentials = $this->getCredentials();
+
+        $configuration = $this->getConfig($testDirectory);
+        unset($configuration['parameters']['tables']);
+        $configuration['parameters']['db'] = $credentials;
+        $configuration['parameters']['name'] = 'table1';
+        $configuration['parameters']['outputTable'] = 'table1';
+        $configuration['parameters']['table'] = [
+            'schema' => 'testdb',
+            'tableName' => 'table1',
+        ];
+
+        $response = [
+            'status' => 'success',
+            'imported' => [
+                'outputTable' => 'table1',
+                'rows' => 2,
+            ],
+            'state' => [],
+        ];
+
+        $database = $credentials['database'];
+        $table = 'table1';
+        $this->createDatabase($database);
+
+
+        $this->dataLoader->getPdo()->exec(sprintf("use %s", $database));
+        $this->dataLoader->getPdo()->exec(
+            "CREATE TABLE {$table} (
+            id INT NOT NULL AUTO_INCREMENT,
+            col1 VARCHAR(128) NOT NULL, 
+            col2 VARCHAR(128) NOT NULL,
+            PRIMARY KEY (id)
+            )"
+        );
+
+
+        $this->dataLoader->getPdo()->exec(sprintf(
+            "INSERT INTO %s VALUES (null, '%s', '%s'), (null, '%s', '%s')",
+            $table,
+            'row1',
+            'r1',
+            'row2',
+            'r2'
+        ));
+
+        $this->runCommonTest(
+            $testDirectory,
+            $configuration,
+            0,
+            'Exporting to table1' . PHP_EOL . json_encode($response, JSON_PRETTY_PRINT),
+            null
+        );
+    }
 }
