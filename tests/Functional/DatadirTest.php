@@ -1109,6 +1109,69 @@ class DatadirTest extends AbstractDatadirTestCase
         );
     }
 
+    public function testExportTableByConfigRowsWithDefinedTableIncrementalFetchingOnNonExistingColumn(): void
+    {
+        $testDirectory = __DIR__ . '/empty-data';
+
+        $credentials = $this->getCredentials();
+
+        $configuration = $this->getConfig($testDirectory);
+        unset($configuration['parameters']['tables']);
+        $configuration['parameters']['db'] = $credentials;
+        $configuration['parameters']['name'] = 'table1';
+        $configuration['parameters']['outputTable'] = 'table1';
+        $configuration['parameters']['incrementalFetchingColumn'] = 'invalid_col';
+        $configuration['parameters']['table'] = [
+            'schema' => 'testdb',
+            'tableName' => 'table1',
+        ];
+
+        $database = $credentials['database'];
+        $table = 'table1';
+        $this->createDatabase($database);
+        $this->createTable($database, $table);
+
+        $this->runCommonTest(
+            $testDirectory,
+            $configuration,
+            1,
+            null,
+            'Column [invalid_col] specified for incremental fetching was not found in the table' . PHP_EOL
+        );
+    }
+
+    public function testExportTableByConfigRowsWithDefinedTableIncrementalFetchingOnInvalidColumn(): void
+    {
+        $testDirectory = __DIR__ . '/empty-data';
+
+        $credentials = $this->getCredentials();
+
+        $configuration = $this->getConfig($testDirectory);
+        unset($configuration['parameters']['tables']);
+        $configuration['parameters']['db'] = $credentials;
+        $configuration['parameters']['name'] = 'table1';
+        $configuration['parameters']['outputTable'] = 'table1';
+        $configuration['parameters']['incrementalFetchingColumn'] = 'col1';
+        $configuration['parameters']['table'] = [
+            'schema' => 'testdb',
+            'tableName' => 'table1',
+        ];
+
+        $database = $credentials['database'];
+        $table = 'table1';
+        $this->createDatabase($database);
+        $this->createTable($database, $table);
+
+        $this->runCommonTest(
+            $testDirectory,
+            $configuration,
+            1,
+            null,
+            'Column [col1] specified for incremental fetching is not an auto increment column'
+            . ' or an auto update timestamp' . PHP_EOL
+        );
+    }
+
     public function testExportTableByConfigRowsWithDefinedTableIncrementalFetchingSuccessfully(): void
     {
         $testDirectory = __DIR__ . '/basic-data-table-incremental-fetch';
@@ -1118,12 +1181,6 @@ class DatadirTest extends AbstractDatadirTestCase
         $configuration = $this->getConfig($testDirectory);
         unset($configuration['parameters']['tables']);
         $configuration['parameters']['db'] = $credentials;
-        $configuration['parameters']['name'] = 'table1';
-        $configuration['parameters']['outputTable'] = 'table1';
-        $configuration['parameters']['table'] = [
-            'schema' => 'testdb',
-            'tableName' => 'table1',
-        ];
 
         $response = [
             'status' => 'success',
