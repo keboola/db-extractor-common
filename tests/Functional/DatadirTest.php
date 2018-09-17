@@ -334,7 +334,7 @@ class DatadirTest extends AbstractDatadirTestCase
 
     public function testExportTableByOldConfigOnNonExistingDatabase(): void
     {
-        $testDirectory = __DIR__ . '/empty-data-empty-csv-file';
+        $testDirectory = __DIR__ . '/empty-data';
 
         $credentials = $this->getCredentials();
 
@@ -363,13 +363,13 @@ class DatadirTest extends AbstractDatadirTestCase
             1,
             null,
             '[table1]: DB query failed: SQLSTATE[42S02]:'
-            . ' Base table or view not found: 1146 Table \'invaliddb.table1\' doesn\'t exist' . PHP_EOL
+            . ' Base table or view not found: 1146 Table \'invaliddb.table1\' doesn\'t exist Tried 5 times.' . PHP_EOL
         );
     }
 
     public function testExportTableByOldConfigOnNonExistingTable(): void
     {
-        $testDirectory = __DIR__ . '/empty-data-empty-csv-file';
+        $testDirectory = __DIR__ . '/empty-data';
 
         $credentials = $this->getCredentials();
 
@@ -397,8 +397,8 @@ class DatadirTest extends AbstractDatadirTestCase
             $configuration,
             1,
             null,
-            '[table1]: DB query failed: SQLSTATE[42S02]:'
-            . ' Base table or view not found: 1146 Table \'testdb.invalidTable\' doesn\'t exist' . PHP_EOL
+            '[table1]: DB query failed: SQLSTATE[42S02]: Base table or view not found:'
+            . ' 1146 Table \'testdb.invalidTable\' doesn\'t exist Tried 5 times.' . PHP_EOL
         );
     }
 
@@ -800,7 +800,7 @@ class DatadirTest extends AbstractDatadirTestCase
 
     public function testExportTableByConfigRowsOnNonExistingDatabase(): void
     {
-        $testDirectory = __DIR__ . '/empty-data-empty-csv-file';
+        $testDirectory = __DIR__ . '/empty-data';
 
         $credentials = $this->getCredentials();
 
@@ -824,13 +824,13 @@ class DatadirTest extends AbstractDatadirTestCase
             1,
             null,
             '[table1]: DB query failed: SQLSTATE[42S02]:'
-            . ' Base table or view not found: 1146 Table \'invaliddb.table1\' doesn\'t exist' . PHP_EOL
+            . ' Base table or view not found: 1146 Table \'invaliddb.table1\' doesn\'t exist Tried 5 times.' . PHP_EOL
         );
     }
 
     public function testExportTableByConfigRowsOnNonExistingTable(): void
     {
-        $testDirectory = __DIR__ . '/empty-data-empty-csv-file';
+        $testDirectory = __DIR__ . '/empty-data';
 
         $credentials = $this->getCredentials();
 
@@ -853,8 +853,8 @@ class DatadirTest extends AbstractDatadirTestCase
             $configuration,
             1,
             null,
-            '[table1]: DB query failed: SQLSTATE[42S02]:'
-            . ' Base table or view not found: 1146 Table \'testdb.invalidTable\' doesn\'t exist' . PHP_EOL
+            '[table1]: DB query failed: SQLSTATE[42S02]: Base table or view not found:'
+            . ' 1146 Table \'testdb.invalidTable\' doesn\'t exist Tried 5 times.' . PHP_EOL
         );
     }
 
