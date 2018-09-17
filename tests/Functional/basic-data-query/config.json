@@ -5,9 +5,6 @@
         "id": 1,
         "name": "table1",
         "query": "SELECT * FROM table1",
-        "columns": [
-          "col1"
-        ],
         "outputTable": "table1"
       }
     ]
