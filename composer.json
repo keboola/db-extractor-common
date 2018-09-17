@@ -47,8 +47,8 @@
     "tests-datadir": "./wait-for-it.sh mysql:3306 -t 30 -- ./vendor/bin/phpunit tests/Functional",
     "tests-unit": "./vendor/bin/phpunit tests/Unit",
     "tests": [
-      "@old-tests",
-      "@tests-datadir"
+      "@tests-datadir",
+      "@old-tests"
     ],
     "phpstan": "phpstan analyse --no-progress --level=max ./src ./tests -c phpstan.neon",
     "phpcs": "phpcs -n --ignore=vendor --extensions=php .",
