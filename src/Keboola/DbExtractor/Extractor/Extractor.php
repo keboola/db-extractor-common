@@ -196,6 +196,7 @@ abstract class Extractor
         if ($result['rows'] > 0) {
             $this->createManifest($table);
         } else {
+            unlink($this->getOutputFilename($outputTable));
             $this->logger->warn(
                 sprintf(
                     "Query returned empty result. Nothing was imported to [%s]",
