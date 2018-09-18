@@ -8,7 +8,7 @@ ARG COMPOSER_FLAGS="--prefer-dist --no-interaction"
 
 # Install dependencies
 RUN apt-get update -q \
-  && apt-get install mysql-client ssh git zip wget curl make patch unzip bzip2 time libzip-dev -y --no-install-recommends
+  && apt-get install dsniff mysql-client ssh git zip wget curl make patch unzip bzip2 time libzip-dev -y --no-install-recommends
 
 RUN docker-php-ext-install pdo_mysql
 

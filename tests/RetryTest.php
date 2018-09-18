@@ -9,17 +9,21 @@ use Keboola\DbExtractor\Application;
 use Keboola\DbExtractor\Exception\ApplicationException;
 use Keboola\DbExtractor\Exception\DeadConnectionException;
 use Keboola\DbExtractor\Exception\UserException;
-use Keboola\DbExtractor\Logger;
+use Keboola\DbExtractor\Extractor\Common;
 use Keboola\DbExtractor\Test\ExtractorTest;
 use Keboola\Temp\Temp;
 use Monolog\Handler\TestHandler;
+use Monolog\Logger;
 use PDO;
+use PHPUnit_Framework_Error_Warning;
 
 class RetryTest extends ExtractorTest
 {
     private const ROW_COUNT = 1000000;
 
-    private const KILLER_EXECUTABLE =  'php ' . __DIR__ . '/killerRabbit.php';
+    private const SERVER_KILLER_EXECUTABLE =  'php ' . __DIR__ . '/killerRabbit.php';
+
+    private const NETWORK_KILLER_EXECUTABLE =  'php ' . __DIR__ . '/killerSquirrel.php';
 
     /** @var  array */
     private $dbParams;
@@ -29,6 +33,8 @@ class RetryTest extends ExtractorTest
 
     public function setUp(): void
     {
+        // this is useful when other tests fail and leave the connection broken
+        $this->waitForConnection();
         // intentionally don't call parent, we use a different PDO connection
         $this->pdo = $this->getConnection();
         // unlink the output file
@@ -148,7 +154,7 @@ class RetryTest extends ExtractorTest
                 $conn->query('SELECT NOW();')->execute();
                 $this->pdo = $conn;
                 break;
-            } catch (\PDOException $e) {
+            } catch (\Throwable $e) {
                 echo 'Waiting for connection ' . $e->getMessage() . PHP_EOL;
                 sleep(5);
                 $retries++;
@@ -161,8 +167,8 @@ class RetryTest extends ExtractorTest
 
     public function testRabbit(): void
     {
-        exec(self::KILLER_EXECUTABLE . ' 0', $output, $ret);
-        $output = implode('', $output);
+        exec(self::SERVER_KILLER_EXECUTABLE . ' 0', $output, $ret);
+        $output = implode(PHP_EOL, $output);
         echo $output;
         // wait for the reboot to start (otherwise waitForConnection() would pass with the old connection
         sleep(10);
@@ -185,7 +191,7 @@ class RetryTest extends ExtractorTest
         $app = $this->getApplication('ex-db-common', $config);
 
         // exec async
-        exec(self::KILLER_EXECUTABLE . ' 2 > /dev/null &');
+        exec(self::SERVER_KILLER_EXECUTABLE . ' 2 > NUL');
 
         $result = $app->run();
 
@@ -197,6 +203,105 @@ class RetryTest extends ExtractorTest
         $this->assertEquals(self::ROW_COUNT, $this->getLineCount($outputCsvFile));
     }
 
+    public function testSquirrel(): void
+    {
+        $conn = $this->getConnection();
+        exec(self::NETWORK_KILLER_EXECUTABLE . ' 0 3306 > /dev/null &');
+        // a little timeout to make sure the killer has already started
+        sleep(1);
+        try {
+            $stmt = $conn->query('SELECT NOW();');
+            $stmt->execute();
+            // intentionally twice, because the tcpkiller is not 100% reliable
+            sleep(2);
+            $stmt = $conn->query('SELECT NOW();');
+            $stmt->execute();
+            self::fail('Must raise an exception.');
+        } catch (\Throwable $e) {
+            // PDO fails to throw exception, and throws a warning only
+            //self::assertInstanceOf(PHPUnit_Framework_Error_Warning::class, $e, $e->getMessage());
+            self::assertInstanceOf(\PDOException::class, $e, $e->getMessage());
+            self::assertTrue(
+                mb_stripos($e->getMessage(), 'PDO::query(): MySQL server has gone away') !== false ||
+                mb_stripos($e->getMessage(), 'Error while sending QUERY packet.') !== false,
+                'Error: '. $e->getMessage()
+            );
+        }
+    }
+
+    public function testSquirrelFetch(): void
+    {
+        self::markTestSkipped('Does not work');
+        $conn = $this->getConnection();
+        $stmt1 = $conn->query('SELECT NOW();');
+        $stmt1->execute();
+        $stmt2 = $conn->query('SELECT NOW();');
+        $stmt2->execute();
+        exec(self::NETWORK_KILLER_EXECUTABLE . ' 0 3306 > /dev/null &');
+        // a little timeout to make sure the killer has already started
+        sleep(1);
+        try {
+            var_dump($stmt1->fetchAll());
+            // intentionally twice, because the tcpkiller is not 100% reliable
+            sleep(2);
+            var_dump($stmt2->fetchAll());
+            self::fail('Must raise an exception.');
+        } catch (\Throwable $e) {
+            // PDO fails to throw exception, and throws a warning only
+            self::assertContains('PDOStatement::execute(): MySQL server has gone away', $e->getMessage());
+            self::assertInstanceOf(PHPUnit_Framework_Error_Warning::class, $e, $e->getMessage());
+        }
+    }
+
+    public function testRunMainRetryNetworkError(): void
+    {
+        $temp = new Temp();
+        $temp->initRunFolder();
+        $sourceFileName = $temp->getTmpFolder() . '/large.csv';
+        $this->setupLargeTable($sourceFileName);
+
+        $handler = new TestHandler();
+        $logger = new \Keboola\DbExtractor\Logger('test');
+        $logger->pushHandler($handler);
+        $table = [
+            'id' => 1,
+            'name' => 'sales',
+            'query' => 'SELECT * FROM sales',
+            'outputTable' => 'in.c-main.sales',
+            'incremental' => false,
+            'primaryKey' => [],
+            'enabled' => true,
+            'retries' => 10,
+            'columns' => [],
+        ];
+
+        $parameters = [
+            'db' => [
+                'user' => getenv('TEST_RDS_USERNAME'),
+                '#password' => getenv('TEST_RDS_PASSWORD'),
+                'password' => getenv('TEST_RDS_PASSWORD'),
+                'host' => getenv('TEST_RDS_HOST'),
+                'database' => 'odin4test',
+                'port' => '3306',
+            ],
+            'tables' => [$table],
+            'data_dir' => $this->dataDir,
+            'extractor_class' => 'Common',
+        ];
+        $extractor = new Common($parameters, [], $logger);
+        // exec async
+        exec(self::NETWORK_KILLER_EXECUTABLE . ' 2 3306 > /dev/null &');
+        $result = $extractor->export($table);
+
+        $outputCsvFile = $this->dataDir . '/out/tables/' . $result['outputTable'] . '.csv';
+
+        self::assertFileExists($outputCsvFile);
+        self::assertFileExists($this->dataDir . '/out/tables/' . $result['outputTable'] . '.csv.manifest');
+        self::assertEquals(self::ROW_COUNT, $this->getLineCount($outputCsvFile));
+        //var_dump($handler->getRecords());
+        self::assertTrue($handler->hasInfoThatContains('Retrying...'));
+    }
+
     public function testDeadConnectionException(): void
     {
         $config = $this->getRetryConfig();
@@ -205,7 +310,7 @@ class RetryTest extends ExtractorTest
         $app = $this->getApplication('ex-db-common', $config);
 
         // exec async
-        exec(self::KILLER_EXECUTABLE . ' 2 > /dev/null &');
+        exec(self::SERVER_KILLER_EXECUTABLE . ' 2 > /dev/null &');
 
         try {
             $app->run();
