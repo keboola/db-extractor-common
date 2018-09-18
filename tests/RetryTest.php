@@ -150,6 +150,25 @@ class RetryTest extends ExtractorTest
         }
     }
 
+    public function testNoRetryOnCsvError(): void
+    {
+        $testLogger = new Logger('common-retry-test-logger');
+        $testLogger->pushHandler(new TestHandler());
+
+        $config = $this->getRetryConfig();
+        $config['parameters']['tables'][0]['query'] = "SELECT * FROM sales LIMIT 100;";
+
+        @unlink($this->dataDir . '/out/tables/in.c-main.sales.csv');
+        touch($this->dataDir . '/out/tables/in.c-main.sales.csv');
+        chmod($this->dataDir . '/out/tables/in.c-main.sales.csv', 0444);
+
+        $this->expectException('Keboola\DbExtractor\Exception\ApplicationException');
+        $this->expectExceptionMessageRegExp('(.*Failed writing CSV File.*)');
+        
+        $app = new Application($config, $testLogger);
+        $app->run();
+    }
+
     public function testRabbit(): void
     {
         exec(self::KILLER_EXECUTABLE . ' 0', $output, $ret);
@@ -204,24 +223,6 @@ class RetryTest extends ExtractorTest
         } catch (UserException $ue) {
             $this->assertTrue($ue->getPrevious() instanceof DeadConnectionException);
             $this->assertContains('Dead connection', $ue->getMessage());
-        }
-    }
-
-    public function testNoRetryOnAppError(): void
-    {
-        $testLogger = new Logger('common-retry-test-logger');
-        $testLogger->pushHandler(new TestHandler());
-
-        $config = $this->getRetryConfig();
-        @unlink($this->dataDir . '/out/tables/in.c-main.sales.csv');
-        touch($this->dataDir . '/out/tables/in.c-main.sales.csv');
-        chmod($this->dataDir . '/out/tables/in.c-main.sales.csv', 444);
-
-        try {
-            $app = new Application($config, $testLogger);
-            $app->run();
-        } catch (ApplicationException $e) {
-            echo "\nThe error " . $e->getMessage() . "\n";
         }
     }
 }
