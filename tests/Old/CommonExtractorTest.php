@@ -609,7 +609,11 @@ class CommonExtractorTest extends ExtractorTest
         $outputTableName = $result['imported'][0]['outputTable'];
         $this->assertExtractedData($this->dataDir . '/simple.csv', $outputTableName);
         $manifest = json_decode(
-            (string) file_get_contents($this->dataDir . '/out/tables/' . $outputTableName . ".csv.manifest"),
+            (string) file_get_contents(sprintf(
+                "%s/out/tables/%s.csv.manifest",
+                $this->dataDir,
+                $outputTableName
+            )),
             true
         );
         $this->assertEquals(["weird_I_d", 'S_oPaulo'], $manifest['columns']);
