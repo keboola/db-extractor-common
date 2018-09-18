@@ -5,10 +5,14 @@ declare(strict_types=1);
 namespace Keboola\DbExtractor\Tests;
 
 use Keboola\Csv\CsvFile;
+use Keboola\DbExtractor\Application;
+use Keboola\DbExtractor\Exception\ApplicationException;
 use Keboola\DbExtractor\Exception\DeadConnectionException;
 use Keboola\DbExtractor\Exception\UserException;
+use Keboola\DbExtractor\Logger;
 use Keboola\DbExtractor\Test\ExtractorTest;
 use Keboola\Temp\Temp;
+use Monolog\Handler\TestHandler;
 use PDO;
 
 class RetryTest extends ExtractorTest
@@ -200,6 +204,24 @@ class RetryTest extends ExtractorTest
         } catch (UserException $ue) {
             $this->assertTrue($ue->getPrevious() instanceof DeadConnectionException);
             $this->assertContains('Dead connection', $ue->getMessage());
+        }
+    }
+
+    public function testNoRetryOnAppError(): void
+    {
+        $testLogger = new Logger('common-retry-test-logger');
+        $testLogger->pushHandler(new TestHandler());
+
+        $config = $this->getRetryConfig();
+        @unlink($this->dataDir . '/out/tables/in.c-main.sales.csv');
+        touch($this->dataDir . '/out/tables/in.c-main.sales.csv');
+        chmod($this->dataDir . '/out/tables/in.c-main.sales.csv', 444);
+
+        try {
+            $app = new Application($config, $testLogger);
+            $app->run();
+        } catch (ApplicationException $e) {
+            echo "\nThe error " . $e->getMessage() . "\n";
         }
     }
 }
