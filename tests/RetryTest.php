@@ -191,7 +191,7 @@ class RetryTest extends ExtractorTest
         $app = $this->getApplication('ex-db-common', $config);
 
         // exec async
-        exec(self::SERVER_KILLER_EXECUTABLE . ' 2 > NUL');
+        exec(self::SERVER_KILLER_EXECUTABLE . ' 2 > /dev/null &');
 
         $result = $app->run();
 
@@ -206,6 +206,7 @@ class RetryTest extends ExtractorTest
     public function testSquirrel(): void
     {
         $conn = $this->getConnection();
+        // this must always be called async because tcpkill is synchronous!
         exec(self::NETWORK_KILLER_EXECUTABLE . ' 0 3306 > /dev/null &');
         // a little timeout to make sure the killer has already started
         sleep(1);
@@ -218,9 +219,10 @@ class RetryTest extends ExtractorTest
             $stmt->execute();
             self::fail('Must raise an exception.');
         } catch (\Throwable $e) {
-            // PDO fails to throw exception, and throws a warning only
+            // PDO fails to throw exception, and throws a warning only, PHPUnit cripples
+            // it to own exception unless convertWarningsToExceptions is turned of in xml
             //self::assertInstanceOf(PHPUnit_Framework_Error_Warning::class, $e, $e->getMessage());
-            self::assertInstanceOf(\PDOException::class, $e, $e->getMessage());
+            self::assertInstanceOf(\ErrorException::class, $e, $e->getMessage());
             self::assertTrue(
                 mb_stripos($e->getMessage(), 'PDO::query(): MySQL server has gone away') !== false ||
                 mb_stripos($e->getMessage(), 'Error while sending QUERY packet.') !== false,
