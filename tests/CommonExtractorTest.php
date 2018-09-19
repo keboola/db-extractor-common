@@ -924,9 +924,6 @@ class CommonExtractorTest extends ExtractorTest
         unset($config['parameters']['name']);
         $config['parameters']['table'] = ['tableName' => 'sales'];
 
-        // we want to test the no results case
-        $config['parameters']['query'] = "SELECT 1 LIMIT 0";
-
         $this->expectException(UserException::class);
         $this->expectExceptionMessageRegExp('(.*The table property requires "tableName" and "schema".*)');
 
