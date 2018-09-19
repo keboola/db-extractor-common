@@ -127,10 +127,6 @@ class Application extends Container
                 [$parameters]
             );
 
-            if (!empty($processedParameters['db']['#password'])) {
-                $processedParameters['db']['password'] = $processedParameters['db']['#password'];
-            }
-
             if ($this['action'] === 'run') {
                 $this->validateTableParameters($processedParameters);
             }
