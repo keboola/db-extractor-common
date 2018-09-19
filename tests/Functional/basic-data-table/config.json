@@ -1,15 +1,10 @@
 {
   "parameters": {
-    "tables": [
-      {
-        "id": 1,
-        "name": "table1",
-        "table": {
-          "schema": "testdb",
-          "tableName": "table1"
-        },
-        "outputTable": "table1"
-      }
-    ]
+    "name": "table1",
+    "outputTable": "table1",
+    "table": {
+      "schema": "testdb",
+      "tableName": "table1"
+    }
   }
 }

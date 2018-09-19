@@ -8,7 +8,7 @@
       "port": 3306
     },
     "id": 0,
-    "name": "escaping",
+    "name": "simple",
     "outputTable": "in.c-main.simple",
     "table": {
       "schema": "testdb",

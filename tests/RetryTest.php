@@ -107,8 +107,15 @@ class RetryTest extends ExtractorTest
 
     private function getRetryConfig(): array
     {
-        $config = $this->getConfig('common', 'json');
+        $config = $this->getConfigRow('common');
         $config['parameters']['db'] = $this->dbParams;
+        $config['parameters']['name'] = 'sales';
+        $config['parameters']['query'] = 'SELECT * FROM sales';
+        $config['parameters']['outputTable'] = 'in.c-main.sales';
+        $config['parameters']['incremental'] = false;
+        $config['parameters']['primaryKey'] = null;
+        $config['parameters']['retries'] = 10;
+        /*
         $config['parameters']['tables'] = [[
             'id' => 1,
             'name' => 'sales',
@@ -119,6 +126,7 @@ class RetryTest extends ExtractorTest
             'enabled' => true,
             'retries' => 10,
         ]];
+        */
         return $config;
     }
 
@@ -202,7 +210,7 @@ class RetryTest extends ExtractorTest
     public function testDeadConnectionException(): void
     {
         $config = $this->getRetryConfig();
-        $config['parameters']['tables'][0]['retries'] = 0;
+        $config['parameters']['retries'] = 0;
 
         $app = $this->getApplication('ex-db-common', $config);
 

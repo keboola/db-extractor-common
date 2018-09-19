@@ -5,6 +5,8 @@
     "table": {
       "schema": "testdb",
       "tableName": "table1"
-    }
+    },
+    "incrementalFetchingColumn": "id",
+    "incrementalFetchingLimit": 2
   }
 }

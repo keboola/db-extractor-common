@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Keboola\DbExtractor;
 
 use Keboola\DbExtractor\Configuration\ActionConfigRowDefinition;
-use Keboola\DbExtractor\Configuration\ConfigDefinition;
 use Keboola\DbExtractor\Configuration\ConfigRowDefinition;
 use Keboola\DbExtractor\Exception\UserException;
 use Pimple\Container;
@@ -42,14 +41,11 @@ class Application extends Container
         $this['extractor'] = function () use ($app) {
             return $app['extractor_factory']->create($app['logger']);
         };
-        if (isset($this['parameters']['tables'])) {
-            $this->configDefinition = new ConfigDefinition();
+
+        if ($this['action'] === 'run') {
+            $this->configDefinition = new ConfigRowDefinition();
         } else {
-            if ($this['action'] === 'run') {
-                $this->configDefinition = new ConfigRowDefinition();
-            } else {
-                $this->configDefinition = new ActionConfigRowDefinition();
-            }
+            $this->configDefinition = new ActionConfigRowDefinition();
         }
     }
 
@@ -136,13 +132,7 @@ class Application extends Container
             }
 
             if ($this['action'] === 'run') {
-                if (isset($processedParameters['tables'])) {
-                    foreach ($processedParameters['tables'] as $table) {
-                        $this->validateTableParameters($table);
-                    }
-                } else {
-                    $this->validateTableParameters($processedParameters);
-                }
+                $this->validateTableParameters($processedParameters);
             }
 
             return $processedParameters;
@@ -153,31 +143,17 @@ class Application extends Container
 
     private function runAction(): array
     {
-        $imported = [];
         $outputState = [];
-        if (isset($this['parameters']['tables'])) {
-            $tables = array_filter(
-                $this['parameters']['tables'],
-                function ($table) {
-                    return ($table['enabled']);
-                }
-            );
-            foreach ($tables as $table) {
-                $exportResults = $this['extractor']->export($table);
-                $imported[] = $exportResults;
-            }
-        } else {
-            $exportResults = $this['extractor']->export($this['parameters']);
-            if (isset($exportResults['state'])) {
-                $outputState = $exportResults['state'];
-                unset($exportResults['state']);
-            }
-            $imported = $exportResults;
+
+        $exportResult = $this['extractor']->export($this['parameters']);
+        if (isset($exportResult['state'])) {
+            $outputState = $exportResult['state'];
+            unset($exportResult['state']);
         }
 
         return [
             'status' => 'success',
-            'imported' => $imported,
+            'imported' => $exportResult,
             'state' => $outputState,
         ];
     }
