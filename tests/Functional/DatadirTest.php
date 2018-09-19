@@ -270,7 +270,7 @@ class DatadirTest extends AbstractDatadirTestCase
             $configuration,
             1,
             null,
-            'Invalid Configuration in "table1". Both table and query cannot be set together.' . PHP_EOL
+            'Invalid Configuration for "table1". Both table and query cannot be set together.' . PHP_EOL
         );
     }
 
@@ -299,7 +299,7 @@ class DatadirTest extends AbstractDatadirTestCase
             $configuration,
             1,
             null,
-            'Invalid Configuration in "table1". One of table or query is required.' . PHP_EOL
+            'Invalid Configuration for "table1". One of table or query is required.' . PHP_EOL
         );
     }
 
@@ -555,7 +555,7 @@ class DatadirTest extends AbstractDatadirTestCase
             $configuration,
             1,
             null,
-            'Invalid Configuration in "table1". The table property requires "tableName" and "schema"' . PHP_EOL
+            'Invalid Configuration for "table1". The table property requires "tableName" and "schema"' . PHP_EOL
         );
     }
 
@@ -746,7 +746,7 @@ class DatadirTest extends AbstractDatadirTestCase
             $configuration,
             1,
             null,
-            'Invalid Configuration in "table1". Both table and query cannot be set together.' . PHP_EOL
+            'Invalid Configuration for "table1". Both table and query cannot be set together.' . PHP_EOL
         );
     }
 
@@ -770,7 +770,7 @@ class DatadirTest extends AbstractDatadirTestCase
             $configuration,
             1,
             null,
-            'Invalid Configuration in "table1". One of table or query is required.' . PHP_EOL
+            'Invalid Configuration for "table1". One of table or query is required.' . PHP_EOL
         );
     }
 
@@ -1006,7 +1006,7 @@ class DatadirTest extends AbstractDatadirTestCase
             $configuration,
             1,
             null,
-            'Invalid Configuration in "table1". The table property requires "tableName" and "schema"' . PHP_EOL
+            'Invalid Configuration for "table1". The table property requires "tableName" and "schema"' . PHP_EOL
         );
     }
 
