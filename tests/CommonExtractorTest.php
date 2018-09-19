@@ -876,6 +876,60 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertEquals('success', $result['status']);
     }
 
+    public function testInvalidConfigsBothTableAndQueryWithNoName(): void
+    {
+        $config = $this->getConfigRow(self::DRIVER);
+        unset($config['parameters']['name']);
+
+        // we want to test the no results case
+        $config['parameters']['query'] = "SELECT 1 LIMIT 0";
+
+        $this->expectException(UserException::class);
+        $this->expectExceptionMessageRegExp('(.*Both table and query cannot be set together.*)');
+
+        ($this->getApp($config))->run();
+    }
+
+    public function testInvalidConfigsBothIncrFetchAndQueryWithNoName(): void
+    {
+        $config = $this->getConfigRow(self::DRIVER);
+        unset($config['parameters']['name']);
+        unset($config['parameters']['table']);
+        $config['parameters']['incrementalFetchingColumn'] = 'abc';
+
+        // we want to test the no results case
+        $config['parameters']['query'] = "SELECT 1 LIMIT 0";
+
+        $this->expectException(UserException::class);
+        $this->expectExceptionMessageRegExp('(.*Incremental fetching is not supported for advanced queries.*)');
+
+        ($this->getApp($config))->run();
+    }
+
+    public function testInvalidConfigsNeitherTableNorQueryWithNoName(): void
+    {
+        $config = $this->getConfigRow(self::DRIVER);
+        unset($config['parameters']['name']);
+        unset($config['parameters']['table']);
+
+        $this->expectException(UserException::class);
+        $this->expectExceptionMessageRegExp('(.*One of table or query is required.*)');
+
+        ($this->getApp($config))->run();
+    }
+
+    public function testInvalidConfigsInvalidTableWithNoName(): void
+    {
+        $config = $this->getConfigRow(self::DRIVER);
+        unset($config['parameters']['name']);
+        $config['parameters']['table'] = ['tableName' => 'sales'];
+
+        $this->expectException(UserException::class);
+        $this->expectExceptionMessageRegExp('(.*The table property requires "tableName" and "schema".*)');
+
+        ($this->getApp($config))->run();
+    }
+
     private function getIncrementalFetchingConfig(): array
     {
         $config = $this->getConfigRow(self::DRIVER);
