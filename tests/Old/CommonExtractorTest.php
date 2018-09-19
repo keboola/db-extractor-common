@@ -83,10 +83,7 @@ class CommonExtractorTest extends ExtractorTest
                                   PRIMARY KEY (`_weird-I-d`))"
         );
 
-        $inputFile = $this->dataDir . '/escaping.csv';
         $simpleFile = $this->dataDir . '/simple.csv';
-        $dataLoader->load($inputFile, 'escapingPK');
-        $dataLoader->load($inputFile, 'escaping');
         $dataLoader->load($simpleFile, 'simple', 0);
         // let other methods use the db connection
         $this->db = $dataLoader->getPdo();
