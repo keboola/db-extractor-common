@@ -930,6 +930,19 @@ class CommonExtractorTest extends ExtractorTest
         ($this->getApp($config))->run();
     }
 
+    public function testNoRetryOnCsvError(): void
+    {
+        $config = $this->getConfigRow(self::DRIVER);
+
+        touch($this->dataDir . '/out/tables/in.c-main.simple.csv');
+        chmod($this->dataDir . '/out/tables/in.c-main.simple.csv', 0444);
+
+        $this->expectException('Keboola\DbExtractor\Exception\ApplicationException');
+        $this->expectExceptionMessageRegExp('(.*Failed writing CSV File.*)');
+
+        ($this->getApp($config))->run();
+    }
+
     private function getIncrementalFetchingConfig(): array
     {
         $config = $this->getConfigRow(self::DRIVER);

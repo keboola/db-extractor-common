@@ -208,22 +208,4 @@ class RetryTest extends ExtractorTest
             $this->assertContains('Dead connection', $ue->getMessage());
         }
     }
-
-    public function testNoRetryOnCsvError(): void
-    {
-        $testLogger = new Logger('common-retry-test-logger');
-        $testLogger->pushHandler(new TestHandler());
-
-        $config = $this->getRetryConfig();
-        $config['parameters']['tables'][0]['query'] = "SELECT * FROM sales LIMIT 100;";
-
-        touch($this->dataDir . '/out/tables/in.c-main.sales.csv');
-        chmod($this->dataDir . '/out/tables/in.c-main.sales.csv', 0444);
-
-        $this->expectException('Keboola\DbExtractor\Exception\ApplicationException');
-        $this->expectExceptionMessageRegExp('(.*Failed writing CSV File.*)');
-
-        $app = new Application($config, $testLogger);
-        $app->run();
-    }
 }
