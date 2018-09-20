@@ -266,7 +266,8 @@ class DatadirTest extends AbstractDatadirTestCase
             $configuration,
             1,
             null,
-            'Invalid Configuration for "table1". Both table and query cannot be set together.' . PHP_EOL
+            'Invalid configuration for path "parameters":'
+            . ' Both table and query cannot be set together.' . PHP_EOL
         );
     }
 
@@ -290,7 +291,7 @@ class DatadirTest extends AbstractDatadirTestCase
             $configuration,
             1,
             null,
-            'Invalid Configuration for "table1". One of table or query is required.' . PHP_EOL
+            'Invalid configuration for path "parameters": One of table or query is required.' . PHP_EOL
         );
     }
 
@@ -515,7 +516,8 @@ class DatadirTest extends AbstractDatadirTestCase
             $configuration,
             1,
             null,
-            'Invalid Configuration for "table1". The table property requires "tableName" and "schema"' . PHP_EOL
+            'Invalid configuration for path "parameters":'
+            . ' The table property requires "tableName" and "schema"' . PHP_EOL
         );
     }
 

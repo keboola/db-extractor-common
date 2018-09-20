@@ -63,22 +63,6 @@ abstract class Extractor
             }
             throw new UserException("Error connecting to DB: " . $e->getMessage(), 0, $e);
         }
-        if (isset($parameters['incrementalFetchingColumn']) && $parameters['incrementalFetchingColumn'] !== "") {
-            if (!isset($parameters['table'])
-                || !isset($parameters['table']['schema'])
-                || !isset($parameters['table']['tableName'])
-            ) {
-                throw new UserException(
-                    "Invalid Configuration. Incremental fetching is not supported for advanced queries."
-                );
-            }
-
-            $this->validateIncrementalFetching(
-                $parameters['table'],
-                $parameters['incrementalFetchingColumn'],
-                isset($parameters['incrementalFetchingLimit']) ? $parameters['incrementalFetchingLimit'] : null
-            );
-        }
     }
 
     public function createSshTunnel(array $dbConfig): array
