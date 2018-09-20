@@ -15,6 +15,21 @@ use ErrorException;
 
 class Application extends Container
 {
+    /** @var string */
+    protected $action;
+
+    /** @var array */
+    protected $parameters;
+
+    /** @var array */
+    protected $state;
+
+    /** @var Logger */
+    protected $logger;
+
+    /** @var mixed */
+    protected $extractor;
+
     /** @var ConfigurationInterface */
     private $configDefinition;
 
@@ -24,25 +39,15 @@ class Application extends Container
 
         parent::__construct();
 
-        $app = $this;
+        $this->action = $config['action']?? 'run';
+        $this->parameters = $config['parameters'];
+        $this->state = $state;
+        $this->logger = $logger;
 
-        $this['action'] = isset($config['action'])?$config['action']:'run';
+        $extractorFactory = new ExtractorFactory($this->parameters, $this->state);
+        $this->extractor = $extractorFactory->create($this->logger);
 
-        $this['parameters'] = $config['parameters'];
-
-        $this['state'] = $state;
-
-        $this['logger'] = $logger;
-
-        $this['extractor_factory'] = function () use ($app) {
-            return new ExtractorFactory($app['parameters'], $app['state']);
-        };
-
-        $this['extractor'] = function () use ($app) {
-            return $app['extractor_factory']->create($app['logger']);
-        };
-
-        if ($this['action'] === 'run') {
+        if ($this->action === 'run') {
             $this->configDefinition = new ConfigRowDefinition();
         } else {
             $this->configDefinition = new ActionConfigRowDefinition();
@@ -51,11 +56,11 @@ class Application extends Container
 
     public function run(): array
     {
-        $this['parameters'] = $this->validateParameters($this['parameters']);
+        $this->parameters = $this->validateParameters($this->parameters);
 
-        $actionMethod = $this['action'] . 'Action';
+        $actionMethod = $this->action . 'Action';
         if (!method_exists($this, $actionMethod)) {
-            throw new UserException(sprintf("Action '%s' does not exist.", $this['action']));
+            throw new UserException(sprintf("Action '%s' does not exist.", $this->action));
         }
 
         return $this->$actionMethod();
@@ -114,7 +119,7 @@ class Application extends Container
                 )
             );
         } else if (isset($table['incrementalFetching']['autoIncrementColumn']) && empty($table['primaryKey'])) {
-            $this['logger']->warn("An import autoIncrement column is being used but output primary key is not set.");
+            $this->logger->warn("An import autoIncrement column is being used but output primary key is not set.");
         }
     }
 
@@ -127,7 +132,7 @@ class Application extends Container
                 [$parameters]
             );
 
-            if ($this['action'] === 'run') {
+            if ($this->action === 'run') {
                 $this->validateTableParameters($processedParameters);
             }
 
@@ -141,7 +146,7 @@ class Application extends Container
     {
         $outputState = [];
 
-        $exportResult = $this['extractor']->export($this['parameters']);
+        $exportResult = $this->extractor->export($this->parameters);
         if (isset($exportResult['state'])) {
             $outputState = $exportResult['state'];
             unset($exportResult['state']);
@@ -157,7 +162,7 @@ class Application extends Container
     private function testConnectionAction(): array
     {
         try {
-            $this['extractor']->testConnection();
+            $this->extractor->testConnection();
         } catch (\Throwable $e) {
             throw new UserException(sprintf("Connection failed: '%s'", $e->getMessage()), 0, $e);
         }
@@ -171,7 +176,7 @@ class Application extends Container
     {
         try {
             $output = [];
-            $output['tables'] = $this['extractor']->getTables();
+            $output['tables'] = $this->extractor->getTables();
             $output['status'] = 'success';
         } catch (\Throwable $e) {
             throw new UserException(sprintf("Failed to get tables: '%s'", $e->getMessage()), 0, $e);
