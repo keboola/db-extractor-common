@@ -6,6 +6,7 @@ namespace Keboola\DbExtractor\Tests;
 
 use Keboola\Csv\CsvFile;
 use Keboola\DbExtractor\Application;
+use Keboola\DbExtractor\Exception\ApplicationException;
 use Keboola\DbExtractor\Exception\UserException;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
@@ -937,7 +938,7 @@ class CommonExtractorTest extends ExtractorTest
         touch($this->dataDir . '/out/tables/in.c-main.simple.csv');
         chmod($this->dataDir . '/out/tables/in.c-main.simple.csv', 0444);
 
-        $this->expectException('Keboola\DbExtractor\Exception\ApplicationException');
+        $this->expectException(ApplicationException::class);
         $this->expectExceptionMessageRegExp('(.*Failed writing CSV File.*)');
 
         ($this->getApp($config))->run();
