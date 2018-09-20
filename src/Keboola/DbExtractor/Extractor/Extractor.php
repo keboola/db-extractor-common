@@ -122,14 +122,11 @@ abstract class Extractor
 
     /**
      * @param array $params
-     * @return PDO|mixed
+     * @return PDO
      */
-    abstract public function createConnection(array $params);
+    abstract public function createConnection(array $params): PDO;
 
-    /**
-     * @return void|mixed
-     */
-    abstract public function testConnection();
+    abstract public function testConnection(): void;
 
     /**
      * @param array|null $tables - an optional array of tables with tableName and schema properties
@@ -312,11 +309,7 @@ abstract class Extractor
         return new CsvWriter($this->getOutputFilename($outputTable));
     }
 
-    /**
-     * @param array $table
-     * @return bool|int
-     */
-    protected function createManifest(array $table)
+    protected function createManifest(array $table): void
     {
         $outFilename = $this->getOutputFilename($table['outputTable']) . '.manifest';
 
@@ -375,7 +368,7 @@ abstract class Extractor
                 }
             }
         }
-        return file_put_contents($outFilename, json_encode($manifestData));
+        file_put_contents($outFilename, json_encode($manifestData));
     }
 
     private function getColumnMetadata(array $column): array
