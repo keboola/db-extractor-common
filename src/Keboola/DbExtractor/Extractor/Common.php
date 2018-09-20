@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Keboola\DbExtractor\Extractor;
 
 use Keboola\DbExtractor\Exception\ApplicationException;
-use Keboola\DbExtractor\Exception\DeadConnectionException;
 use Keboola\DbExtractor\Exception\UserException;
 use PDO;
 
@@ -25,7 +24,7 @@ class Common extends Extractor
         ];
 
         // check params
-        foreach (['host', 'database', 'user', 'password'] as $r) {
+        foreach (['host', 'database', 'user', '#password'] as $r) {
             if (!isset($params[$r])) {
                 throw new UserException(sprintf("Parameter %s is missing.", $r));
             }
@@ -36,7 +35,7 @@ class Common extends Extractor
         $port = isset($params['port']) ? $params['port'] : '3306';
         $dsn = sprintf("mysql:host=%s;port=%s;dbname=%s;charset=utf8", $params['host'], $port, $params['database']);
 
-        $pdo = new PDO($dsn, $params['user'], $params['password'], $options);
+        $pdo = new PDO($dsn, $params['user'], $params['#password'], $options);
         $pdo->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, false);
         $pdo->exec("SET NAMES utf8;");
         return $pdo;
