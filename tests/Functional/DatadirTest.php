@@ -1188,7 +1188,9 @@ class DatadirTest extends AbstractDatadirTestCase
                 'outputTable' => 'table1',
                 'rows' => 2,
             ],
-            'state' => [],
+            'state' => [
+                'lastFetchedRow' => '2',
+            ],
         ];
 
         $database = $credentials['database'];
