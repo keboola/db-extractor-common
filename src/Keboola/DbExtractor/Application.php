@@ -7,14 +7,28 @@ namespace Keboola\DbExtractor;
 use Keboola\DbExtractor\Configuration\ActionConfigRowDefinition;
 use Keboola\DbExtractor\Configuration\ConfigRowDefinition;
 use Keboola\DbExtractor\Exception\UserException;
-use Pimple\Container;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 use Symfony\Component\Config\Definition\Exception\Exception as ConfigException;
 use Symfony\Component\Config\Definition\Processor;
 use ErrorException;
 
-class Application extends Container
+class Application
 {
+    /** @var string */
+    protected $action;
+
+    /** @var array */
+    protected $parameters;
+
+    /** @var array */
+    protected $state;
+
+    /** @var Logger */
+    protected $logger;
+
+    /** @var mixed */
+    protected $extractor;
+
     /** @var ConfigurationInterface */
     private $configDefinition;
 
@@ -22,27 +36,15 @@ class Application extends Container
     {
         static::setEnvironment();
 
-        parent::__construct();
+        $this->action = $config['action']?? 'run';
+        $this->parameters = $config['parameters'];
+        $this->state = $state;
+        $this->logger = $logger;
 
-        $app = $this;
+        $extractorFactory = new ExtractorFactory($this->parameters, $this->state);
+        $this->extractor = $extractorFactory->create($this->logger);
 
-        $this['action'] = isset($config['action'])?$config['action']:'run';
-
-        $this['parameters'] = $config['parameters'];
-
-        $this['state'] = $state;
-
-        $this['logger'] = $logger;
-
-        $this['extractor_factory'] = function () use ($app) {
-            return new ExtractorFactory($app['parameters'], $app['state']);
-        };
-
-        $this['extractor'] = function () use ($app) {
-            return $app['extractor_factory']->create($app['logger']);
-        };
-
-        if ($this['action'] === 'run') {
+        if ($this->action === 'run') {
             $this->configDefinition = new ConfigRowDefinition();
         } else {
             $this->configDefinition = new ActionConfigRowDefinition();
@@ -51,11 +53,11 @@ class Application extends Container
 
     public function run(): array
     {
-        $this['parameters'] = $this->validateParameters($this['parameters']);
+        $this->parameters = $this->validateParameters($this->parameters);
 
-        $actionMethod = $this['action'] . 'Action';
+        $actionMethod = $this->action . 'Action';
         if (!method_exists($this, $actionMethod)) {
-            throw new UserException(sprintf("Action '%s' does not exist.", $this['action']));
+            throw new UserException(sprintf("Action '%s' does not exist.", $this->action));
         }
 
         return $this->$actionMethod();
@@ -66,55 +68,10 @@ class Application extends Container
         $this->configDefinition = $definition;
     }
 
-    private function isTableValid(array $table): bool
-    {
-        if (!array_key_exists('schema', $table)) {
-            return false;
-        }
-        if (!array_key_exists('tableName', $table)) {
-            return false;
-        }
-        if ($table['tableName'] === '') {
-            return false;
-        }
-        return true;
-    }
-
     private function validateTableParameters(array $table): void
     {
-        if (isset($table['query']) && $table['query'] !== '') {
-            if (isset($table['table'])) {
-                throw new ConfigException(
-                    sprintf(
-                        'Invalid Configuration for "%s". Both table and query cannot be set together.',
-                        $table['outputTable']
-                    )
-                );
-            }
-            if (isset($table['incrementalFetchingColumn'])) {
-                throw new ConfigException(
-                    sprintf(
-                        'Invalid Configuration for "%s". Incremental fetching is not supported for advanced queries.',
-                        $table['outputTable']
-                    )
-                );
-            }
-        } else if (!isset($table['table'])) {
-            throw new ConfigException(
-                sprintf(
-                    'Invalid Configuration for "%s". One of table or query is required.',
-                    $table['outputTable']
-                )
-            );
-        } else if (!$this->isTableValid($table['table'])) {
-            throw new ConfigException(
-                sprintf(
-                    'Invalid Configuration for "%s". The table property requires "tableName" and "schema"',
-                    $table['outputTable']
-                )
-            );
-        } else if (isset($table['incrementalFetching']['autoIncrementColumn']) && empty($table['primaryKey'])) {
-            $this['logger']->warn("An import autoIncrement column is being used but output primary key is not set.");
+        if (isset($table['incrementalFetching']['autoIncrementColumn']) && empty($table['primaryKey'])) {
+            $this->logger->warn("An import autoIncrement column is being used but output primary key is not set.");
         }
     }
 
@@ -127,8 +84,17 @@ class Application extends Container
                 [$parameters]
             );
 
-            if ($this['action'] === 'run') {
+            if ($this->action === 'run') {
                 $this->validateTableParameters($processedParameters);
+
+                if (isset($parameters['incrementalFetchingColumn'])
+                    && $parameters['incrementalFetchingColumn'] !== "") {
+                    $this->extractor->validateIncrementalFetching(
+                        $parameters['table'],
+                        $parameters['incrementalFetchingColumn'],
+                        $parameters['incrementalFetchingLimit']?? null
+                    );
+                }
             }
 
             return $processedParameters;
@@ -141,7 +107,7 @@ class Application extends Container
     {
         $outputState = [];
 
-        $exportResult = $this['extractor']->export($this['parameters']);
+        $exportResult = $this->extractor->export($this->parameters);
         if (isset($exportResult['state'])) {
             $outputState = $exportResult['state'];
             unset($exportResult['state']);
@@ -157,7 +123,7 @@ class Application extends Container
     private function testConnectionAction(): array
     {
         try {
-            $this['extractor']->testConnection();
+            $this->extractor->testConnection();
         } catch (\Throwable $e) {
             throw new UserException(sprintf("Connection failed: '%s'", $e->getMessage()), 0, $e);
         }
@@ -171,7 +137,7 @@ class Application extends Container
     {
         try {
             $output = [];
-            $output['tables'] = $this['extractor']->getTables();
+            $output['tables'] = $this->extractor->getTables();
             $output['status'] = 'success';
         } catch (\Throwable $e) {
             throw new UserException(sprintf("Failed to get tables: '%s'", $e->getMessage()), 0, $e);

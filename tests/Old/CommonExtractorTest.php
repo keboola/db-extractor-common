@@ -292,12 +292,12 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['query'] = 'SELECT * FROM auto_increment_timestamp';
         unset($config['parameters']['table']);
 
-        try {
-            $result = ($this->getApp($config))->run();
-            $this->fail('cannot use incremental fetching with advanced query, should fail.');
-        } catch (UserException $e) {
-            $this->assertStringStartsWith("Invalid Configuration", $e->getMessage());
-        }
+        $this->expectException(UserException::class);
+        $this->expectExceptionMessage(
+            'Invalid configuration for path "parameters": Incremental fetching is not supported for advanced query.'
+        );
+        $app = $this->getApp($config);
+        $app->run();
     }
 
     public function testColumnOrdering(): void
@@ -384,9 +384,12 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['query'] = "SELECT 1 LIMIT 0";
 
         $this->expectException(UserException::class);
-        $this->expectExceptionMessageRegExp('(.*Incremental fetching is not supported for advanced queries.*)');
+        $this->expectExceptionMessage(
+            'Invalid configuration for path "parameters": Incremental fetching is not supported for advanced query.'
+        );
 
-        ($this->getApp($config))->run();
+        $app = $this->getApp($config);
+        $app->run();
     }
 
     public function testInvalidConfigsNeitherTableNorQueryWithNoName(): void
