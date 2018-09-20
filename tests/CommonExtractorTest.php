@@ -933,10 +933,10 @@ class CommonExtractorTest extends ExtractorTest
 
     public function testNoRetryOnCsvError(): void
     {
-        $config = $this->getConfigRow(self::DRIVER);
+        $config = $this->getConfigRowForCsvErr(self::DRIVER);
 
-        touch($this->dataDir . '/out/tables/in.c-main.simple.csv');
-        chmod($this->dataDir . '/out/tables/in.c-main.simple.csv', 0444);
+        (new Filesystem)->remove($this->dataDir . '/out/tables/in.c-main.simple-csv-err.csv');
+        (new Filesystem)->symlink('/dev/full', $this->dataDir . '/out/tables/in.c-main.simple-csv-err.csv');
 
         $this->expectException(ApplicationException::class);
         $this->expectExceptionMessageRegExp('(.*Failed writing CSV File.*)');
