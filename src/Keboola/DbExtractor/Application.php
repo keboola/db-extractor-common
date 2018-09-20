@@ -7,13 +7,12 @@ namespace Keboola\DbExtractor;
 use Keboola\DbExtractor\Configuration\ActionConfigRowDefinition;
 use Keboola\DbExtractor\Configuration\ConfigRowDefinition;
 use Keboola\DbExtractor\Exception\UserException;
-use Pimple\Container;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 use Symfony\Component\Config\Definition\Exception\Exception as ConfigException;
 use Symfony\Component\Config\Definition\Processor;
 use ErrorException;
 
-class Application extends Container
+class Application
 {
     /** @var string */
     protected $action;
@@ -36,8 +35,6 @@ class Application extends Container
     public function __construct(array $config, Logger $logger, array $state = [])
     {
         static::setEnvironment();
-
-        parent::__construct();
 
         $this->action = $config['action']?? 'run';
         $this->parameters = $config['parameters'];
