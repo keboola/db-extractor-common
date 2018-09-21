@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Extractor;
 
-use Keboola\Csv\CsvFile;
+use Keboola\Csv\CsvWriter;
 use Keboola\Csv\Exception as CsvException;
 use Keboola\Datatype\Definition\GenericStorage;
 use Keboola\DbExtractor\Exception\ApplicationException;
@@ -140,7 +140,7 @@ abstract class Extractor
 
     /**
      * @param array|null $tables - an optional array of tables with tableName and schema properties
-     * @return mixed
+     * @return array
      */
     abstract public function getTables(?array $tables = null): array;
 
@@ -183,8 +183,8 @@ abstract class Extractor
             $result = $proxy->call(function () use ($query, $maxTries, $outputTable, $isAdvancedQuery) {
                 /** @var PDOStatement $stmt */
                 $stmt = $this->executeQuery($query, $maxTries);
-                $csv = $this->createOutputCsv($outputTable);
-                $result = $this->writeToCsv($stmt, $csv, $isAdvancedQuery);
+                $csvWriter = $this->createOutputCsv($outputTable);
+                $result = $this->writeToCsv($stmt, $csvWriter, $isAdvancedQuery);
                 $this->isAlive();
                 return $result;
             });
@@ -196,6 +196,7 @@ abstract class Extractor
         if ($result['rows'] > 0) {
             $this->createManifest($table);
         } else {
+            unlink($this->getOutputFilename($outputTable));
             $this->logger->warn(
                 sprintf(
                     "Query returned empty result. Nothing was imported to [%s]",
@@ -259,11 +260,12 @@ abstract class Extractor
 
     /**
      * @param PDOStatement $stmt
-     * @param CsvFile $csv
+     * @param CsvWriter $csvWriter
      * @param boolean $includeHeader
+     *
      * @return array ['rows', 'lastFetchedRow']
      */
-    protected function writeToCsv(PDOStatement $stmt, CsvFile $csv, bool $includeHeader = true): array
+    protected function writeToCsv(PDOStatement $stmt, CsvWriter $csvWriter, bool $includeHeader = true): array
     {
         $output = [];
 
@@ -272,21 +274,21 @@ abstract class Extractor
         if (is_array($resultRow) && !empty($resultRow)) {
             // write header and first line
             if ($includeHeader) {
-                $csv->writeRow(array_keys($resultRow));
+                $csvWriter->writeRow(array_keys($resultRow));
             }
-            $csv->writeRow($resultRow);
+            $csvWriter->writeRow($resultRow);
 
             // write the rest
             $numRows = 1;
             $lastRow = $resultRow;
 
             while ($resultRow = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                $csv->writeRow($resultRow);
+                $csvWriter->writeRow($resultRow);
                 $lastRow = $resultRow;
                 $numRows++;
             }
             $stmt->closeCursor();
-            
+
             if (isset($this->incrementalFetching['column'])) {
                 if (!array_key_exists($this->incrementalFetching['column'], $lastRow)) {
                     throw new UserException(
@@ -309,13 +311,13 @@ abstract class Extractor
         return $output;
     }
 
-    protected function createOutputCsv(string $outputTable): CsvFile
+    protected function createOutputCsv(string $outputTable): CsvWriter
     {
         $outTablesDir = $this->dataDir . '/out/tables';
         if (!is_dir($outTablesDir)) {
             mkdir($outTablesDir, 0777, true);
         }
-        return new CsvFile($this->getOutputFilename($outputTable));
+        return new CsvWriter($this->getOutputFilename($outputTable));
     }
 
     /**
