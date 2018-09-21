@@ -12,17 +12,18 @@
   "require": {
     "php": ">=7.1",
     "keboola/csv": "^2.0",
+    "keboola/datadir-tests": "^2.1",
     "keboola/php-datatypes": "^3.2",
-    "pimple/pimple": "^3.2",
-    "monolog/monolog": "^1.23",
-    "symfony/process": "^4.1",
-    "symfony/config": "^4.1",
-    "symfony/yaml": "^4.1",
-    "keboola/ssh-tunnel": "^2.0",
     "keboola/php-utils": "^2.3",
+    "keboola/ssh-tunnel": "^2.0",
+    "monolog/monolog": "^1.23",
     "nette/utils": "^2.5",
-    "vkartaviy/retry": "^0.2",
-    "symfony/serializer": "^4.1"
+    "pimple/pimple": "^3.2",
+    "symfony/config": "^4.1",
+    "symfony/process": "^4.1",
+    "symfony/serializer": "^4.1",
+    "symfony/yaml": "^4.1",
+    "vkartaviy/retry": "^0.2"
   },
   "require-dev": {
     "aws/aws-sdk-php": "^3.67",
@@ -42,7 +43,13 @@
     }
   },
   "scripts": {
-    "tests": "./wait-for-it.sh mysql:3306 -t 30 -- ./vendor/bin/phpunit",
+    "old-tests": "./wait-for-it.sh mysql:3306 -t 30 -- ./vendor/bin/phpunit tests/Old",
+    "tests-datadir": "./wait-for-it.sh mysql:3306 -t 30 -- ./vendor/bin/phpunit tests/Functional",
+    "tests-unit": "./vendor/bin/phpunit tests/Unit",
+    "tests": [
+      "@tests-datadir",
+      "@old-tests"
+    ],
     "phpstan": "phpstan analyse --no-progress --level=max ./src ./tests -c phpstan.neon",
     "phpcs": "phpcs -n --ignore=vendor,TaintedPDO.php,TaintedPDOStatement.php --extensions=php .",
     "phpcbf": "phpcbf -n --ignore=vendor --extensions=php .",
