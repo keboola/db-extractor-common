@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Tests;
 
-use Keboola\Csv\CsvFile;
-use Keboola\DbExtractor\Application;
+use Keboola\Csv\CsvWriter;
+use Keboola\DbExtractor\Exception\DeadConnectionException;
 use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractor\Extractor\Common;
 use Keboola\DbExtractor\Logger;
@@ -213,11 +213,11 @@ class RetryTest extends ExtractorTest
 
         // Set up the data table
         if (!$tableExists) {
-            $csv = new CsvFile($sourceFileName);
+            $csvWriter = new CsvWriter($sourceFileName);
             $header = ["usergender", "usercity", "usersentiment", "zipcode", "sku", "createdat", "category"];
-            $csv->writeRow($header);
+            $csvWriter->writeRow($header);
             for ($i = 0; $i < self::ROW_COUNT - 1; $i++) { // -1 for the header
-                $csv->writeRow(
+                $csvWriter->writeRow(
                     [uniqid('g'), "The Lakes", "1", "89124", "ZD111402", "2013-09-23 22:38:30", uniqid('c')]
                 );
             }
@@ -234,7 +234,6 @@ class RetryTest extends ExtractorTest
                 )
             );
             $this->serviceConnection->exec($createTableSql);
-            $fileName = (string) $csv;
             $query = sprintf(
                 "LOAD DATA LOCAL INFILE '%s'
                 INTO TABLE `%s`.`%s`
@@ -243,7 +242,7 @@ class RetryTest extends ExtractorTest
                 OPTIONALLY ENCLOSED BY '\"'
                 ESCAPED BY ''
                 IGNORE 1 LINES",
-                $fileName,
+                $sourceFileName,
                 getenv('TEST_RDS_DATABASE'),
                 $tableName
             );
@@ -254,6 +253,7 @@ class RetryTest extends ExtractorTest
     private function getLineCount(string $fileName): int
     {
         $lineCount = 0;
+        /** @var resource $handle */
         $handle = fopen($fileName, "r");
         while (fgets($handle) !== false) {
             $lineCount++;

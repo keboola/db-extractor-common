@@ -4,20 +4,14 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Logger;
 
-use Keboola\Csv\CsvFile;
-
 class LineFormatter extends \Monolog\Formatter\LineFormatter
 {
     /**
-     * @param CsvFile|array $data
+     * @param array|string $data
      * @return array|string
      */
-    protected function normalize($data, $depth = 0)
+    protected function normalize($data)
     {
-        if ($data instanceof CsvFile) {
-            return "csv file: " . $data->getFilename();
-        } else {
-            return parent::normalize($data, $depth);
-        }
+        return parent::normalize($data);
     }
 }

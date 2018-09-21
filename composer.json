@@ -11,26 +11,25 @@
   ],
   "require": {
     "php": ">=7.1",
-    "ext-pdo": "*",
-    "keboola/csv": "^1.1",
+    "keboola/csv": "^2.0",
     "keboola/php-datatypes": "^3.2",
-    "pimple/pimple": "^3.0",
-    "monolog/monolog": "^1.17",
-    "symfony/process": "^3.0",
-    "symfony/config": "^3.0",
-    "symfony/yaml": "^3.0",
-    "keboola/ssh-tunnel": "^1.0",
+    "pimple/pimple": "^3.2",
+    "monolog/monolog": "^1.23",
+    "symfony/process": "^4.1",
+    "symfony/config": "^4.1",
+    "symfony/yaml": "^4.1",
+    "keboola/ssh-tunnel": "^2.0",
     "keboola/php-utils": "^2.3",
-    "nette/utils": "^2.4",
+    "nette/utils": "^2.5",
     "vkartaviy/retry": "^0.2",
-    "symfony/serializer": "^3.1"
+    "symfony/serializer": "^4.1"
   },
   "require-dev": {
     "aws/aws-sdk-php": "^3.67",
-    "phpunit/phpunit": "^7.0",
-    "keboola/coding-standard": "^2.0",
-    "symfony/finder": "*",
-    "phpstan/phpstan": "^0.8"
+    "phpunit/phpunit": "^7.3",
+    "keboola/coding-standard": "^6.0",
+    "symfony/finder": "^4.1",
+    "phpstan/phpstan-shim": "^0.10"
   },
   "autoload": {
     "psr-4": {
