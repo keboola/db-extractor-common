@@ -1,0 +1,12 @@
+{
+  "parameters": {
+    "tables": [
+      {
+        "id": 1,
+        "name": "table1",
+        "query": "SELECT * FROM table1",
+        "outputTable": "table1"
+      }
+    ]
+  }
+}
