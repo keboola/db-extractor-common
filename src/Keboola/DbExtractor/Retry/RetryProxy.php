@@ -21,6 +21,8 @@ class RetryProxy implements RetryProxyInterface
 
     public const DEFAULT_EXCEPTED_EXCEPTIONS = ['PDOException', 'ErrorException'];
 
+    public const DEFAULT_IGNORABLE_SQLCODES = ['^42'];
+
     /** @var RetryPolicyInterface */
     private $retryPolicy;
 
@@ -35,13 +37,15 @@ class RetryProxy implements RetryProxyInterface
         ?int $maxTries = null,
         ?int $backoffInterval = null,
         ?array $expectedExceptions = null,
+        ?array $ignorableSqlCodes = null,
         ?RetryPolicyInterface $retryPolicy = null,
         ?BackoffPolicyInterface $backoffPolicy = null
     ) {
         if ($retryPolicy === null) {
-            $retryPolicy = new SimpleRetryPolicy(
+            $retryPolicy = new SqlRetryPolicy(
                 $maxTries ?? self::DEFAULT_MAX_TRIES,
-                $expectedExceptions ? $expectedExceptions : self::DEFAULT_EXCEPTED_EXCEPTIONS
+                $expectedExceptions ? $expectedExceptions : self::DEFAULT_EXCEPTED_EXCEPTIONS,
+                $ignorableSqlCodes ? $ignorableSqlCodes : self::DEFAULT_IGNORABLE_SQLCODES
             );
         }
         if ($backoffPolicy === null) {
