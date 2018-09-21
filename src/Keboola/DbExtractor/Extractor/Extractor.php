@@ -257,6 +257,7 @@ abstract class Extractor
      * @param PDOStatement $stmt
      * @param CsvWriter $csvWriter
      * @param boolean $includeHeader
+     *
      * @return array ['rows', 'lastFetchedRow']
      */
     protected function writeToCsv(PDOStatement $stmt, CsvWriter $csvWriter, bool $includeHeader = true): array
