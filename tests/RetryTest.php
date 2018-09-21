@@ -4,15 +4,11 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Tests;
 
-use Keboola\Csv\CsvFile;
-use Keboola\DbExtractor\Application;
-use Keboola\DbExtractor\Exception\ApplicationException;
+use Keboola\Csv\CsvWriter;
 use Keboola\DbExtractor\Exception\DeadConnectionException;
 use Keboola\DbExtractor\Exception\UserException;
-use Keboola\DbExtractor\Logger;
 use Keboola\DbExtractor\Test\ExtractorTest;
 use Keboola\Temp\Temp;
-use Monolog\Handler\TestHandler;
 use PDO;
 
 class RetryTest extends ExtractorTest
@@ -59,6 +55,7 @@ class RetryTest extends ExtractorTest
 
     private function setupLargeTable(string $sourceFileName): void
     {
+        /** @var \PDOStatement $res */
         $res = $this->pdo->query(
             "SELECT * 
             FROM information_schema.tables
@@ -70,11 +67,19 @@ class RetryTest extends ExtractorTest
 
         // Set up the data table
         if (!$tableExists) {
-            $csv = new CsvFile($sourceFileName);
+            $csvWriter = new CsvWriter($sourceFileName);
             $header = ["usergender", "usercity", "usersentiment", "zipcode", "sku", "createdat", "category"];
-            $csv->writeRow($header);
+            $csvWriter->writeRow($header);
             for ($i = 0; $i < self::ROW_COUNT - 1; $i++) { // -1 for the header
-                $csv->writeRow([uniqid('g'), "The Lakes", "1", "89124", "ZD111402", "2013-09-23 22:38:30", uniqid('c')]);
+                $csvWriter->writeRow([
+                    uniqid('g'),
+                    "The Lakes",
+                    "1",
+                    "89124",
+                    "ZD111402",
+                    "2013-09-23 22:38:30",
+                    uniqid('c'),
+                ]);
             }
 
             $createTableSql = sprintf(
@@ -89,9 +94,8 @@ class RetryTest extends ExtractorTest
                 )
             );
             $this->pdo->exec($createTableSql);
-            $fileName = (string) $csv;
             $query = "
-                LOAD DATA LOCAL INFILE '{$fileName}'
+                LOAD DATA LOCAL INFILE '{$sourceFileName}'
                 INTO TABLE `odin4test`.`sales`
                 CHARACTER SET utf8
                 FIELDS TERMINATED BY ','
@@ -123,6 +127,7 @@ class RetryTest extends ExtractorTest
     private function getLineCount(string $fileName): int
     {
         $lineCount = 0;
+        /** @var resource $handle */
         $handle = fopen($fileName, "r");
         while (fgets($handle) !== false) {
             $lineCount++;
@@ -138,7 +143,9 @@ class RetryTest extends ExtractorTest
         while (true) {
             try {
                 $conn = $this->getConnection();
-                $conn->query('SELECT NOW();')->execute();
+                /** @var \PDOStatement $stmt */
+                $stmt = $conn->query('SELECT NOW();');
+                $stmt->execute();
                 $this->pdo = $conn;
                 break;
             } catch (\PDOException $e) {
@@ -186,7 +193,11 @@ class RetryTest extends ExtractorTest
 
         $this->assertEquals('success', $result['status']);
         $this->assertFileExists($outputCsvFile);
-        $this->assertFileExists($this->dataDir . '/out/tables/' . $result['imported'][0]['outputTable'] . '.csv.manifest');
+        $this->assertFileExists(sprintf(
+            "%s/out/tables/%s.csv.manifest",
+            $this->dataDir,
+            $result['imported'][0]['outputTable']
+        ));
         $this->assertEquals(self::ROW_COUNT, $this->getLineCount($outputCsvFile));
     }
 
