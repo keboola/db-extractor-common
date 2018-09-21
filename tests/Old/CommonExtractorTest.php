@@ -48,10 +48,12 @@ class CommonExtractorTest extends ExtractorTest
             $this->getEnv(self::DRIVER, 'DB_PASSWORD')
         );
 
-        $dataLoader->getPdo()->exec(sprintf(
-            "DROP DATABASE IF EXISTS `%s`",
-            $this->getEnv(self::DRIVER, 'DB_DATABASE')
-        ));
+        $dataLoader->getPdo()->exec(
+            sprintf(
+                "DROP DATABASE IF EXISTS `%s`",
+                $this->getEnv(self::DRIVER, 'DB_DATABASE')
+            )
+        );
         $dataLoader->getPdo()->exec(
             sprintf(
                 "
