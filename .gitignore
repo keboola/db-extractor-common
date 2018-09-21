@@ -2,8 +2,7 @@
 vendor/
 /data/
 .idea/
-composer.phar
 composer.lock
+composer.phar
 runtests.sh
 /ssh.*
-/tests/data/out/tables/

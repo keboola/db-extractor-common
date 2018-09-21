@@ -1,4 +1,5 @@
 parameters:
     ignoreErrors:
-        - '#Property Keboola\\DbExtractor\\Tests\\RetryTest::\$taintedPdo \(PDO\) does not accept null.#'
-        - '#Call to an undefined method PHPUnit\\Framework\\MockObject\\MockObject::export\(\).#'
+        - '#Calling method end\(\) on possibly null value of type Symfony\\Component\\Config\\Definition\\Builder\\NodeParentInterface|null.#'
+        - '#Call to an undefined method PHPUnit\\Framework\\MockObject\\MockObject::getConfig\(\).#'
+        - '#Call to an undefined method PHPUnit\\Framework\\MockObject\\MockObject::extract\(\).#'

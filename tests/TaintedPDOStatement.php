@@ -1,6 +1,6 @@
 <?php
 
-namespace Keboola\DbExtractor\Tests;
+namespace Keboola\DbExtractorCommon\Tests;
 
 use PDO;
 
