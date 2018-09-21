@@ -13,7 +13,7 @@
     "php": ">=7.1",
     "keboola/csv": "^2.0",
     "keboola/php-datatypes": "^3.2",
-    "keboola/php-utils": "^2.3",
+    "keboola/php-utils": "^2.5",
     "keboola/ssh-tunnel": "^2.0",
     "monolog/monolog": "^1.23",
     "nette/utils": "^2.5",
