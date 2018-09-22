@@ -6,7 +6,10 @@ namespace Keboola\DbExtractor\Tests;
 
 use Keboola\Csv\CsvFile;
 use Keboola\DbExtractor\Application;
+use Keboola\DbExtractor\Exception\ApplicationException;
 use Keboola\DbExtractor\Exception\UserException;
+use Keboola\DbExtractor\Logger;
+use Monolog\Handler\TestHandler;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\Yaml\Yaml;
@@ -928,6 +931,26 @@ class CommonExtractorTest extends ExtractorTest
         $this->expectExceptionMessageRegExp('(.*The table property requires "tableName" and "schema".*)');
 
         ($this->getApp($config))->run();
+    }
+
+    public function testNoRetryOnCsvError(): void
+    {
+        $config = $this->getConfigRowForCsvErr(self::DRIVER);
+
+        (new Filesystem)->remove($this->dataDir . '/out/tables/in.c-main.simple-csv-err.csv');
+        (new Filesystem)->symlink('/dev/full', $this->dataDir . '/out/tables/in.c-main.simple-csv-err.csv');
+
+        $handler = new TestHandler();
+        $logger = new Logger($this->appName);
+        $logger->pushHandler($handler);
+        $app = new Application($config, $logger, []);
+        try {
+            $app->run();
+            self::fail('Must raise exception');
+        } catch (ApplicationException $e) {
+            self::assertContains('Failed writing CSV File', $e->getMessage());
+            self::assertFalse($handler->hasInfoThatContains('Retrying'));
+        }
     }
 
     private function getIncrementalFetchingConfig(): array

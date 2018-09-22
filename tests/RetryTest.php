@@ -5,10 +5,14 @@ declare(strict_types=1);
 namespace Keboola\DbExtractor\Tests;
 
 use Keboola\Csv\CsvFile;
+use Keboola\DbExtractor\Application;
+use Keboola\DbExtractor\Exception\ApplicationException;
 use Keboola\DbExtractor\Exception\DeadConnectionException;
 use Keboola\DbExtractor\Exception\UserException;
+use Keboola\DbExtractor\Logger;
 use Keboola\DbExtractor\Test\ExtractorTest;
 use Keboola\Temp\Temp;
+use Monolog\Handler\TestHandler;
 use PDO;
 
 class RetryTest extends ExtractorTest
@@ -27,6 +31,8 @@ class RetryTest extends ExtractorTest
     {
         // intentionally don't call parent, we use a different PDO connection
         $this->pdo = $this->getConnection();
+        // unlink the output file
+        @unlink($this->dataDir . '/out/tables/in.c-main.sales.csv');
     }
 
     private function getConnection(): PDO
