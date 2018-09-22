@@ -90,31 +90,31 @@ class Application extends Container
             if (isset($table['table'])) {
                 throw new ConfigException(
                     sprintf(
-                        'Invalid Configuration in "%s". Both table and query cannot be set together.',
-                        $table['name']
+                        'Invalid Configuration for "%s". Both table and query cannot be set together.',
+                        $table['outputTable']
                     )
                 );
             }
             if (isset($table['incrementalFetchingColumn'])) {
                 throw new ConfigException(
                     sprintf(
-                        'Invalid Configuration in "%s". Incremental fetching is not supported for advanced queries.',
-                        $table['name']
+                        'Invalid Configuration for "%s". Incremental fetching is not supported for advanced queries.',
+                        $table['outputTable']
                     )
                 );
             }
         } else if (!isset($table['table'])) {
             throw new ConfigException(
                 sprintf(
-                    'Invalid Configuration in "%s". One of table or query is required.',
-                    $table['name']
+                    'Invalid Configuration for "%s". One of table or query is required.',
+                    $table['outputTable']
                 )
             );
         } else if (!$this->isTableValid($table['table'])) {
             throw new ConfigException(
                 sprintf(
-                    'Invalid Configuration in "%s". The table property requires "tableName" and "schema"',
-                    $table['name']
+                    'Invalid Configuration for "%s". The table property requires "tableName" and "schema"',
+                    $table['outputTable']
                 )
             );
         } else if (isset($table['incrementalFetching']['autoIncrementColumn']) && empty($table['primaryKey'])) {

@@ -58,6 +58,17 @@ class ExtractorTest extends \PHPUnit_Framework_TestCase
         return $config;
     }
 
+    protected function getConfigRowForCsvErr(string $driver): array
+    {
+        $config = json_decode(file_get_contents($this->dataDir . '/' .$driver . '/configRowCsvErr.json'), true);
+
+        $config['parameters']['data_dir'] = $this->dataDir;
+        $config['parameters']['db'] = $this->getConfigDbNode($driver);
+        $config['parameters']['extractor_class'] = ucfirst($driver);
+
+        return $config;
+    }
+
     protected function getEnv(string $driver, string $suffix, bool $required = false): string
     {
         $env = strtoupper($driver) . '_' . $suffix;

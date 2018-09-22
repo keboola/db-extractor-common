@@ -6,6 +6,7 @@ namespace Keboola\DbExtractor\Tests;
 
 use Keboola\Csv\CsvFile;
 use Keboola\DbExtractor\Application;
+use Keboola\DbExtractor\Exception\ApplicationException;
 use Keboola\DbExtractor\Exception\UserException;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
@@ -874,6 +875,73 @@ class CommonExtractorTest extends ExtractorTest
 
         $this->assertArrayHasKey('status', $result);
         $this->assertEquals('success', $result['status']);
+    }
+
+    public function testInvalidConfigsBothTableAndQueryWithNoName(): void
+    {
+        $config = $this->getConfigRow(self::DRIVER);
+        unset($config['parameters']['name']);
+
+        // we want to test the no results case
+        $config['parameters']['query'] = "SELECT 1 LIMIT 0";
+
+        $this->expectException(UserException::class);
+        $this->expectExceptionMessageRegExp('(.*Both table and query cannot be set together.*)');
+
+        ($this->getApp($config))->run();
+    }
+
+    public function testInvalidConfigsBothIncrFetchAndQueryWithNoName(): void
+    {
+        $config = $this->getConfigRow(self::DRIVER);
+        unset($config['parameters']['name']);
+        unset($config['parameters']['table']);
+        $config['parameters']['incrementalFetchingColumn'] = 'abc';
+
+        // we want to test the no results case
+        $config['parameters']['query'] = "SELECT 1 LIMIT 0";
+
+        $this->expectException(UserException::class);
+        $this->expectExceptionMessageRegExp('(.*Incremental fetching is not supported for advanced queries.*)');
+
+        ($this->getApp($config))->run();
+    }
+
+    public function testInvalidConfigsNeitherTableNorQueryWithNoName(): void
+    {
+        $config = $this->getConfigRow(self::DRIVER);
+        unset($config['parameters']['name']);
+        unset($config['parameters']['table']);
+
+        $this->expectException(UserException::class);
+        $this->expectExceptionMessageRegExp('(.*One of table or query is required.*)');
+
+        ($this->getApp($config))->run();
+    }
+
+    public function testInvalidConfigsInvalidTableWithNoName(): void
+    {
+        $config = $this->getConfigRow(self::DRIVER);
+        unset($config['parameters']['name']);
+        $config['parameters']['table'] = ['tableName' => 'sales'];
+
+        $this->expectException(UserException::class);
+        $this->expectExceptionMessageRegExp('(.*The table property requires "tableName" and "schema".*)');
+
+        ($this->getApp($config))->run();
+    }
+
+    public function testNoRetryOnCsvError(): void
+    {
+        $config = $this->getConfigRowForCsvErr(self::DRIVER);
+
+        (new Filesystem)->remove($this->dataDir . '/out/tables/in.c-main.simple-csv-err.csv');
+        (new Filesystem)->symlink('/dev/full', $this->dataDir . '/out/tables/in.c-main.simple-csv-err.csv');
+
+        $this->expectException(ApplicationException::class);
+        $this->expectExceptionMessageRegExp('(.*Failed writing CSV File.*)');
+
+        ($this->getApp($config))->run();
     }
 
     private function getIncrementalFetchingConfig(): array

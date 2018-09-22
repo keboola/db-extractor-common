@@ -177,7 +177,7 @@ abstract class Extractor
             $this->logger,
             $maxTries,
             RetryProxy::DEFAULT_BACKOFF_INTERVAL,
-            ['Keboola\DbExtractor\Exception\DeadConnectionException']
+            [DeadConnectionException::class, \ErrorException::class]
         );
         try {
             $result = $proxy->call(function () use ($query, $maxTries, $outputTable, $isAdvancedQuery) {
@@ -289,7 +289,8 @@ abstract class Extractor
                 $lastRow = $resultRow;
                 $numRows++;
             }
-
+            $stmt->closeCursor();
+            
             if (isset($this->incrementalFetching['column'])) {
                 if (!array_key_exists($this->incrementalFetching['column'], $lastRow)) {
                     throw new UserException(
