@@ -46,11 +46,8 @@ class SqlRetryPolicy extends AbstractRetryPolicy
         ?array $retryableExceptions = null,
         ?array $ignorableSqlstateMasks = null
     ) {
-        if ($maxAttempts === null) {
-            $maxAttempts = self::DEFAULT_MAX_ATTEMPTS;
-        }
 
-        $this->maxAttempts = (int) $maxAttempts;
+        $this->maxAttempts = $maxAttempts ?? self::DEFAULT_MAX_ATTEMPTS;
 
         if ($retryableExceptions) {
             $this->retryableExceptions = $retryableExceptions;
