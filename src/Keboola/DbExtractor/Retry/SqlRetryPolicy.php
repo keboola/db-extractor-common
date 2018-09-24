@@ -83,7 +83,7 @@ class SqlRetryPolicy extends AbstractRetryPolicy
         if (strstr($errorMessage, 'SQLSTATE') === false) {
             return false;
         }
-        preg_match('/SQLSTATE\[(\w+)\] (.*)/', $errorMessage(), $matches);
+        preg_match('/SQLSTATE\[(\w+)\] (.*)/', $errorMessage, $matches);
         if (count($matches) < 2) {
             return false;
         }
