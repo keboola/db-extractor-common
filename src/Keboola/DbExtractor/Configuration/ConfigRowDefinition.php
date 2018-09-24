@@ -54,8 +54,14 @@ class ConfigRowDefinition implements ConfigurationInterface
                 ->scalarNode('query')->end()
                 ->arrayNode('table')
                     ->children()
-                        ->scalarNode('schema')->end()
-                        ->scalarNode('tableName')->end()
+                        ->scalarNode('schema')
+                            ->isRequired()
+                            ->cannotBeEmpty()
+                        ->end()
+                        ->scalarNode('tableName')
+                            ->isRequired()
+                            ->cannotBeEmpty()
+                        ->end()
                     ->end()
                 ->end()
                 ->arrayNode('columns')
@@ -79,6 +85,27 @@ class ConfigRowDefinition implements ConfigurationInterface
                 ->integerNode('retries')
                     ->min(0)
                 ->end()
+            ->end();
+
+        $rootNode->validate()
+            ->ifTrue(function ($v) {
+                return (!isset($v['query']) && !isset($v['table']));
+            })
+            ->thenInvalid('Either "table" or "query" must be defined.')
+            ->end();
+
+        $rootNode->validate()
+            ->ifTrue(function ($v) {
+                return (isset($v['query']) && isset($v['table']));
+            })
+            ->thenInvalid('Both "table" and "query" cannot be set together.')
+            ->end();
+
+        $rootNode->validate()
+            ->ifTrue(function ($v) {
+                return (isset($v['query']) && isset($v['incrementalFetchingColumn']));
+            })
+            ->thenInvalid('Incremental fetching is not supported for advanced queries.')
             ->end();
         // @formatter:on
 

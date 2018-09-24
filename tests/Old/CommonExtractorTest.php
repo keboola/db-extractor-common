@@ -627,26 +627,28 @@ class CommonExtractorTest extends ExtractorTest
     {
         $config = $this->getConfig(self::DRIVER);
         $config['parameters']['tables'][0]['table'] = ['schema' => 'testdb', 'tableName' => 'escaping'];
-        try {
-            $app = $this->getApp($config);
-            $app->run();
-            $this->fail('table and query parameters cannot both be present');
-        } catch (\Keboola\DbExtractor\Exception\UserException $e) {
-            $this->assertStringStartsWith("Invalid Configuration", $e->getMessage());
-        }
+
+        $this->expectException(UserException::class);
+        $this->expectExceptionMessage(
+            'Invalid configuration for path "parameters.tables": Both "table" and "query" cannot be set together.'
+        );
+
+        $app = $this->getApp($config);
+        $app->run();
     }
 
     public function testInvalidConfigurationQueryNorTable(): void
     {
         $config = $this->getConfig(self::DRIVER);
         unset($config['parameters']['tables'][0]['query']);
-        try {
-            $app = $this->getApp($config);
-            $app->run();
-            $this->fail('one of table or query is required');
-        } catch (\Keboola\DbExtractor\Exception\UserException $e) {
-            $this->assertStringStartsWith("Invalid Configuration", $e->getMessage());
-        }
+
+        $this->expectException(UserException::class);
+        $this->expectExceptionMessage(
+            'Invalid configuration for path "parameters.tables": Either "table" or "query" must be defined'
+        );
+
+        $app = $this->getApp($config);
+        $app->run();
     }
 
     public function testStrangeTableName(): void
@@ -832,12 +834,14 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['query'] = 'SELECT * FROM auto_increment_timestamp';
         unset($config['parameters']['table']);
 
-        try {
-            $result = ($this->getApp($config))->run();
-            $this->fail('cannot use incremental fetching with advanced query, should fail.');
-        } catch (UserException $e) {
-            $this->assertStringStartsWith("Invalid Configuration", $e->getMessage());
-        }
+        $this->expectException(UserException::class);
+        $this->expectExceptionMessage(
+            'Invalid configuration for path "parameters": Incremental fetching is not supported for advanced queries.'
+        );
+
+        $app = $this->getApp($config);
+        $app->run();
+
     }
 
     public function testColumnOrdering(): void
@@ -908,9 +912,12 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['query'] = "SELECT 1 LIMIT 0";
 
         $this->expectException(UserException::class);
-        $this->expectExceptionMessageRegExp('(.*Both table and query cannot be set together.*)');
+        $this->expectExceptionMessage(
+            'Invalid configuration for path "parameters": Both "table" and "query" cannot be set together.'
+        );
 
-        ($this->getApp($config))->run();
+        $app = $this->getApp($config);
+        $app->run();
     }
 
     public function testInvalidConfigsBothIncrFetchAndQueryWithNoName(): void
@@ -936,9 +943,12 @@ class CommonExtractorTest extends ExtractorTest
         unset($config['parameters']['table']);
 
         $this->expectException(UserException::class);
-        $this->expectExceptionMessageRegExp('(.*One of table or query is required.*)');
+        $this->expectExceptionMessage(
+            'Invalid configuration for path "parameters": Either "table" or "query" must be defined.'
+        );
 
-        ($this->getApp($config))->run();
+        $app = $this->getApp($config);
+        $app->run();
     }
 
     public function testInvalidConfigsInvalidTableWithNoName(): void
@@ -948,7 +958,9 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['table'] = ['tableName' => 'sales'];
 
         $this->expectException(UserException::class);
-        $this->expectExceptionMessageRegExp('(.*The table property requires "tableName" and "schema".*)');
+        $this->expectExceptionMessage(
+            'The child node "schema" at path "parameters.table" must be configured.'
+        );
 
         ($this->getApp($config))->run();
     }
