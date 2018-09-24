@@ -54,14 +54,14 @@ class RetryProxyTest extends ExtractorTest
                 $res = $this->db->query('SELECT SOMETHING FROM NOTHING;');
             });
         } catch (\Throwable $e) {
-            echo "\nERROR: " . $e->getMessage() . "\n";
-            echo "\nclass: " . get_class($e) . "\n";
+            $this->assertContains("SQLSTATE[42S02]: Base table or view not found", $e->getMessage());
+            $this->assertFalse($testHandler->hasInfoThatContains('Retrying'));
         }
     }
 
     public function ignorableSqlCodesProvider() {
         return [
-            [['42000']],
+            [['42502']],
             [['^42']]
         ];
     }
