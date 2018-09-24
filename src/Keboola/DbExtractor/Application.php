@@ -86,10 +86,6 @@ class Application extends Container
                 [$parameters]
             );
 
-            if (!empty($processedParameters['db']['#password'])) {
-                $processedParameters['db']['password'] = $processedParameters['db']['#password'];
-            }
-
             if ($this['action'] === 'run') {
                 if (isset($processedParameters['tables'])) {
                     foreach ($processedParameters['tables'] as $table) {
