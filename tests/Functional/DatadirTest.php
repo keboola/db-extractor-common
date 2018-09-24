@@ -573,7 +573,7 @@ class DatadirTest extends AbstractDatadirTestCase
                 'id' => 1,
                 'name' => 'table1',
                 'table' => [
-                    'tableName' => 'tableName'
+                    'tableName' => 'tableName',
                 ],
                 'outputTable' => 'table1',
             ],
@@ -601,7 +601,7 @@ class DatadirTest extends AbstractDatadirTestCase
                 'id' => 1,
                 'name' => 'table1',
                 'table' => [
-                    'schema' => 'database'
+                    'schema' => 'database',
                 ],
                 'outputTable' => 'table1',
             ],
@@ -1079,7 +1079,7 @@ class DatadirTest extends AbstractDatadirTestCase
         $configuration['parameters']['name'] = 'table1';
         $configuration['parameters']['outputTable'] = 'table1';
         $configuration['parameters']['table'] = [
-            'tableName' => 'table'
+            'tableName' => 'table',
         ];
 
         $this->runCommonTest(
@@ -1102,7 +1102,7 @@ class DatadirTest extends AbstractDatadirTestCase
         $configuration['parameters']['name'] = 'table1';
         $configuration['parameters']['outputTable'] = 'table1';
         $configuration['parameters']['table'] = [
-            'schema' => 'database'
+            'schema' => 'database',
         ];
 
         $this->runCommonTest(

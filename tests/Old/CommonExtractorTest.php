@@ -841,7 +841,6 @@ class CommonExtractorTest extends ExtractorTest
 
         $app = $this->getApp($config);
         $app->run();
-
     }
 
     public function testColumnOrdering(): void
