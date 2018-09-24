@@ -20,7 +20,6 @@
     "symfony/config": "^4.1",
     "symfony/process": "^4.1",
     "symfony/serializer": "^4.1",
-    "symfony/yaml": "^4.1",
     "vkartaviy/retry": "^0.2"
   },
   "require-dev": {
