@@ -14,7 +14,7 @@ class SqlRetryPolicy extends AbstractRetryPolicy
      *
      * @var int
      */
-    const DEFAULT_MAX_ATTEMPTS = 3;
+    public const DEFAULT_MAX_ATTEMPTS = 3;
 
     /**
      * The maximum number of retry attempts before failure.
@@ -42,9 +42,9 @@ class SqlRetryPolicy extends AbstractRetryPolicy
      * @param array|null $retryableExceptions
      */
     public function __construct(
-        int $maxAttempts = null,
-        array $retryableExceptions = null,
-        array $ignorableSqlstateMasks = null
+        ?int $maxAttempts = null,
+        ?array $retryableExceptions = null,
+        ?array $ignorableSqlstateMasks = null
     ) {
         if ($maxAttempts === null) {
             $maxAttempts = self::DEFAULT_MAX_ATTEMPTS;
@@ -61,7 +61,7 @@ class SqlRetryPolicy extends AbstractRetryPolicy
         }
     }
 
-    public function canRetry(RetryContextInterface $context)
+    public function canRetry(RetryContextInterface $context): bool
     {
         $e = $context->getLastException();
 

@@ -18,7 +18,7 @@ class RetryProxyTest extends ExtractorTest
      */
     private $db;
 
-    public function setUp()
+    public function setUp(): void
     {
         $dataLoader = new DataLoader(
             $this->getEnv(self::DRIVER, 'DB_HOST'),
@@ -50,8 +50,8 @@ class RetryProxyTest extends ExtractorTest
         );
 
         try {
-            $retryProxy->call(function () {
-                $res = $this->db->query('SELECT SOMETHING FROM NOTHING;');
+            $retryProxy->call(function (): void {
+                $this->db->query('SELECT SOMETHING FROM NOTHING;');
             });
         } catch (\Throwable $e) {
             $this->assertContains("SQLSTATE[42S02]: Base table or view not found", $e->getMessage());
@@ -59,17 +59,11 @@ class RetryProxyTest extends ExtractorTest
         }
     }
 
-    public function ignorableSqlCodesProvider() {
+    public function ignorableSqlCodesProvider(): array
+    {
         return [
             [['42502']],
-            [['^42']]
-        ];
-    }
-
-    public function retriableSqlCodesProvider() {
-        return [
-            [['HY000']],
-            [['^HY']]
+            [['^42']],
         ];
     }
 }
