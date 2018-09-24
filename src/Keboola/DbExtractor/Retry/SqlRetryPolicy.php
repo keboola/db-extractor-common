@@ -83,7 +83,7 @@ class SqlRetryPolicy extends AbstractRetryPolicy
 
     private function shouldIgnoreForSqlStateCode(string $errorMessage): bool
     {
-        if (!strstr($errorMessage, 'SQLSTATE')) {
+        if (strstr($errorMessage, 'SQLSTATE') === false) {
             return false;
         }
         preg_match('/SQLSTATE\[(\w+)\] (.*)/', $errorMessage(), $matches);
