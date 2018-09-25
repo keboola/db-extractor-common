@@ -69,7 +69,10 @@ class ExtractorTest extends TestCase
 
     protected function getConfigRowForCsvErr(string $driver): array
     {
-        $config = json_decode(file_get_contents($this->dataDir . '/' .$driver . '/configRowCsvErr.json'), true);
+        $config = json_decode(
+            (string) file_get_contents($this->dataDir . '/' .$driver . '/configRowCsvErr.json'),
+            true
+        );
 
         $config['parameters']['data_dir'] = $this->dataDir;
         $config['parameters']['db'] = $this->getConfigDbNode($driver);
