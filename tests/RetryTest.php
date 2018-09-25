@@ -209,6 +209,45 @@ class RetryTest extends ExtractorTest
         $this->pid = $stmt->fetch()['pid'];
     }
 
+
+    private function doKillConnection(\PDO $pdo)
+    {
+        try {
+            fwrite(STDERR, sprintf('[%s] Killing connection : %s', date('Y-m-d H:i:s'), $this->pid) . PHP_EOL);
+            $this->serviceConnection->exec('KILL ' . $this->pid);
+        } catch (\Throwable $e) {
+            fwrite(STDERR, sprintf('[%s] Kill result: %s', date('Y-m-d H:i:s'), $e->getMessage()) . PHP_EOL);
+        }
+    }
+
+    public function killConnection($event, $stmt, $pdo)
+    {
+        fwrite(STDERR, sprintf('[%s] Event: %s, Killer: %s', date('Y-m-d H:i:s'), $event, var_export($this->killerEnabled, true)) . PHP_EOL);
+        if ($event === 'fetch') {
+            $this->fetchCount++;
+        }
+        if (($this->killerEnabled === 'fetch') && ($event === 'fetch') && ($this->fetchCount % 1000 === 0)) {
+            fwrite(STDERR, sprintf('[%s] Killing', date('Y-m-d H:i:s')) . PHP_EOL);
+            $this->doKillConnection($pdo);
+        }
+        if (($this->killerEnabled === 'query') && ($event === 'query')) {
+            fwrite(STDERR, sprintf('[%s] Killing', date('Y-m-d H:i:s')) . PHP_EOL);
+            $this->doKillConnection($pdo);
+        }
+        if (($this->killerEnabled === 'execute') && ($event === 'execute')) {
+            fwrite(STDERR, sprintf('[%s] Killing', date('Y-m-d H:i:s')) . PHP_EOL);
+            $this->doKillConnection($pdo);
+        }
+        if (($this->killerEnabled === 'prepare') && ($event === 'prepare')) {
+            fwrite(STDERR, sprintf('[%s] Killing', date('Y-m-d H:i:s')) . PHP_EOL);
+            $this->doKillConnection($pdo);
+        }
+
+        if ($this->killerEnabled === 'query') {
+            sleep(2);
+        }
+    }
+    
     public function testRabbit(): void
     {
         exec(self::SERVER_KILLER_EXECUTABLE . ' 0', $output, $ret);
@@ -280,43 +319,6 @@ class RetryTest extends ExtractorTest
         $stmt->execute();
     }
 
-    private function doKillConnection(\PDO $pdo)
-    {
-        try {
-            fwrite(STDERR, sprintf('[%s] Killing connection : %s', date('Y-m-d H:i:s'), $this->pid) . PHP_EOL);
-            $this->serviceConnection->exec('KILL ' . $this->pid);
-        } catch (\Throwable $e) {
-            fwrite(STDERR, sprintf('[%s] Kill result: %s', date('Y-m-d H:i:s'), $e->getMessage()) . PHP_EOL);
-        }
-    }
-
-    public function killConnection($event, $stmt, $pdo)
-    {
-        fwrite(STDERR, sprintf('[%s] Event: %s, Killer: %s', date('Y-m-d H:i:s'), $event, var_export($this->killerEnabled, true)) . PHP_EOL);
-        if ($event === 'fetch') {
-            $this->fetchCount++;
-        }
-        if (($this->killerEnabled === 'fetch') && ($event === 'fetch') && ($this->fetchCount % 1000 === 0)) {
-            fwrite(STDERR, sprintf('[%s] Killing', date('Y-m-d H:i:s')) . PHP_EOL);
-            $this->doKillConnection($pdo);
-        }
-        if (($this->killerEnabled === 'query') && ($event === 'query')) {
-            fwrite(STDERR, sprintf('[%s] Killing', date('Y-m-d H:i:s')) . PHP_EOL);
-            $this->doKillConnection($pdo);
-        }
-        if (($this->killerEnabled === 'execute') && ($event === 'execute')) {
-            fwrite(STDERR, sprintf('[%s] Killing', date('Y-m-d H:i:s')) . PHP_EOL);
-            $this->doKillConnection($pdo);
-        }
-        if (($this->killerEnabled === 'prepare') && ($event === 'prepare')) {
-            fwrite(STDERR, sprintf('[%s] Killing', date('Y-m-d H:i:s')) . PHP_EOL);
-            $this->doKillConnection($pdo);
-        }
-
-        if ($this->killerEnabled === 'query') {
-            sleep(2);
-        }
-    }
 
     public function testNetworkKillerFetch(): void
     {
