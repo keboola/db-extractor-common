@@ -10,7 +10,7 @@ use Keboola\DbExtractor\Exception\ApplicationException;
 use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractor\Test\DataLoader;
 use Keboola\DbExtractor\Test\ExtractorTest;
-use Keboola\DbExtractor\Logger;
+use Keboola\Component\Logger;
 use Monolog\Handler\TestHandler;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
@@ -966,7 +966,7 @@ class CommonExtractorTest extends ExtractorTest
         (new Filesystem)->symlink('/dev/full', $this->dataDir . '/out/tables/in.c-main.simple-csv-err.csv');
 
         $handler = new TestHandler();
-        $logger = new Logger($this->appName);
+        $logger = new Logger();
         $logger->pushHandler($handler);
         $app = new Application($config, $logger, []);
         try {
