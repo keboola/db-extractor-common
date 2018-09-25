@@ -32,12 +32,27 @@ class RetryTest extends ExtractorTest
     /** @var  PDO */
     private $pdo;
 
+    /**
+     * @var int
+     */
+    private $fetchCount = 0;
+
+    /**
+     * @var bool
+     */
+    private $killerEnabled = false;
+
+    /**
+     * @var int
+     */
+    private $pid;
+
     public function setUp(): void
     {
 
       //  sleep(3600);
-        exec('docker network connect db-extractor-common_db_network db_tests', $output, $code);
-        fwrite(STDERR, 'InitCode: ' . $code . ' Output: ' . implode(', ', $output) .  PHP_EOL);
+        //exec('docker network connect db-extractor-common_db_network db_tests', $output, $code);
+        //fwrite(STDERR, 'InitCode: ' . $code . ' Output: ' . implode(', ', $output) .  PHP_EOL);
 
         //exec(self::NETWORK_KILLER_EXECUTABLE . ' 2 > /dev/null &');
         // this is useful when other tests fail and leave the connection broken
@@ -45,6 +60,7 @@ class RetryTest extends ExtractorTest
         // intentionally don't call parent, we use a different PDO connection
         //$this->pdo = $this->getConnection();
         // unlink the output file
+        $this->conn1 = $this->getConnection();
         @unlink($this->dataDir . '/out/tables/in.c-main.sales.csv');
 
     }
@@ -68,11 +84,12 @@ class RetryTest extends ExtractorTest
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::MYSQL_ATTR_LOCAL_INFILE => true,
         ];
-        $pdo = new BrokenPDO($dsn, $this->dbParams['user'], $this->dbParams['#password'], $options);
+        $pdo = new TaintedPDO($dsn, $this->dbParams['user'], $this->dbParams['#password'], $options);
+        $pdo->setOnEvent([$this, 'killConnection']);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $pdo->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, false);
-        $pdo->setAttribute(PDO::ATTR_STATEMENT_CLASS, array(BrokenPDOStatement::class, array($pdo)));
-        //$pdo->setAttribute(PDO::ATTR_STATEMENT_CLASS, array(BrokenPDOStatement::class));
+        $pdo->setAttribute(PDO::ATTR_STATEMENT_CLASS, array(TaintedPDOStatement::class, array($pdo, [$this, 'killConnection'])));
+        //$pdo->setAttribute(PDO::ATTR_STATEMENT_CLASS, array(TaintedPDOStatement::class));
         //$pdo->setAttribute(PDO::ATTR_TIMEOUT, 1);
         //$pdo->query('SET connect_timeout=10')->execute(); -> global
 //TODO toto se sem musi vratit, ale ne vzdycky, kvuli tomu loadu dat
@@ -186,11 +203,15 @@ class RetryTest extends ExtractorTest
                 echo 'Waiting for connection ' . $e->getMessage() . PHP_EOL;
                 sleep(5);
                 $retries++;
-                if ($retries > 10) {
+                if ($retries > 0) {
                     throw new \Exception('Killer Rabbit was too successful.');
                 }
             }
         }
+        $stmt = $this->pdo->query('SELECT CONNECTION_ID() AS pid;');
+        $stmt->execute();
+        $this->pid = $stmt->fetch()['pid'];
+
     }
 
     /*
@@ -274,15 +295,48 @@ class RetryTest extends ExtractorTest
 //        $stmt->execute();
 //    }
 
+    private function doKillConnection(\PDO $pdo)
+    {
+        /*
+        $stmt = $pdo->query('SELECT CONNECTION_ID() AS pid;');
+        $stmt->execute();
+        $pid = $stmt->fetchColumn('pid');
+        */
+        try {
+          //  $conn = $this->getConnection();
+            $this->conn1->exec('KILL ' . $this->pid);
+        } catch (\Throwable $e) {
+            fwrite(STDERR, sprintf('[%s] Kill result: %s', date('Y-m-d H:i:s'), $e->getMessage()) . PHP_EOL);
+        }
+    }
+
+    public function killConnection($event, $stmt, $pdo)
+    {
+        fwrite(STDERR, sprintf('[%s] Event: %s', date('Y-m-d H:i:s'), $event) . PHP_EOL);
+        if ($event === 'fetch') {
+            $this->fetchCount++;
+        }
+        if (($this->killerEnabled === 'fetch') && ($event === 'fetch') && ($this->fetchCount % 1000 === 0)) {
+
+            fwrite(STDERR, sprintf('[%s] Killing', date('Y-m-d H:i:s')) . PHP_EOL);
+            $this->doKillConnection($pdo);
+            //exec(self::SERVER_KILLER_EXECUTABLE . '0 > /dev/null &');
+            //sleep(15);
+        }
+        if (($this->killerEnabled === 'query') && ($event === 'query')) {
+
+        }
+    }
+
     /**
      * @throws \Exception
      * @large
      */
     public function testNetworkKillerFetch(): void
     {
-       // sleep(3600);
-        exec(self::SERVER_KILLER_EXECUTABLE . ' 0');
-        sleep(10);
+        //sleep(3600);
+       // exec(self::SERVER_KILLER_EXECUTABLE . ' 0');
+        //sleep(10);
         $this->waitForConnection();
         //sleep(6600);
         /* This is not an actual tests of DbExtractorCommon, rather it tests whether network interruption
@@ -296,16 +350,16 @@ class RetryTest extends ExtractorTest
         is very important to receive correct type of exception (\ErrorException), otherwise Phpunit
         will convert the warnings to PHPUnit_Framework_Error_Warning */
         ErrorHandler::register(null, true);
-        $this->pdo->setAttribute(PDO::ATTR_TIMEOUT, 120);
+     //   $this->pdo->setAttribute(PDO::ATTR_TIMEOUT, 120);
 
-        $this->pdo->query('SET wait_timeout=1')->execute(); //-> tohle vypada, ze je uplne nejdulezitejsi  - ale musi to byt az za large table
-        $this->pdo->query('SET interactive_timeout=1')->execute();
+        //$this->pdo->query('SET wait_timeout=1')->execute(); //-> tohle vypada, ze je uplne nejdulezitejsi  - ale musi to byt az za large table
+        //$this->pdo->query('SET interactive_timeout=1')->execute();
 //       $pdo->query('SET wait_timeout=1')->execute(); //-> tohle vypada, ze je uplne nejdulezitejsi
-        $this->pdo->setAttribute(PDO::ATTR_TIMEOUT, 1);
+     //   $this->pdo->setAttribute(PDO::ATTR_TIMEOUT, 1);
         //$this->pdo->query('SET interactive_timeout=2')->execute();
-        $this->pdo->query('SET net_read_timeout=1')->execute();
-        $this->pdo->query('SET net_retry_count=1')->execute();
-        $this->pdo->query('SET net_write_timeout=1')->execute();
+        //$this->pdo->query('SET net_read_timeout=1')->execute();
+        //$this->pdo->query('SET net_retry_count=1')->execute();
+        //$this->pdo->query('SET net_write_timeout=1')->execute();
 
 
         $stmt = $this->pdo->query('SELECT * FROM sales');
@@ -320,6 +374,7 @@ class RetryTest extends ExtractorTest
         self::expectExceptionMessage('Warning: Empty row packet body');
         fwrite(STDERR, sprintf('[%s] Fetch started', date('Y-m-d H:i:s')) . PHP_EOL);
         $c = 0;
+        $this->killerEnabled = 'fetch';
         while ($row = $stmt->fetch()) {
             $c++;
             if ($c % 1000 === 0) {
