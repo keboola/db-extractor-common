@@ -34,6 +34,11 @@ class RetryTest extends ExtractorTest
 
     public function setUp(): void
     {
+
+      //  sleep(3600);
+        exec('docker network connect db-extractor-common_db_network db_tests', $output, $code);
+        fwrite(STDERR, 'InitCode: ' . $code . ' Output: ' . implode(', ', $output) .  PHP_EOL);
+
         //exec(self::NETWORK_KILLER_EXECUTABLE . ' 2 > /dev/null &');
         // this is useful when other tests fail and leave the connection broken
         $this->waitForConnection();
@@ -41,6 +46,7 @@ class RetryTest extends ExtractorTest
         //$this->pdo = $this->getConnection();
         // unlink the output file
         @unlink($this->dataDir . '/out/tables/in.c-main.sales.csv');
+
     }
 
     private function getConnection(): PDO
@@ -62,16 +68,19 @@ class RetryTest extends ExtractorTest
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::MYSQL_ATTR_LOCAL_INFILE => true,
         ];
-        $pdo = new PDO($dsn, $this->dbParams['user'], $this->dbParams['#password'], $options);
+        $pdo = new BrokenPDO($dsn, $this->dbParams['user'], $this->dbParams['#password'], $options);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $pdo->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, false);
+        $pdo->setAttribute(PDO::ATTR_STATEMENT_CLASS, array(BrokenPDOStatement::class, array($pdo)));
+        //$pdo->setAttribute(PDO::ATTR_STATEMENT_CLASS, array(BrokenPDOStatement::class));
         //$pdo->setAttribute(PDO::ATTR_TIMEOUT, 1);
         //$pdo->query('SET connect_timeout=10')->execute(); -> global
 //TODO toto se sem musi vratit, ale ne vzdycky, kvuli tomu loadu dat
-//        $pdo->query('SET wait_timeout=1')->execute(); //-> tohle vypada, ze je uplne nejdulezitejsi
-        //$pdo->query('SET interactive_timeout=2')->execute();
-        //$pdo->query('SET net_read_timeout=1')->execute();
-        //$pdo->query('SET net_retry_count=1')->execute();
+//       $pdo->query('SET wait_timeout=1')->execute(); //-> tohle vypada, ze je uplne nejdulezitejsi
+        //$pdo->setAttribute(PDO::ATTR_TIMEOUT, 1);
+  //      $pdo->query('SET interactive_timeout=2')->execute();
+    //    $pdo->query('SET net_read_timeout=1')->execute();
+      //  $pdo->query('SET net_retry_count=1')->execute();
         //$pdo->query('SET net_write_timeout=1')->execute();
         //$pdo->query('SET net_buffer_length=1024')->execute(); -> global
         //$pdo->query('SET max_allowed_packet=1024')->execute(); -> global
@@ -271,7 +280,7 @@ class RetryTest extends ExtractorTest
      */
     public function testNetworkKillerFetch(): void
     {
-        sleep(3600);
+       // sleep(3600);
         exec(self::SERVER_KILLER_EXECUTABLE . ' 0');
         sleep(10);
         $this->waitForConnection();
@@ -289,16 +298,23 @@ class RetryTest extends ExtractorTest
         ErrorHandler::register(null, true);
         $this->pdo->setAttribute(PDO::ATTR_TIMEOUT, 120);
 
-        $this->pdo->query('SET wait_timeout=10')->execute(); //-> tohle vypada, ze je uplne nejdulezitejsi  - ale musi to byt az za large table
-        $this->pdo->query('SET interactive_timeout=10')->execute();
+        $this->pdo->query('SET wait_timeout=1')->execute(); //-> tohle vypada, ze je uplne nejdulezitejsi  - ale musi to byt az za large table
+        $this->pdo->query('SET interactive_timeout=1')->execute();
+//       $pdo->query('SET wait_timeout=1')->execute(); //-> tohle vypada, ze je uplne nejdulezitejsi
+        $this->pdo->setAttribute(PDO::ATTR_TIMEOUT, 1);
+        //$this->pdo->query('SET interactive_timeout=2')->execute();
+        $this->pdo->query('SET net_read_timeout=1')->execute();
+        $this->pdo->query('SET net_retry_count=1')->execute();
+        $this->pdo->query('SET net_write_timeout=1')->execute();
 
-        $stmt = $this->pdo->query('SELECT * FROM sales LIMIT 10000');
+
+        $stmt = $this->pdo->query('SELECT * FROM sales');
         //$stmt = $conn->query('SELECT NOW();');
         $stmt->execute();
         //unset($conn);
         // sleep 1 second before killing the connection, then kill it for 3 seconds
         // `> /dev/null &` ensures that the command is run asynchronously
-        exec(self::NETWORK_KILLER_EXECUTABLE . ' 0 60 > /dev/null &');
+        //exec(self::NETWORK_KILLER_EXECUTABLE . ' 0 60 > /dev/null &');
         // sleep a while to make sure the connection is terminated
         self::expectException(\ErrorException::class);
         self::expectExceptionMessage('Warning: Empty row packet body');
