@@ -47,6 +47,11 @@ class RetryTest extends ExtractorTest
      */
     private $pid;
 
+    /**
+     * @var \PDO
+     */
+    private $serviceConnection;
+
     public function setUp(): void
     {
 
@@ -60,7 +65,7 @@ class RetryTest extends ExtractorTest
         // intentionally don't call parent, we use a different PDO connection
         //$this->pdo = $this->getConnection();
         // unlink the output file
-        $this->conn1 = $this->getConnection();
+        $this->serviceConnection = $this->getConnection();
         @unlink($this->dataDir . '/out/tables/in.c-main.sales.csv');
 
     }
@@ -297,14 +302,8 @@ class RetryTest extends ExtractorTest
 
     private function doKillConnection(\PDO $pdo)
     {
-        /*
-        $stmt = $pdo->query('SELECT CONNECTION_ID() AS pid;');
-        $stmt->execute();
-        $pid = $stmt->fetchColumn('pid');
-        */
         try {
-          //  $conn = $this->getConnection();
-            $this->conn1->exec('KILL ' . $this->pid);
+            $this->serviceConnection->exec('KILL ' . $this->pid);
         } catch (\Throwable $e) {
             fwrite(STDERR, sprintf('[%s] Kill result: %s', date('Y-m-d H:i:s'), $e->getMessage()) . PHP_EOL);
         }
@@ -317,28 +316,16 @@ class RetryTest extends ExtractorTest
             $this->fetchCount++;
         }
         if (($this->killerEnabled === 'fetch') && ($event === 'fetch') && ($this->fetchCount % 1000 === 0)) {
-
             fwrite(STDERR, sprintf('[%s] Killing', date('Y-m-d H:i:s')) . PHP_EOL);
             $this->doKillConnection($pdo);
-            //exec(self::SERVER_KILLER_EXECUTABLE . '0 > /dev/null &');
-            //sleep(15);
         }
         if (($this->killerEnabled === 'query') && ($event === 'query')) {
 
         }
     }
 
-    /**
-     * @throws \Exception
-     * @large
-     */
     public function testNetworkKillerFetch(): void
     {
-        //sleep(3600);
-       // exec(self::SERVER_KILLER_EXECUTABLE . ' 0');
-        //sleep(10);
-        $this->waitForConnection();
-        //sleep(6600);
         /* This is not an actual tests of DbExtractorCommon, rather it tests whether network interruption
         cause the exceptions which are expected in actual retry tests. */
         $temp = new Temp();
@@ -350,38 +337,15 @@ class RetryTest extends ExtractorTest
         is very important to receive correct type of exception (\ErrorException), otherwise Phpunit
         will convert the warnings to PHPUnit_Framework_Error_Warning */
         ErrorHandler::register(null, true);
-     //   $this->pdo->setAttribute(PDO::ATTR_TIMEOUT, 120);
 
-        //$this->pdo->query('SET wait_timeout=1')->execute(); //-> tohle vypada, ze je uplne nejdulezitejsi  - ale musi to byt az za large table
-        //$this->pdo->query('SET interactive_timeout=1')->execute();
-//       $pdo->query('SET wait_timeout=1')->execute(); //-> tohle vypada, ze je uplne nejdulezitejsi
-     //   $this->pdo->setAttribute(PDO::ATTR_TIMEOUT, 1);
-        //$this->pdo->query('SET interactive_timeout=2')->execute();
-        //$this->pdo->query('SET net_read_timeout=1')->execute();
-        //$this->pdo->query('SET net_retry_count=1')->execute();
-        //$this->pdo->query('SET net_write_timeout=1')->execute();
-
-
-        $stmt = $this->pdo->query('SELECT * FROM sales');
-        //$stmt = $conn->query('SELECT NOW();');
+        $stmt = $this->pdo->query('SELECT * FROM sales LIMIT 10000');
         $stmt->execute();
-        //unset($conn);
-        // sleep 1 second before killing the connection, then kill it for 3 seconds
-        // `> /dev/null &` ensures that the command is run asynchronously
-        //exec(self::NETWORK_KILLER_EXECUTABLE . ' 0 60 > /dev/null &');
-        // sleep a while to make sure the connection is terminated
         self::expectException(\ErrorException::class);
         self::expectExceptionMessage('Warning: Empty row packet body');
-        fwrite(STDERR, sprintf('[%s] Fetch started', date('Y-m-d H:i:s')) . PHP_EOL);
-        $c = 0;
         $this->killerEnabled = 'fetch';
+        /** @noinspection PhpStatementHasEmptyBodyInspection */
         while ($row = $stmt->fetch()) {
-            $c++;
-            if ($c % 1000 === 0) {
-                fwrite(STDERR, sprintf('[%s] Fetched %s rows', date('Y-m-d H:i:s'), $c) . PHP_EOL);
-            }
         }
-        fwrite(STDERR, sprintf('[%s] Fetch finished, Fetched %s rows', date('Y-m-d H:i:s'), $c) . PHP_EOL);
     }
 
 
