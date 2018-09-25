@@ -55,7 +55,7 @@ class RetryTest extends ExtractorTest
     public function setUp(): void
     {
 
-      //  sleep(3600);
+        //sleep(3600);
         //exec('docker network connect db-extractor-common_db_network db_tests', $output, $code);
         //fwrite(STDERR, 'InitCode: ' . $code . ' Output: ' . implode(', ', $output) .  PHP_EOL);
 
@@ -320,6 +320,14 @@ class RetryTest extends ExtractorTest
             fwrite(STDERR, sprintf('[%s] Killing', date('Y-m-d H:i:s')) . PHP_EOL);
             $this->doKillConnection($pdo);
         }
+        if (($this->killerEnabled === 'prepare') && ($event === 'prepare')) {
+            fwrite(STDERR, sprintf('[%s] Killing', date('Y-m-d H:i:s')) . PHP_EOL);
+            $this->doKillConnection($pdo);
+        }
+
+        if ($this->killerEnabled === 'query') {
+            sleep(2);
+        }
     }
 //
 //    public function testNetworkKillerFetch(): void
@@ -374,7 +382,7 @@ class RetryTest extends ExtractorTest
     }
     */
 
-    /*
+
     public function testRunMainRetryNetworkError(): void
     {
         $temp = new Temp();
@@ -388,7 +396,7 @@ class RetryTest extends ExtractorTest
         $table = [
             'id' => 1,
             'name' => 'sales',
-            'query' => 'SELECT * FROM sales',
+            'query' => 'SELECT * FROM sales LIMIT 99',
             'outputTable' => 'in.c-main.sales',
             'incremental' => false,
             'primaryKey' => [],
@@ -410,20 +418,290 @@ class RetryTest extends ExtractorTest
             'data_dir' => $this->dataDir,
             'extractor_class' => 'Common',
         ];
-        $extractor = new Common($parameters, [], $logger);
-        // exec async
-        exec(self::NETWORK_KILLER_EXECUTABLE . ' 2 3306 > /dev/null &');
-        $result = $extractor->export($table);
+        /*
+        $extractor = self::getMockBuilder(Common::class)
+            ->setMethods(['createConnection'])
+            ->setConstructorArgs([$parameters, [], $logger])
+            ->disableArgumentCloning()
+            ->disableOriginalClone()
+            ->disableAutoReturnValueGeneration()
+            ->getMock();
+        //$extractor->method('createConnection')->willReturnReference($this->pdo);
 
+        $extractor->expects(self::any())->method('createConnection')
+            ->with(self::anything())
+            ->willReturnCallback(function (array $params) {
+            //var_export($params);
+            fwrite(STDERR, 'here' . get_class($this->pdo) . PHP_EOL);
+            return $this->pdo;
+        });
+        -> nejde, protze $this->db se nastavuje uz ctoru, ale mock method az pozdeji
+*/
+        $extractor = new Common($parameters, [], $logger);
+        $refl = new \ReflectionProperty($extractor, 'db');
+        $refl->setAccessible(true);
+        $refl->setValue($extractor, $this->pdo);
+        ///** @var Common $extractor */
+        //$mm = $extractor->createConnection([]);
+        //fwrite(STDERR, 'whatabouthere' . get_class($mm) . PHP_EOL);
+
+        // exec async
+        //exec(self::NETWORK_KILLER_EXECUTABLE . ' 2 3306 > /dev/null &');
+        $this->killerEnabled = 'prepare';
+//        /* Register symfony error handler (used in production) and replace phpunit error handler. This
+//        is very important to receive correct type of exception (\ErrorException), otherwise Phpunit
+//        will convert the warnings to PHPUnit_Framework_Error_Warning */
+        ErrorHandler::register(null, true);
+        $result = $extractor->export($table);
         $outputCsvFile = $this->dataDir . '/out/tables/' . $result['outputTable'] . '.csv';
 
         self::assertFileExists($outputCsvFile);
         self::assertFileExists($this->dataDir . '/out/tables/' . $result['outputTable'] . '.csv.manifest');
-        self::assertEquals(self::ROW_COUNT, $this->getLineCount($outputCsvFile));
+        self::assertEquals(100, $this->getLineCount($outputCsvFile));
         //var_dump($handler->getRecords());
         self::assertTrue($handler->hasInfoThatContains('Retrying...'));
+        self::assertTrue($handler->hasInfoThatContains('Warning: PDOStatement::execute(): MySQL server has gone away. Retrying'));
     }
+
+    public function testRunMainRetryNetworkErrorExecute(): void
+    {
+        $temp = new Temp();
+        $temp->initRunFolder();
+        $sourceFileName = $temp->getTmpFolder() . '/large.csv';
+        $this->setupLargeTable($sourceFileName);
+
+        $handler = new TestHandler();
+        $logger = new \Keboola\DbExtractor\Logger('test');
+        $logger->pushHandler($handler);
+        $table = [
+            'id' => 1,
+            'name' => 'sales',
+            'query' => 'SELECT * FROM sales LIMIT 99',
+            'outputTable' => 'in.c-main.sales',
+            'incremental' => false,
+            'primaryKey' => [],
+            'enabled' => true,
+            'retries' => 10,
+            'columns' => [],
+        ];
+
+        $parameters = [
+            'db' => [
+                'user' => getenv('TEST_RDS_USERNAME'),
+                '#password' => getenv('TEST_RDS_PASSWORD'),
+                'password' => getenv('TEST_RDS_PASSWORD'),
+                'host' => getenv('TEST_RDS_HOST'),
+                'database' => 'odin4test',
+                'port' => '3306',
+            ],
+            'tables' => [$table],
+            'data_dir' => $this->dataDir,
+            'extractor_class' => 'Common',
+        ];
+        /*
+        $extractor = self::getMockBuilder(Common::class)
+            ->setMethods(['createConnection'])
+            ->setConstructorArgs([$parameters, [], $logger])
+            ->disableArgumentCloning()
+            ->disableOriginalClone()
+            ->disableAutoReturnValueGeneration()
+            ->getMock();
+        //$extractor->method('createConnection')->willReturnReference($this->pdo);
+
+        $extractor->expects(self::any())->method('createConnection')
+            ->with(self::anything())
+            ->willReturnCallback(function (array $params) {
+            //var_export($params);
+            fwrite(STDERR, 'here' . get_class($this->pdo) . PHP_EOL);
+            return $this->pdo;
+        });
+        -> nejde, protze $this->db se nastavuje uz ctoru, ale mock method az pozdeji
 */
+        $extractor = new Common($parameters, [], $logger);
+        $refl = new \ReflectionProperty($extractor, 'db');
+        $refl->setAccessible(true);
+        $refl->setValue($extractor, $this->pdo);
+        ///** @var Common $extractor */
+        //$mm = $extractor->createConnection([]);
+        //fwrite(STDERR, 'whatabouthere' . get_class($mm) . PHP_EOL);
+
+        // exec async
+        //exec(self::NETWORK_KILLER_EXECUTABLE . ' 2 3306 > /dev/null &');
+        $this->killerEnabled = 'execute';
+//        /* Register symfony error handler (used in production) and replace phpunit error handler. This
+//        is very important to receive correct type of exception (\ErrorException), otherwise Phpunit
+//        will convert the warnings to PHPUnit_Framework_Error_Warning */
+        ErrorHandler::register(null, true);
+        $result = $extractor->export($table);
+        $outputCsvFile = $this->dataDir . '/out/tables/' . $result['outputTable'] . '.csv';
+
+        self::assertFileExists($outputCsvFile);
+        self::assertFileExists($this->dataDir . '/out/tables/' . $result['outputTable'] . '.csv.manifest');
+        self::assertEquals(100, $this->getLineCount($outputCsvFile));
+        //var_dump($handler->getRecords());
+        self::assertTrue($handler->hasInfoThatContains('Retrying...'));
+        self::assertTrue($handler->hasInfoThatContains('Warning: PDOStatement::execute(): MySQL server has gone away. Retrying'));
+    }
+
+    public function testRunMainRetryNetworkErrorFetch(): void
+    {
+        $temp = new Temp();
+        $temp->initRunFolder();
+        $sourceFileName = $temp->getTmpFolder() . '/large.csv';
+        $this->setupLargeTable($sourceFileName);
+
+        $handler = new TestHandler();
+        $logger = new \Keboola\DbExtractor\Logger('test');
+        $logger->pushHandler($handler);
+        $table = [
+            'id' => 1,
+            'name' => 'sales',
+            'query' => 'SELECT * FROM sales LIMIT 99999',
+            'outputTable' => 'in.c-main.sales',
+            'incremental' => false,
+            'primaryKey' => [],
+            'enabled' => true,
+            'retries' => 10,
+            'columns' => [],
+        ];
+
+        $parameters = [
+            'db' => [
+                'user' => getenv('TEST_RDS_USERNAME'),
+                '#password' => getenv('TEST_RDS_PASSWORD'),
+                'password' => getenv('TEST_RDS_PASSWORD'),
+                'host' => getenv('TEST_RDS_HOST'),
+                'database' => 'odin4test',
+                'port' => '3306',
+            ],
+            'tables' => [$table],
+            'data_dir' => $this->dataDir,
+            'extractor_class' => 'Common',
+        ];
+        /*
+        $extractor = self::getMockBuilder(Common::class)
+            ->setMethods(['createConnection'])
+            ->setConstructorArgs([$parameters, [], $logger])
+            ->disableArgumentCloning()
+            ->disableOriginalClone()
+            ->disableAutoReturnValueGeneration()
+            ->getMock();
+        //$extractor->method('createConnection')->willReturnReference($this->pdo);
+
+        $extractor->expects(self::any())->method('createConnection')
+            ->with(self::anything())
+            ->willReturnCallback(function (array $params) {
+            //var_export($params);
+            fwrite(STDERR, 'here' . get_class($this->pdo) . PHP_EOL);
+            return $this->pdo;
+        });
+        -> nejde, protze $this->db se nastavuje uz ctoru, ale mock method az pozdeji
+*/
+        $extractor = new Common($parameters, [], $logger);
+        $refl = new \ReflectionProperty($extractor, 'db');
+        $refl->setAccessible(true);
+        $refl->setValue($extractor, $this->pdo);
+        ///** @var Common $extractor */
+        //$mm = $extractor->createConnection([]);
+        //fwrite(STDERR, 'whatabouthere' . get_class($mm) . PHP_EOL);
+
+        // exec async
+        //exec(self::NETWORK_KILLER_EXECUTABLE . ' 2 3306 > /dev/null &');
+        $this->killerEnabled = 'fetch';
+//        /* Register symfony error handler (used in production) and replace phpunit error handler. This
+//        is very important to receive correct type of exception (\ErrorException), otherwise Phpunit
+//        will convert the warnings to PHPUnit_Framework_Error_Warning */
+        ErrorHandler::register(null, true);
+        $result = $extractor->export($table);
+        $outputCsvFile = $this->dataDir . '/out/tables/' . $result['outputTable'] . '.csv';
+
+        self::assertFileExists($outputCsvFile);
+        self::assertFileExists($this->dataDir . '/out/tables/' . $result['outputTable'] . '.csv.manifest');
+        self::assertEquals(100000, $this->getLineCount($outputCsvFile));
+        //var_dump($handler->getRecords());
+        self::assertTrue($handler->hasInfoThatContains('Retrying...'));
+        self::assertTrue($handler->hasInfoThatContains('Warning: Empty row packet body. Retrying... [1x]'));
+    }
+
+    public function testRunMainRetryNetworkErrorFetchFAiluer(): void
+    {
+        $temp = new Temp();
+        $temp->initRunFolder();
+        $sourceFileName = $temp->getTmpFolder() . '/large.csv';
+        $this->setupLargeTable($sourceFileName);
+
+        $handler = new TestHandler();
+        $logger = new \Keboola\DbExtractor\Logger('test');
+        $logger->pushHandler($handler);
+        $table = [
+            'id' => 1,
+            'name' => 'sales',
+            'query' => 'SELECT * FROM sales LIMIT 99',
+            'outputTable' => 'in.c-main.sales',
+            'incremental' => false,
+            'primaryKey' => [],
+            'enabled' => true,
+            'retries' => 10,
+            'columns' => [],
+        ];
+
+        $parameters = [
+            'db' => [
+                'user' => getenv('TEST_RDS_USERNAME'),
+                '#password' => getenv('TEST_RDS_PASSWORD'),
+                'password' => getenv('TEST_RDS_PASSWORD'),
+                'host' => getenv('TEST_RDS_HOST'),
+                'database' => 'odin4test',
+                'port' => '3306',
+            ],
+            'tables' => [$table],
+            'data_dir' => $this->dataDir,
+            'extractor_class' => 'Common',
+        ];
+
+        $extractor = self::getMockBuilder(Common::class)
+            ->setMethods(['createConnection'])
+            ->setConstructorArgs([$parameters, [], $logger])
+            ->disableArgumentCloning()
+            ->disableOriginalClone()
+            ->disableAutoReturnValueGeneration()
+            ->getMock();
+        //$extractor->method('createConnection')->willReturnReference($this->pdo);
+
+        $extractor->expects(self::any())->method('createConnection')
+            ->with(self::anything())
+            ->willReturnCallback(function (array $params) {
+            //var_export($params);
+            fwrite(STDERR, 'here' . get_class($this->pdo) . PHP_EOL);
+            return $this->pdo;
+        });
+       // -> nejde, protze $this->db se nastavuje uz ctoru, ale mock method az pozdeji
+//*/
+  //      $extractor = new Common($parameters, [], $logger);
+        $refl = new \ReflectionProperty($extractor, 'db');
+        $refl->setAccessible(true);
+        $refl->setValue($extractor, $this->pdo);
+        ///** @var Common $extractor */
+        //$mm = $extractor->createConnection([]);
+        //fwrite(STDERR, 'whatabouthere' . get_class($mm) . PHP_EOL);
+
+        // exec async
+        //exec(self::NETWORK_KILLER_EXECUTABLE . ' 2 3306 > /dev/null &');
+        $this->killerEnabled = 'prepare';
+//        /* Register symfony error handler (used in production) and replace phpunit error handler. This
+//        is very important to receive correct type of exception (\ErrorException), otherwise Phpunit
+//        will convert the warnings to PHPUnit_Framework_Error_Warning */
+        ErrorHandler::register(null, true);
+        try {
+            $result = $extractor->export($table);
+            self::fail('must raise exception');
+        } catch (UserException $e) {
+            self::assertTrue($handler->hasInfoThatContains('Retrying...'));
+            self::assertTrue($handler->hasInfoThatContains('SQLSTATE[HY000]: General error: 2006 MySQL server has gone away. Retrying... [9x]'));
+            self::assertContains('[in.c-main.sales]: DB query failed: SQLSTATE[HY000]: General error: 2006 MySQL server has gone away Tried 10 times.', $e->getMessage());
+        }
+
+    }
 
     /*
     public function testDeadConnectionException(): void
