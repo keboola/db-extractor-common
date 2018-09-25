@@ -1,10 +1,14 @@
-version: "2"
+version: "3"
 services:
   tests:
+    container_name: db_tests
+    networks: 
+      - db_network
     build: .
     image: keboola/db-extractor-common
     volumes:
       - .:/code
+      - /var/run/docker.sock:/var/run/docker.sock
     command: sh -c 'composer install -n && composer ci'
     environment:
       COMMON_DB_USER: root
@@ -31,6 +35,8 @@ services:
     environment:
       MYSQL_DATABASE: testdb
       MYSQL_ROOT_PASSWORD: somePassword
+    networks: 
+      - db_network
 
   sshproxy:
     build: ./tests/env/sshproxy
@@ -39,3 +45,16 @@ services:
       - SSH_KEY_PUBLIC
     links:
       - mysql
+    networks: 
+      - db_network
+
+networks:
+  db_network:
+    driver: bridge
+  # no_network:
+  #   driver: none
+  # custom_network:
+  #   driver: default
+  #   config:
+  #   - subnet: 172.16.238.0/24
+  #     gateway: 172.16.238.1

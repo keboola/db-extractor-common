@@ -15,7 +15,8 @@ use Keboola\Temp\Temp;
 use Monolog\Handler\TestHandler;
 use Monolog\Logger;
 use PDO;
-use PHPUnit_Framework_Error_Warning;
+//use PHPUnit_Framework_Error_Warning;
+use Symfony\Component\Debug\ErrorHandler;
 
 class RetryTest extends ExtractorTest
 {
@@ -33,10 +34,11 @@ class RetryTest extends ExtractorTest
 
     public function setUp(): void
     {
+        //exec(self::NETWORK_KILLER_EXECUTABLE . ' 2 > /dev/null &');
         // this is useful when other tests fail and leave the connection broken
         $this->waitForConnection();
         // intentionally don't call parent, we use a different PDO connection
-        $this->pdo = $this->getConnection();
+        //$this->pdo = $this->getConnection();
         // unlink the output file
         @unlink($this->dataDir . '/out/tables/in.c-main.sales.csv');
     }
@@ -60,7 +62,21 @@ class RetryTest extends ExtractorTest
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::MYSQL_ATTR_LOCAL_INFILE => true,
         ];
-        return new PDO($dsn, $this->dbParams['user'], $this->dbParams['#password'], $options);
+        $pdo = new PDO($dsn, $this->dbParams['user'], $this->dbParams['#password'], $options);
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $pdo->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, false);
+        //$pdo->setAttribute(PDO::ATTR_TIMEOUT, 1);
+        //$pdo->query('SET connect_timeout=10')->execute(); -> global
+//TODO toto se sem musi vratit, ale ne vzdycky, kvuli tomu loadu dat
+//        $pdo->query('SET wait_timeout=1')->execute(); //-> tohle vypada, ze je uplne nejdulezitejsi
+        //$pdo->query('SET interactive_timeout=2')->execute();
+        //$pdo->query('SET net_read_timeout=1')->execute();
+        //$pdo->query('SET net_retry_count=1')->execute();
+        //$pdo->query('SET net_write_timeout=1')->execute();
+        //$pdo->query('SET net_buffer_length=1024')->execute(); -> global
+        //$pdo->query('SET max_allowed_packet=1024')->execute(); -> global
+        //$pdo->query('SET max_execution_time=2')->execute();
+        return $pdo;
     }
 
     private function setupLargeTable(string $sourceFileName): void
@@ -75,7 +91,7 @@ class RetryTest extends ExtractorTest
                 getenv('TEST_RDS_DATABASE')
             )
         );
-        $tableExists = $res->rowCount() > 0;
+        $tableExists = count($res->fetchAll()) > 0;
 
         // Set up the data table
         if (!$tableExists) {
@@ -116,6 +132,7 @@ class RetryTest extends ExtractorTest
         }
     }
 
+    /*
     private function getRetryConfig(): array
     {
         $config = $this->getConfig('common', 'json');
@@ -132,6 +149,7 @@ class RetryTest extends ExtractorTest
         ]];
         return $config;
     }
+    */
 
     private function getLineCount(string $fileName): int
     {
@@ -150,8 +168,9 @@ class RetryTest extends ExtractorTest
         echo 'Waiting for connection' . PHP_EOL;
         while (true) {
             try {
+                $this->pdo = null;
                 $conn = $this->getConnection();
-                $conn->query('SELECT NOW();')->execute();
+                @$conn->query('SELECT NOW();')->execute();
                 $this->pdo = $conn;
                 break;
             } catch (\Throwable $e) {
@@ -165,6 +184,7 @@ class RetryTest extends ExtractorTest
         }
     }
 
+    /*
     public function testRabbit(): void
     {
         exec(self::SERVER_KILLER_EXECUTABLE . ' 0', $output, $ret);
@@ -202,38 +222,102 @@ class RetryTest extends ExtractorTest
         $this->assertFileExists($this->dataDir . '/out/tables/' . $result['imported'][0]['outputTable'] . '.csv.manifest');
         $this->assertEquals(self::ROW_COUNT, $this->getLineCount($outputCsvFile));
     }
+    */
 
-    public function testSquirrel(): void
+//    public function testNetworkKillerQuery(): void
+//    {
+//        /* This is not an actual tests of DbExtractorCommon, rather it tests whether network interruption
+//        cause the exceptions which are expected in actual retry tests. */
+//
+//        /* Register symfony error handler (used in production) and replace phpunit error handler. This
+//        is very important to receive correct type of exception (\ErrorException), otherwise Phpunit
+//        will convert the warnings to PHPUnit_Framework_Error_Warning */
+//        ErrorHandler::register(null, true);
+//        $conn = $this->getConnection();
+//        // sleep 1 second before killing the connection, then kill it for 3 seconds
+//        // `> /dev/null &` ensures that the command is run asynchronously
+//        exec(self::NETWORK_KILLER_EXECUTABLE . ' 1 3 > /dev/null &');
+//        // sleep a while to make sure the connection is terminated
+//        sleep(2);
+//        self::expectException(\ErrorException::class);
+//        self::expectExceptionMessage('Warning: PDO::query(): MySQL server has gone away');
+//        $conn->query('SELECT NOW();');
+//    }
+
+//    public function testNetworkKillerExecute(): void
+//    {
+//        /* This is not an actual tests of DbExtractorCommon, rather it tests whether network interruption
+//        cause the exceptions which are expected in actual retry tests. */
+//
+//        /* Register symfony error handler (used in production) and replace phpunit error handler. This
+//        is very important to receive correct type of exception (\ErrorException), otherwise Phpunit
+//        will convert the warnings to PHPUnit_Framework_Error_Warning */
+//        ErrorHandler::register(null, true);
+//        $conn = $this->getConnection();
+//        // sleep 1 second before killing the connection, then kill it for 3 seconds
+//        // `> /dev/null &` ensures that the command is run asynchronously
+//        exec(self::NETWORK_KILLER_EXECUTABLE . ' 1 3 > /dev/null &');
+//        $stmt = $conn->query('SELECT NOW();');
+//        // sleep a while to make sure the connection is terminated
+//        sleep(2);
+//        self::expectException(\ErrorException::class);
+//        self::expectExceptionMessage('Warning: PDOStatement::execute(): MySQL server has gone away');
+//        $stmt->execute();
+//    }
+
+    /**
+     * @throws \Exception
+     * @large
+     */
+    public function testNetworkKillerFetch(): void
     {
-        $conn = $this->getConnection();
-        // this must always be called async because tcpkill is synchronous!
-        exec(self::NETWORK_KILLER_EXECUTABLE . ' 0 3306 > /dev/null &');
-        // a little timeout to make sure the killer has already started
-        sleep(1);
-        try {
-            $stmt = $conn->query('SELECT NOW();');
-            $stmt->execute();
-            // intentionally twice, because the tcpkiller is not 100% reliable
-            sleep(2);
-            $stmt = $conn->query('SELECT NOW();');
-            $stmt->execute();
-            self::fail('Must raise an exception.');
-        } catch (\Throwable $e) {
-            // PDO fails to throw exception, and throws a warning only, PHPUnit cripples
-            // it to own exception unless convertWarningsToExceptions is turned of in xml
-            //self::assertInstanceOf(PHPUnit_Framework_Error_Warning::class, $e, $e->getMessage());
-            self::assertInstanceOf(\ErrorException::class, $e, $e->getMessage());
-            self::assertTrue(
-                mb_stripos($e->getMessage(), 'PDO::query(): MySQL server has gone away') !== false ||
-                mb_stripos($e->getMessage(), 'Error while sending QUERY packet.') !== false,
-                'Error: '. $e->getMessage()
-            );
+        sleep(3600);
+        exec(self::SERVER_KILLER_EXECUTABLE . ' 0');
+        sleep(10);
+        $this->waitForConnection();
+        //sleep(6600);
+        /* This is not an actual tests of DbExtractorCommon, rather it tests whether network interruption
+        cause the exceptions which are expected in actual retry tests. */
+        $temp = new Temp();
+        $temp->initRunFolder();
+        $sourceFileName = $temp->getTmpFolder() . '/large.csv';
+        $this->setupLargeTable($sourceFileName);
+
+        /* Register symfony error handler (used in production) and replace phpunit error handler. This
+        is very important to receive correct type of exception (\ErrorException), otherwise Phpunit
+        will convert the warnings to PHPUnit_Framework_Error_Warning */
+        ErrorHandler::register(null, true);
+        $this->pdo->setAttribute(PDO::ATTR_TIMEOUT, 120);
+
+        $this->pdo->query('SET wait_timeout=10')->execute(); //-> tohle vypada, ze je uplne nejdulezitejsi  - ale musi to byt az za large table
+        $this->pdo->query('SET interactive_timeout=10')->execute();
+
+        $stmt = $this->pdo->query('SELECT * FROM sales LIMIT 10000');
+        //$stmt = $conn->query('SELECT NOW();');
+        $stmt->execute();
+        //unset($conn);
+        // sleep 1 second before killing the connection, then kill it for 3 seconds
+        // `> /dev/null &` ensures that the command is run asynchronously
+        exec(self::NETWORK_KILLER_EXECUTABLE . ' 0 60 > /dev/null &');
+        // sleep a while to make sure the connection is terminated
+        self::expectException(\ErrorException::class);
+        self::expectExceptionMessage('Warning: Empty row packet body');
+        fwrite(STDERR, sprintf('[%s] Fetch started', date('Y-m-d H:i:s')) . PHP_EOL);
+        $c = 0;
+        while ($row = $stmt->fetch()) {
+            $c++;
+            if ($c % 1000 === 0) {
+                fwrite(STDERR, sprintf('[%s] Fetched %s rows', date('Y-m-d H:i:s'), $c) . PHP_EOL);
+            }
         }
+        fwrite(STDERR, sprintf('[%s] Fetch finished, Fetched %s rows', date('Y-m-d H:i:s'), $c) . PHP_EOL);
     }
 
+
+    /*
     public function testSquirrelFetch(): void
     {
-        self::markTestSkipped('Does not work');
+        //self::markTestSkipped('Does not work');
         $conn = $this->getConnection();
         $stmt1 = $conn->query('SELECT NOW();');
         $stmt1->execute();
@@ -254,7 +338,9 @@ class RetryTest extends ExtractorTest
             self::assertInstanceOf(PHPUnit_Framework_Error_Warning::class, $e, $e->getMessage());
         }
     }
+    */
 
+    /*
     public function testRunMainRetryNetworkError(): void
     {
         $temp = new Temp();
@@ -303,7 +389,9 @@ class RetryTest extends ExtractorTest
         //var_dump($handler->getRecords());
         self::assertTrue($handler->hasInfoThatContains('Retrying...'));
     }
+*/
 
+    /*
     public function testDeadConnectionException(): void
     {
         $config = $this->getRetryConfig();
@@ -322,4 +410,5 @@ class RetryTest extends ExtractorTest
             $this->assertContains('Dead connection', $ue->getMessage());
         }
     }
+    */
 }
