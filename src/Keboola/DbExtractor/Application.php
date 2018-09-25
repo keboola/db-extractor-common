@@ -39,7 +39,7 @@ class Application
     {
         static::setEnvironment();
 
-        $this->action = isset($config['action'])?$config['action']:'run';
+        $this->action = $config['action'];
         $this->parameters = $config['parameters'];
         $this->state = $state;
         $this->logger = $logger;
