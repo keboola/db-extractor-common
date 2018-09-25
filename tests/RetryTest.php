@@ -63,6 +63,31 @@ class RetryTest extends ExtractorTest
 
     }
 
+    private function waitForConnection(): void
+    {
+        $retries = 0;
+        echo 'Waiting for connection' . PHP_EOL;
+        while (true) {
+            try {
+                $this->pdo = null;
+                $conn = $this->getConnection();
+                @$conn->query('SELECT NOW();')->execute();
+                $this->pdo = $conn;
+                break;
+            } catch (\Throwable $e) {
+                echo 'Waiting for connection ' . $e->getMessage() . PHP_EOL;
+                sleep(5);
+                $retries++;
+                if ($retries > 10) {
+                    throw new \Exception('Killer Rabbit was too successful.');
+                }
+            }
+        }
+        $stmt = $this->pdo->query('SELECT CONNECTION_ID() AS pid;');
+        $stmt->execute();
+        $this->pid = $stmt->fetch()['pid'];
+    }
+
     private function getConnection(): PDO
     {
         $this->dbParams = [
@@ -101,6 +126,62 @@ class RetryTest extends ExtractorTest
         //$pdo->query('SET max_allowed_packet=1024')->execute(); -> global
         //$pdo->query('SET max_execution_time=2')->execute();
         return $pdo;
+    }
+
+    public function killConnection($event, $stmt, $pdo)
+    {
+        fwrite(STDERR, sprintf('[%s] Event: %s, Killer: %s', date('Y-m-d H:i:s'), $event, var_export($this->killerEnabled, true)) . PHP_EOL);
+        if ($event === 'fetch') {
+            $this->fetchCount++;
+        }
+        if (($this->killerEnabled === 'fetch') && ($event === 'fetch') && ($this->fetchCount % 1000 === 0)) {
+            fwrite(STDERR, sprintf('[%s] Killing', date('Y-m-d H:i:s')) . PHP_EOL);
+            $this->doKillConnection($pdo);
+        }
+        if (($this->killerEnabled === 'query') && ($event === 'query')) {
+            fwrite(STDERR, sprintf('[%s] Killing', date('Y-m-d H:i:s')) . PHP_EOL);
+            $this->doKillConnection($pdo);
+        }
+        if (($this->killerEnabled === 'execute') && ($event === 'execute')) {
+            fwrite(STDERR, sprintf('[%s] Killing', date('Y-m-d H:i:s')) . PHP_EOL);
+            $this->doKillConnection($pdo);
+        }
+        if (($this->killerEnabled === 'prepare') && ($event === 'prepare')) {
+            fwrite(STDERR, sprintf('[%s] Killing', date('Y-m-d H:i:s')) . PHP_EOL);
+            $this->doKillConnection($pdo);
+        }
+
+        if ($this->killerEnabled === 'query') {
+            sleep(2);
+        }
+    }
+
+    private function doKillConnection(\PDO $pdo)
+    {
+        try {
+            fwrite(STDERR, sprintf('[%s] Killing connection : %s', date('Y-m-d H:i:s'), $this->pid) . PHP_EOL);
+            $this->serviceConnection->exec('KILL ' . $this->pid);
+        } catch (\Throwable $e) {
+            fwrite(STDERR, sprintf('[%s] Kill result: %s', date('Y-m-d H:i:s'), $e->getMessage()) . PHP_EOL);
+        }
+    }
+
+
+    private function getRetryConfig(): array
+    {
+        $config = $this->getConfig('common', 'json');
+        $config['parameters']['db'] = $this->dbParams;
+        $config['parameters']['tables'] = [[
+            'id' => 1,
+            'name' => 'sales',
+            'query' => 'SELECT * FROM sales',
+            'outputTable' => 'in.c-main.sales',
+            'incremental' => false,
+            'primaryKey' => null,
+            'enabled' => true,
+            'retries' => 10,
+        ]];
+        return $config;
     }
 
     private function setupLargeTable(string $sourceFileName): void
@@ -156,23 +237,6 @@ class RetryTest extends ExtractorTest
         }
     }
 
-    private function getRetryConfig(): array
-    {
-        $config = $this->getConfig('common', 'json');
-        $config['parameters']['db'] = $this->dbParams;
-        $config['parameters']['tables'] = [[
-            'id' => 1,
-            'name' => 'sales',
-            'query' => 'SELECT * FROM sales',
-            'outputTable' => 'in.c-main.sales',
-            'incremental' => false,
-            'primaryKey' => null,
-            'enabled' => true,
-            'retries' => 10,
-        ]];
-        return $config;
-    }
-
     private function getLineCount(string $fileName): int
     {
         $lineCount = 0;
@@ -184,70 +248,6 @@ class RetryTest extends ExtractorTest
         return $lineCount;
     }
 
-    private function waitForConnection(): void
-    {
-        $retries = 0;
-        echo 'Waiting for connection' . PHP_EOL;
-        while (true) {
-            try {
-                $this->pdo = null;
-                $conn = $this->getConnection();
-                @$conn->query('SELECT NOW();')->execute();
-                $this->pdo = $conn;
-                break;
-            } catch (\Throwable $e) {
-                echo 'Waiting for connection ' . $e->getMessage() . PHP_EOL;
-                sleep(5);
-                $retries++;
-                if ($retries > 10) {
-                    throw new \Exception('Killer Rabbit was too successful.');
-                }
-            }
-        }
-        $stmt = $this->pdo->query('SELECT CONNECTION_ID() AS pid;');
-        $stmt->execute();
-        $this->pid = $stmt->fetch()['pid'];
-    }
-
-
-    private function doKillConnection(\PDO $pdo)
-    {
-        try {
-            fwrite(STDERR, sprintf('[%s] Killing connection : %s', date('Y-m-d H:i:s'), $this->pid) . PHP_EOL);
-            $this->serviceConnection->exec('KILL ' . $this->pid);
-        } catch (\Throwable $e) {
-            fwrite(STDERR, sprintf('[%s] Kill result: %s', date('Y-m-d H:i:s'), $e->getMessage()) . PHP_EOL);
-        }
-    }
-
-    public function killConnection($event, $stmt, $pdo)
-    {
-        fwrite(STDERR, sprintf('[%s] Event: %s, Killer: %s', date('Y-m-d H:i:s'), $event, var_export($this->killerEnabled, true)) . PHP_EOL);
-        if ($event === 'fetch') {
-            $this->fetchCount++;
-        }
-        if (($this->killerEnabled === 'fetch') && ($event === 'fetch') && ($this->fetchCount % 1000 === 0)) {
-            fwrite(STDERR, sprintf('[%s] Killing', date('Y-m-d H:i:s')) . PHP_EOL);
-            $this->doKillConnection($pdo);
-        }
-        if (($this->killerEnabled === 'query') && ($event === 'query')) {
-            fwrite(STDERR, sprintf('[%s] Killing', date('Y-m-d H:i:s')) . PHP_EOL);
-            $this->doKillConnection($pdo);
-        }
-        if (($this->killerEnabled === 'execute') && ($event === 'execute')) {
-            fwrite(STDERR, sprintf('[%s] Killing', date('Y-m-d H:i:s')) . PHP_EOL);
-            $this->doKillConnection($pdo);
-        }
-        if (($this->killerEnabled === 'prepare') && ($event === 'prepare')) {
-            fwrite(STDERR, sprintf('[%s] Killing', date('Y-m-d H:i:s')) . PHP_EOL);
-            $this->doKillConnection($pdo);
-        }
-
-        if ($this->killerEnabled === 'query') {
-            sleep(2);
-        }
-    }
-    
     public function testRabbit(): void
     {
         exec(self::SERVER_KILLER_EXECUTABLE . ' 0', $output, $ret);
