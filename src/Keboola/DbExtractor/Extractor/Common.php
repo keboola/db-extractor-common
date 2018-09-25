@@ -17,6 +17,8 @@ class Common extends Extractor
     /** @var array */
     protected $database;
 
+    protected $ignorableSqlStateCodes = ['^42'];
+
     public function createConnection(array $params): PDO
     {
         // convert errors to PDOExceptions
