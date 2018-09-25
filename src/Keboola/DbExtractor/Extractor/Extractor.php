@@ -42,13 +42,11 @@ abstract class Extractor
     /** @var array */
     private $dbParameters;
 
-    public function __construct(array $parameters, array $state = [], ?Logger $logger = null)
+    public function __construct(array $parameters, array $state, Logger $logger)
     {
-        if ($logger) {
-            $this->logger = $logger;
-        }
         $this->dataDir = $parameters['data_dir'];
         $this->state = $state;
+        $this->logger = $logger;
 
         if (isset($parameters['db']['ssh']['enabled']) && $parameters['db']['ssh']['enabled']) {
             $parameters['db'] = $this->createSshTunnel($parameters['db']);
