@@ -184,8 +184,11 @@ class RetryTest extends ExtractorTest
         return $config;
     }
 
-    private function setupLargeTable(string $sourceFileName): void
+    private function setupLargeTable(): void
     {
+        $temp = new Temp();
+        $temp->initRunFolder();
+        $sourceFileName = $temp->getTmpFolder() . '/large.csv';
         $res = $this->pdo->query(
             sprintf(
                 "SELECT * 
@@ -248,42 +251,39 @@ class RetryTest extends ExtractorTest
         return $lineCount;
     }
 
-    public function testRabbit(): void
+    public function testServerKiller(): void
     {
+        /* This is not an actual tests of DbExtractorCommon, rather it tests that the script to restart
+        the MySQL server works correctly. */
+
+        // unlike in the actual tests, here, the killer can be executed synchronously.
         exec(self::SERVER_KILLER_EXECUTABLE . ' 0', $output, $ret);
         $output = implode(PHP_EOL, $output);
-        echo $output;
         // wait for the reboot to start (otherwise waitForConnection() would pass with the old connection
         sleep(10);
         $this->waitForConnection();
 
-        self::assertEquals(0, $ret, $output);
         self::assertContains('Rabbit of Caerbannog', $output);
+        self::assertEquals(0, $ret, $output);
         self::assertNotEmpty($this->pdo);
     }
 
     public function testRunMainRetry(): void
     {
         $config = $this->getRetryConfig();
-
-        $temp = new Temp();
-        $temp->initRunFolder();
-        $sourceFileName = $temp->getTmpFolder() . '/large.csv';
-        $this->setupLargeTable($sourceFileName);
-
+        $this->setupLargeTable();
         $app = $this->getApplication('ex-db-common', $config);
 
-        // exec async
+        // execute asynchronously
         exec(self::SERVER_KILLER_EXECUTABLE . ' 2 > /dev/null &');
 
         $result = $app->run();
-
         $outputCsvFile = $this->dataDir . '/out/tables/' . $result['imported'][0]['outputTable'] . '.csv';
 
-        $this->assertEquals('success', $result['status']);
-        $this->assertFileExists($outputCsvFile);
-        $this->assertFileExists($this->dataDir . '/out/tables/' . $result['imported'][0]['outputTable'] . '.csv.manifest');
-        $this->assertEquals(self::ROW_COUNT, $this->getLineCount($outputCsvFile));
+        self::assertEquals('success', $result['status']);
+        self::assertFileExists($outputCsvFile);
+        self::assertFileExists($outputCsvFile . '.manifest');
+        self::assertEquals(self::ROW_COUNT, $this->getLineCount($outputCsvFile));
     }
 
     public function testNetworkKillerQuery(): void
