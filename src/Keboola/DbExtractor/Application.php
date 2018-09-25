@@ -8,14 +8,29 @@ use Keboola\DbExtractor\Configuration\ActionConfigRowDefinition;
 use Keboola\DbExtractor\Configuration\ConfigDefinition;
 use Keboola\DbExtractor\Configuration\ConfigRowDefinition;
 use Keboola\DbExtractor\Exception\UserException;
-use Pimple\Container;
+use Keboola\DbExtractor\Extractor\Extractor;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 use Symfony\Component\Config\Definition\Exception\Exception as ConfigException;
 use Symfony\Component\Config\Definition\Processor;
 use ErrorException;
 
-class Application extends Container
+class Application
 {
+    /** @var string */
+    private $action;
+
+    /** @var array */
+    private $parameters;
+
+    /** @var array */
+    private $state;
+
+    /** @var Logger */
+    private $logger;
+
+    /** @var Extractor */
+    private $extractor;
+
     /** @var ConfigurationInterface */
     private $configDefinition;
 
@@ -23,29 +38,18 @@ class Application extends Container
     {
         static::setEnvironment();
 
-        parent::__construct();
+        $this->action = isset($config['action'])?$config['action']:'run';
+        $this->parameters = $config['parameters'];
+        $this->state = $state;
+        $this->logger = $logger;
 
-        $app = $this;
+        $extractorFactory = new ExtractorFactory($this->parameters, $this->state);
+        $this->extractor = $extractorFactory->create($this->logger);
 
-        $this['action'] = isset($config['action'])?$config['action']:'run';
-
-        $this['parameters'] = $config['parameters'];
-
-        $this['state'] = $state;
-
-        $this['logger'] = $logger;
-
-        $this['extractor_factory'] = function () use ($app) {
-            return new ExtractorFactory($app['parameters'], $app['state']);
-        };
-
-        $this['extractor'] = function () use ($app) {
-            return $app['extractor_factory']->create($app['logger']);
-        };
-        if (isset($this['parameters']['tables'])) {
+        if (isset($this->parameters['tables'])) {
             $this->configDefinition = new ConfigDefinition();
         } else {
-            if ($this['action'] === 'run') {
+            if ($this->action === 'run') {
                 $this->configDefinition = new ConfigRowDefinition();
             } else {
                 $this->configDefinition = new ActionConfigRowDefinition();
@@ -55,11 +59,11 @@ class Application extends Container
 
     public function run(): array
     {
-        $this['parameters'] = $this->validateParameters($this['parameters']);
+        $this->parameters = $this->validateParameters($this->parameters);
 
-        $actionMethod = $this['action'] . 'Action';
+        $actionMethod = $this->action . 'Action';
         if (!method_exists($this, $actionMethod)) {
-            throw new UserException(sprintf("Action '%s' does not exist.", $this['action']));
+            throw new UserException(sprintf("Action '%s' does not exist.", $this->action));
         }
 
         return $this->$actionMethod();
@@ -72,8 +76,17 @@ class Application extends Container
 
     private function validateTableParameters(array $table): void
     {
+        if (isset($table['incrementalFetchingColumn'])
+            && $table['incrementalFetchingColumn'] !== "") {
+            $this->extractor->validateIncrementalFetching(
+                $table['table'],
+                $table['incrementalFetchingColumn'],
+                $table['incrementalFetchingLimit']?? null
+            );
+        }
+
         if (isset($table['incrementalFetching']['autoIncrementColumn']) && empty($table['primaryKey'])) {
-            $this['logger']->warn("An import autoIncrement column is being used but output primary key is not set.");
+            $this->logger->warn("An import autoIncrement column is being used but output primary key is not set.");
         }
     }
 
@@ -86,7 +99,7 @@ class Application extends Container
                 [$parameters]
             );
 
-            if ($this['action'] === 'run') {
+            if ($this->action === 'run') {
                 if (isset($processedParameters['tables'])) {
                     foreach ($processedParameters['tables'] as $table) {
                         $this->validateTableParameters($table);
@@ -106,19 +119,19 @@ class Application extends Container
     {
         $imported = [];
         $outputState = [];
-        if (isset($this['parameters']['tables'])) {
+        if (isset($this->parameters['tables'])) {
             $tables = array_filter(
-                $this['parameters']['tables'],
+                $this->parameters['tables'],
                 function ($table) {
                     return ($table['enabled']);
                 }
             );
             foreach ($tables as $table) {
-                $exportResults = $this['extractor']->export($table);
+                $exportResults = $this->extractor->export($table);
                 $imported[] = $exportResults;
             }
         } else {
-            $exportResults = $this['extractor']->export($this['parameters']);
+            $exportResults = $this->extractor->export($this->parameters);
             if (isset($exportResults['state'])) {
                 $outputState = $exportResults['state'];
                 unset($exportResults['state']);
@@ -136,7 +149,7 @@ class Application extends Container
     private function testConnectionAction(): array
     {
         try {
-            $this['extractor']->testConnection();
+            $this->extractor->testConnection();
         } catch (\Throwable $e) {
             throw new UserException(sprintf("Connection failed: '%s'", $e->getMessage()), 0, $e);
         }
@@ -150,7 +163,7 @@ class Application extends Container
     {
         try {
             $output = [];
-            $output['tables'] = $this['extractor']->getTables();
+            $output['tables'] = $this->extractor->getTables();
             $output['status'] = 'success';
         } catch (\Throwable $e) {
             throw new UserException(sprintf("Failed to get tables: '%s'", $e->getMessage()), 0, $e);

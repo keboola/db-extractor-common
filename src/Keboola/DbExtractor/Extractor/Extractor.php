@@ -63,13 +63,6 @@ abstract class Extractor
             }
             throw new UserException("Error connecting to DB: " . $e->getMessage(), 0, $e);
         }
-        if (isset($parameters['incrementalFetchingColumn']) && $parameters['incrementalFetchingColumn'] !== "") {
-            $this->validateIncrementalFetching(
-                $parameters['table'],
-                $parameters['incrementalFetchingColumn'],
-                isset($parameters['incrementalFetchingLimit']) ? $parameters['incrementalFetchingLimit'] : null
-            );
-        }
     }
 
     public function createSshTunnel(array $dbConfig): array

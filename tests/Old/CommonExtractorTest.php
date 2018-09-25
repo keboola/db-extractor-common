@@ -308,15 +308,9 @@ class CommonExtractorTest extends ExtractorTest
         $config['action'] = 'testConnection';
         $config['parameters']['tables'] = [];
         $config['parameters']['db']['#password'] = 'bullshit';
-        $app = $this->getApp($config);
-        $exceptionThrown = false;
-        try {
-            $app->run();
-        } catch (\Keboola\DbExtractor\Exception\UserException $e) {
-            $exceptionThrown = true;
-        }
 
-        $this->assertTrue($exceptionThrown);
+        $this->expectException(UserException::class);
+        $this->getApp($config);
     }
 
     public function testGetTablesAction(): void
