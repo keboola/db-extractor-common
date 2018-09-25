@@ -268,24 +268,6 @@ class RetryTest extends ExtractorTest
         self::assertNotEmpty($this->pdo);
     }
 
-    public function testRunMainRetry(): void
-    {
-        $config = $this->getRetryConfig();
-        $this->setupLargeTable();
-        $app = $this->getApplication('ex-db-common', $config);
-
-        // execute asynchronously
-        exec(self::SERVER_KILLER_EXECUTABLE . ' 2 > /dev/null &');
-
-        $result = $app->run();
-        $outputCsvFile = $this->dataDir . '/out/tables/' . $result['imported'][0]['outputTable'] . '.csv';
-
-        self::assertEquals('success', $result['status']);
-        self::assertFileExists($outputCsvFile);
-        self::assertFileExists($outputCsvFile . '.manifest');
-        self::assertEquals(self::ROW_COUNT, $this->getLineCount($outputCsvFile));
-    }
-
     public function testNetworkKillerQuery(): void
     {
         /* This is not an actual tests of DbExtractorCommon, rather it tests whether network interruption
@@ -319,7 +301,6 @@ class RetryTest extends ExtractorTest
         $stmt->execute();
     }
 
-
     public function testNetworkKillerFetch(): void
     {
         /* This is not an actual tests of DbExtractorCommon, rather it tests whether network interruption
@@ -342,6 +323,24 @@ class RetryTest extends ExtractorTest
         /** @noinspection PhpStatementHasEmptyBodyInspection */
         while ($row = $stmt->fetch()) {
         }
+    }
+
+    public function testRunMainRetry(): void
+    {
+        $config = $this->getRetryConfig();
+        $this->setupLargeTable();
+        $app = $this->getApplication('ex-db-common', $config);
+
+        // execute asynchronously
+        exec(self::SERVER_KILLER_EXECUTABLE . ' 2 > /dev/null &');
+
+        $result = $app->run();
+        $outputCsvFile = $this->dataDir . '/out/tables/' . $result['imported'][0]['outputTable'] . '.csv';
+
+        self::assertEquals('success', $result['status']);
+        self::assertFileExists($outputCsvFile);
+        self::assertFileExists($outputCsvFile . '.manifest');
+        self::assertEquals(self::ROW_COUNT, $this->getLineCount($outputCsvFile));
     }
 
     public function testRunMainRetryNetworkError(): void
