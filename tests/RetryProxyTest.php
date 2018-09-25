@@ -62,7 +62,7 @@ class RetryProxyTest extends ExtractorTest
     public function ignorableSqlCodesProvider(): array
     {
         return [
-            [['42502']],
+            [['42S02']],
             [['^42']],
         ];
     }

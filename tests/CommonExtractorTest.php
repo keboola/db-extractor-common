@@ -235,10 +235,15 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['tables'][0]['query'] = "SELECT * FROM `table_that_does_not_exist`";
         $config['parameters']['tables'][0]['retries'] = 3;
 
+        $logger = new Logger();
+        $testHandler = new TestHandler();
+        $logger->pushHandler($testHandler);
         try {
-            ($this->getApp($config))->run();
+            $app = new Application($config, $logger);
+            $app->run();
         } catch (UserException $e) {
-            $this->assertContains('Tried 3 times', $e->getMessage());
+            // shouldn't retry on ^42 level sql codes
+            $this->assertFalse($testHandler->hasInfoThatContains('Retrying'));
         }
     }
 
@@ -792,7 +797,7 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['incrementalFetchingColumn'] = 'fakeCol'; // column does not exist
 
         try {
-            $result = ($this->getApp($config))->run();
+            ($this->getApp($config))->run();
             $this->fail('specified autoIncrement column does not exist, should fail.');
         } catch (UserException $e) {
             $this->assertStringStartsWith("Column [fakeCol]", $e->getMessage());
@@ -816,7 +821,7 @@ class CommonExtractorTest extends ExtractorTest
         unset($config['parameters']['table']);
 
         try {
-            $result = ($this->getApp($config))->run();
+            ($this->getApp($config))->run();
             $this->fail('cannot use incremental fetching with advanced query, should fail.');
         } catch (UserException $e) {
             $this->assertStringStartsWith("Invalid Configuration", $e->getMessage());
@@ -946,10 +951,10 @@ class CommonExtractorTest extends ExtractorTest
         $app = new Application($config, $logger, []);
         try {
             $app->run();
-            self::fail('Must raise exception');
+            $this->fail('Must raise exception');
         } catch (ApplicationException $e) {
-            self::assertContains('Failed writing CSV File', $e->getMessage());
-            self::assertFalse($handler->hasInfoThatContains('Retrying'));
+            $this->assertContains('Failed writing CSV File', $e->getMessage());
+            $this->assertFalse($handler->hasInfoThatContains('Retrying'));
         }
     }
 
