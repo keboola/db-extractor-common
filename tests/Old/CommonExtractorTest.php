@@ -34,7 +34,7 @@ class CommonExtractorTest extends ExtractorTest
 
     private function getApp(array $config, array $state = []): Application
     {
-        return parent::getApplication($this->appName, $config, $state);
+        return parent::getApplication($config, $state);
     }
 
     private function initDatabase(): void

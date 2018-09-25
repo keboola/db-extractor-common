@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor;
 
+use Keboola\Component\Logger;
 use Keboola\DbExtractor\Configuration\ActionConfigRowDefinition;
 use Keboola\DbExtractor\Configuration\ConfigDefinition;
 use Keboola\DbExtractor\Configuration\ConfigRowDefinition;

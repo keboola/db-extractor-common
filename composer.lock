@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "a92aaede2ee408d6cee4558ee24ca354",
+    "content-hash": "e138ad518c5ae4ad1eb608e1f00935f3",
     "packages": [
         {
             "name": "doctrine/instantiator",
@@ -145,6 +145,60 @@
             ],
             "description": "Tool for functional testing of Keboola Connection components",
             "time": "2018-09-17T15:15:11+00:00"
+        },
+        {
+            "name": "keboola/php-component",
+            "version": "4.2.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/keboola/php-component.git",
+                "reference": "57880731858a7bc46d9913614fcfe6e36b3dc763"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/keboola/php-component/zipball/57880731858a7bc46d9913614fcfe6e36b3dc763",
+                "reference": "57880731858a7bc46d9913614fcfe6e36b3dc763",
+                "shasum": ""
+            },
+            "require": {
+                "monolog/monolog": "^1.23",
+                "php": "^7.1",
+                "symfony/config": "^4.0",
+                "symfony/filesystem": "^4.0",
+                "symfony/finder": "^4.0",
+                "symfony/serializer": "^4.0"
+            },
+            "require-dev": {
+                "devedge/sami-github": "^1.0",
+                "jakub-onderka/php-parallel-lint": "^1.0",
+                "keboola/coding-standard": "^4.0",
+                "keboola/php-temp": "^1.0",
+                "phpstan/phpstan-shim": "^0.9.1",
+                "phpunit/phpunit": "^7.1"
+            },
+            "type": "project",
+            "autoload": {
+                "psr-4": {
+                    "Keboola\\Component\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "keboola",
+                    "email": "devel@keboola.com"
+                }
+            ],
+            "description": "Helper classes for developing Keboola PHP components",
+            "keywords": [
+                "component",
+                "docker",
+                "keboola"
+            ],
+            "time": "2018-05-21T09:31:18+00:00"
         },
         {
             "name": "keboola/php-datatypes",

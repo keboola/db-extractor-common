@@ -10,7 +10,7 @@ use Keboola\Datatype\Definition\GenericStorage;
 use Keboola\DbExtractor\Exception\ApplicationException;
 use Keboola\DbExtractor\Exception\DeadConnectionException;
 use Keboola\DbExtractor\Exception\UserException;
-use Keboola\DbExtractor\Logger;
+use Keboola\Component\Logger;
 use Keboola\DbExtractor\RetryProxy;
 use Keboola\SSHTunnel\SSH;
 use Keboola\SSHTunnel\SSHException;
