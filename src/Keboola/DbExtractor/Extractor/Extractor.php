@@ -44,6 +44,9 @@ abstract class Extractor
     /** @var array */
     private $dbParameters;
 
+    /** @var array */
+    protected $ignorableSqlStateCodes = [];
+
     public function __construct(array $parameters, array $state = [], ?Logger $logger = null)
     {
         if ($logger) {
@@ -245,7 +248,13 @@ abstract class Extractor
 
     protected function executeQuery(string $query, ?int $maxTries): PDOStatement
     {
-        $proxy = new RetryProxy($this->logger, $maxTries);
+        $proxy = new RetryProxy(
+            $this->logger,
+            $maxTries,
+            RetryProxy::DEFAULT_BACKOFF_INTERVAL,
+            RetryProxy::DEFAULT_EXCEPTED_EXCEPTIONS,
+            $this->ignorableSqlStateCodes
+        );
         $stmt = $proxy->call(function () use ($query) {
             try {
                 /** @var \PDOStatement $stmt */
