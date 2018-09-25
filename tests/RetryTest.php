@@ -5,17 +5,12 @@ declare(strict_types=1);
 namespace Keboola\DbExtractor\Tests;
 
 use Keboola\Csv\CsvFile;
-use Keboola\DbExtractor\Application;
-use Keboola\DbExtractor\Exception\ApplicationException;
-use Keboola\DbExtractor\Exception\DeadConnectionException;
 use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractor\Extractor\Common;
 use Keboola\DbExtractor\Test\ExtractorTest;
 use Keboola\Temp\Temp;
 use Monolog\Handler\TestHandler;
-use Monolog\Logger;
 use PDO;
-//use PHPUnit_Framework_Error_Warning;
 use Symfony\Component\Debug\ErrorHandler;
 
 class RetryTest extends ExtractorTest
@@ -23,8 +18,6 @@ class RetryTest extends ExtractorTest
     private const ROW_COUNT = 1000000;
 
     private const SERVER_KILLER_EXECUTABLE =  'php ' . __DIR__ . '/killerRabbit.php';
-
-    private const NETWORK_KILLER_EXECUTABLE =  'php ' . __DIR__ . '/killerSquirrel.php';
 
     /** @var  array */
     private $dbParams;
@@ -214,7 +207,6 @@ class RetryTest extends ExtractorTest
         $stmt = $this->pdo->query('SELECT CONNECTION_ID() AS pid;');
         $stmt->execute();
         $this->pid = $stmt->fetch()['pid'];
-
     }
 
     public function testRabbit(): void
@@ -262,7 +254,7 @@ class RetryTest extends ExtractorTest
 
         /* Register symfony error handler (used in production) and replace phpunit error handler. This
         is very important to receive correct type of exception (\ErrorException), otherwise Phpunit
-        will convert the warnings to PHPUnit_Framework_Error_Warning */
+        will convert the warnings to PHPUnit\Framework\Error\Warning */
         ErrorHandler::register(null, true);
         //$conn = $this->getConnection();
         $this->killerEnabled = 'query';
@@ -278,7 +270,7 @@ class RetryTest extends ExtractorTest
 
         /* Register symfony error handler (used in production) and replace phpunit error handler. This
         is very important to receive correct type of exception (\ErrorException), otherwise Phpunit
-        will convert the warnings to PHPUnit_Framework_Error_Warning */
+        will convert the warnings to PHPUnit\Framework\Error\Warning */
         ErrorHandler::register(null, true);
 
         $stmt = $this->pdo->query('SELECT NOW();');
@@ -337,7 +329,7 @@ class RetryTest extends ExtractorTest
 
         /* Register symfony error handler (used in production) and replace phpunit error handler. This
         is very important to receive correct type of exception (\ErrorException), otherwise Phpunit
-        will convert the warnings to PHPUnit_Framework_Error_Warning */
+        will convert the warnings to PHPUnit\Framework\Error\Warning */
         ErrorHandler::register(null, true);
 
         $stmt = $this->pdo->query('SELECT * FROM sales LIMIT 10000');
@@ -360,74 +352,29 @@ class RetryTest extends ExtractorTest
         $handler = new TestHandler();
         $logger = new \Keboola\DbExtractor\Logger('test');
         $logger->pushHandler($handler);
-        $table = [
-            'id' => 1,
-            'name' => 'sales',
-            'query' => 'SELECT * FROM sales LIMIT 99',
-            'outputTable' => 'in.c-main.sales',
-            'incremental' => false,
-            'primaryKey' => [],
-            'enabled' => true,
-            'retries' => 10,
-            'columns' => [],
-        ];
+        $config = $this->getRetryConfig();
+        $config['parameters']['tables'][0]['query'] = 'SELECT * FROM sales LIMIT 99';
 
-        $parameters = [
-            'db' => [
-                'user' => getenv('TEST_RDS_USERNAME'),
-                '#password' => getenv('TEST_RDS_PASSWORD'),
-                'password' => getenv('TEST_RDS_PASSWORD'),
-                'host' => getenv('TEST_RDS_HOST'),
-                'database' => 'odin4test',
-                'port' => '3306',
-            ],
-            'tables' => [$table],
-            'data_dir' => $this->dataDir,
-            'extractor_class' => 'Common',
-        ];
-        /*
-        $extractor = self::getMockBuilder(Common::class)
-            ->setMethods(['createConnection'])
-            ->setConstructorArgs([$parameters, [], $logger])
-            ->disableArgumentCloning()
-            ->disableOriginalClone()
-            ->disableAutoReturnValueGeneration()
-            ->getMock();
-        //$extractor->method('createConnection')->willReturnReference($this->pdo);
+        $extractor = new Common($config, [], $logger);
+        $reflectionProperty = new \ReflectionProperty($extractor, 'db');
+        $reflectionProperty->setAccessible(true);
+        $reflectionProperty->setValue($extractor, $this->pdo);
 
-        $extractor->expects(self::any())->method('createConnection')
-            ->with(self::anything())
-            ->willReturnCallback(function (array $params) {
-            //var_export($params);
-            fwrite(STDERR, 'here' . get_class($this->pdo) . PHP_EOL);
-            return $this->pdo;
-        });
-        -> nejde, protze $this->db se nastavuje uz ctoru, ale mock method az pozdeji
-*/
-        $extractor = new Common($parameters, [], $logger);
-        $refl = new \ReflectionProperty($extractor, 'db');
-        $refl->setAccessible(true);
-        $refl->setValue($extractor, $this->pdo);
-        ///** @var Common $extractor */
-        //$mm = $extractor->createConnection([]);
-        //fwrite(STDERR, 'whatabouthere' . get_class($mm) . PHP_EOL);
-
-        // exec async
-        //exec(self::NETWORK_KILLER_EXECUTABLE . ' 2 3306 > /dev/null &');
         $this->killerEnabled = 'prepare';
-//        /* Register symfony error handler (used in production) and replace phpunit error handler. This
-//        is very important to receive correct type of exception (\ErrorException), otherwise Phpunit
-//        will convert the warnings to PHPUnit_Framework_Error_Warning */
+        /* Register symfony error handler (used in production) and replace phpunit error handler. This
+        is very important to receive correct type of exception (\ErrorException), otherwise Phpunit
+        will convert the warnings to PHPUnit\Framework\Error\Warning */
         ErrorHandler::register(null, true);
-        $result = $extractor->export($table);
+        $result = $extractor->export($config['parameters']['tables'][0]);
         $outputCsvFile = $this->dataDir . '/out/tables/' . $result['outputTable'] . '.csv';
 
         self::assertFileExists($outputCsvFile);
         self::assertFileExists($this->dataDir . '/out/tables/' . $result['outputTable'] . '.csv.manifest');
         self::assertEquals(100, $this->getLineCount($outputCsvFile));
-        //var_dump($handler->getRecords());
         self::assertTrue($handler->hasInfoThatContains('Retrying...'));
-        self::assertTrue($handler->hasInfoThatContains('Warning: PDOStatement::execute(): MySQL server has gone away. Retrying'));
+        self::assertTrue($handler->hasInfoThatContains(
+            'Warning: PDOStatement::execute(): MySQL server has gone away. Retrying'
+        ));
     }
 
     public function testRunMainRetryNetworkErrorExecute(): void
@@ -497,7 +444,7 @@ class RetryTest extends ExtractorTest
         $this->killerEnabled = 'execute';
 //        /* Register symfony error handler (used in production) and replace phpunit error handler. This
 //        is very important to receive correct type of exception (\ErrorException), otherwise Phpunit
-//        will convert the warnings to PHPUnit_Framework_Error_Warning */
+//        will convert the warnings to PHPUnit\Framework\Error\Warning */
         ErrorHandler::register(null, true);
         $result = $extractor->export($table);
         $outputCsvFile = $this->dataDir . '/out/tables/' . $result['outputTable'] . '.csv';
@@ -577,7 +524,7 @@ class RetryTest extends ExtractorTest
         $this->killerEnabled = 'fetch';
 //        /* Register symfony error handler (used in production) and replace phpunit error handler. This
 //        is very important to receive correct type of exception (\ErrorException), otherwise Phpunit
-//        will convert the warnings to PHPUnit_Framework_Error_Warning */
+//        will convert the warnings to PHPUnit\Framework\Error\Warning */
         ErrorHandler::register(null, true);
         $result = $extractor->export($table);
         $outputCsvFile = $this->dataDir . '/out/tables/' . $result['outputTable'] . '.csv';
@@ -657,7 +604,7 @@ class RetryTest extends ExtractorTest
         $this->killerEnabled = 'prepare';
 //        /* Register symfony error handler (used in production) and replace phpunit error handler. This
 //        is very important to receive correct type of exception (\ErrorException), otherwise Phpunit
-//        will convert the warnings to PHPUnit_Framework_Error_Warning */
+//        will convert the warnings to PHPUnit\Framework\Error\Warning */
         ErrorHandler::register(null, true);
         try {
             $result = $extractor->export($table);
