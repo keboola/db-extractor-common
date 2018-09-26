@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Keboola\DbExtractor;
 
 use Keboola\Component\Logger;
-use Keboola\DbExtractor\Configuration\ActionConfigRowDefinition;
+use Keboola\DbExtractor\Configuration\ActionConfigDefinition;
 use Keboola\DbExtractor\Configuration\ConfigDefinition;
 use Keboola\DbExtractor\Configuration\ConfigRowDefinition;
 use Keboola\DbExtractor\Exception\UserException;
@@ -47,14 +47,12 @@ class Application
         $extractorFactory = new ExtractorFactory($this->parameters, $this->state);
         $this->extractor = $extractorFactory->create($this->logger);
 
-        if (isset($this->parameters['tables'])) {
+        if ($this->action !== 'run') {
+            $this->configDefinition = new ActionConfigDefinition();
+        } elseif (isset($this->parameters['tables'])) {
             $this->configDefinition = new ConfigDefinition();
         } else {
-            if ($this->action === 'run') {
-                $this->configDefinition = new ConfigRowDefinition();
-            } else {
-                $this->configDefinition = new ActionConfigRowDefinition();
-            }
+            $this->configDefinition = new ConfigRowDefinition();
         }
     }
 
