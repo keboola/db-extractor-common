@@ -142,28 +142,28 @@ abstract class BaseExtractorConfigDefinition implements ConfigurationInterface
         $node->validate()
             ->ifTrue(function ($v) {
                 foreach ($v as $table) {
-                    return (!isset($table['query']) && !isset($table['table']));
+                    return ConfigDefinitionValidationHelper::isQueryAndTableNotDefined($table);
                 }
             })
-            ->thenInvalid('Either "table" or "query" must be defined.')
+            ->thenInvalid(ConfigDefinitionValidationHelper::MESSAGE_TABLE_OR_QUERY_MUST_BE_DEFINED)
             ->end();
 
         $node->validate()
             ->ifTrue(function ($v) {
                 foreach ($v as $table) {
-                    return (isset($table['query']) && isset($table['table']));
+                    return ConfigDefinitionValidationHelper::isQueryAndTableSetTogether($table);
                 }
             })
-            ->thenInvalid('Both "table" and "query" cannot be set together.')
+            ->thenInvalid(ConfigDefinitionValidationHelper::MESSAGE_TABLE_AND_QUERY_CANNOT_BE_SET_TOGETHER)
             ->end();
 
         $node->validate()
             ->ifTrue(function ($v) {
                 foreach ($v as $table) {
-                    return (isset($table['query']) && isset($table['incrementalFetchingColumn']));
+                    return ConfigDefinitionValidationHelper::isIncrementalFetchingSetForAdvancedQuery($table);
                 }
             })
-            ->thenInvalid('Incremental fetching is not supported for advanced queries.')
+            ->thenInvalid(ConfigDefinitionValidationHelper::MESSAGE_CUSTOM_QUERY_CANNOT_BE_FETCHED_INCREMENTALLY)
             ->end();
         // @formatter:on
 

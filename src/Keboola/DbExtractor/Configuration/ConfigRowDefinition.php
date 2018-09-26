@@ -56,23 +56,23 @@ class ConfigRowDefinition extends BaseExtractorConfigDefinition
 
         $rootNode->validate()
             ->ifTrue(function ($v) {
-                return (!isset($v['query']) && !isset($v['table']));
+                return ConfigDefinitionValidationHelper::isQueryAndTableNotDefined($v);
             })
-            ->thenInvalid('Either "table" or "query" must be defined.')
+            ->thenInvalid(ConfigDefinitionValidationHelper::MESSAGE_TABLE_OR_QUERY_MUST_BE_DEFINED)
             ->end();
 
         $rootNode->validate()
             ->ifTrue(function ($v) {
-                return (isset($v['query']) && isset($v['table']));
+                return ConfigDefinitionValidationHelper::isQueryAndTableSetTogether($v);
             })
-            ->thenInvalid('Both "table" and "query" cannot be set together.')
+            ->thenInvalid(ConfigDefinitionValidationHelper::MESSAGE_TABLE_AND_QUERY_CANNOT_BE_SET_TOGETHER)
             ->end();
 
         $rootNode->validate()
             ->ifTrue(function ($v) {
-                return (isset($v['query']) && isset($v['incrementalFetchingColumn']));
+                return ConfigDefinitionValidationHelper::isIncrementalFetchingSetForAdvancedQuery($v);
             })
-            ->thenInvalid('Incremental fetching is not supported for advanced queries.')
+            ->thenInvalid(ConfigDefinitionValidationHelper::MESSAGE_CUSTOM_QUERY_CANNOT_BE_FETCHED_INCREMENTALLY)
             ->end();
         // @formatter:on
 
