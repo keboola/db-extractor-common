@@ -116,7 +116,7 @@ class RetryTest extends ExtractorTest
 
     private function getRetryConfig(): array
     {
-        $config = $this->getConfig('common', 'json');
+        $config = $this->getConfig('common');
         $config['parameters']['db'] = $this->dbParams;
         $config['parameters']['tables'] = [[
             'id' => 1,
