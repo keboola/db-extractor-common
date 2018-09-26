@@ -1,9 +1,6 @@
 version: "3"
 services:
   tests:
-    container_name: db_tests
-    networks: 
-      - db_network
     build: .
     image: keboola/db-extractor-common
     volumes:
@@ -21,8 +18,8 @@ services:
       TEST_RDS_USERNAME:
       TEST_RDS_PASSWORD:
       TEST_RDS_DATABASE:
-      TEST_RDS_PORT:
       TEST_RDS_HOST:
+      TEST_RDS_PORT:
       TEST_RDS_ID:
       TEST_RDS_ACCESS_KEY:
       TEST_RDS_ACCESS_SECRET:
@@ -35,8 +32,6 @@ services:
     environment:
       MYSQL_DATABASE: testdb
       MYSQL_ROOT_PASSWORD: somePassword
-    networks: 
-      - db_network
 
   sshproxy:
     build: ./tests/env/sshproxy
@@ -45,16 +40,3 @@ services:
       - SSH_KEY_PUBLIC
     links:
       - mysql
-    networks: 
-      - db_network
-
-networks:
-  db_network:
-    driver: bridge
-  # no_network:
-  #   driver: none
-  # custom_network:
-  #   driver: default
-  #   config:
-  #   - subnet: 172.16.238.0/24
-  #     gateway: 172.16.238.1

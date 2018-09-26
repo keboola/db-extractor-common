@@ -18,15 +18,14 @@ use Keboola\DbExtractor\Test\DataLoader;
 
 class CommonExtractorTest extends ExtractorTest
 {
-    /*
     public const DRIVER = 'common';
 
-    /** @var string *
+    /** @var string */
     protected $appName = 'ex-db-common';
 
     /**
      * @var  \PDO
-     *
+     */
     private $db;
 
     public function setUp(): void
@@ -199,7 +198,7 @@ class CommonExtractorTest extends ExtractorTest
     public function testRunWithSSHUserException(): void
     {
         $this->cleanOutputDirectory();
-        $this->setExpectedException('Keboola\DbExtractor\Exception\UserException');
+        $this->expectException(UserException::class);
 
         $config = $this->getConfig(self::DRIVER);
         $config['parameters']['db']['ssh'] = [
@@ -998,5 +997,4 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertFileExists($outputManifestFile);
         $this->assertEquals(file_get_contents($expectedCsvFile), file_get_contents($outputCsvFile));
     }
-    */
 }

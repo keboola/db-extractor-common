@@ -1,2 +1,5 @@
 parameters:
     ignoreErrors:
+        - '#Property Keboola\\DbExtractor\\Tests\\RetryTest::\$taintedPdo \(PDO\) does not accept null.#'
+#       - '#Call to an undefined method PHPUnit_Framework_MockObject_MockObject::export\(\).#'
+        - '#Call to an undefined method PHPUnit\\Framework\\MockObject\\MockObject::export\(\).#'

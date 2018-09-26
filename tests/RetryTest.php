@@ -5,13 +5,14 @@ declare(strict_types=1);
 namespace Keboola\DbExtractor\Tests;
 
 use Keboola\Csv\CsvFile;
+use Keboola\DbExtractor\Application;
 use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractor\Extractor\Common;
+use Keboola\DbExtractor\Logger;
 use Keboola\DbExtractor\Test\ExtractorTest;
 use Keboola\Temp\Temp;
 use Monolog\Handler\TestHandler;
 use PDO;
-use SebastianBergmann\Diff\Exception;
 use Symfony\Component\Debug\ErrorHandler;
 
 class RetryTest extends ExtractorTest
@@ -20,10 +21,14 @@ class RetryTest extends ExtractorTest
 
     private const SERVER_KILLER_EXECUTABLE =  'php ' . __DIR__ . '/killerRabbit.php';
 
-    /** @var  array */
+    /**
+     * @var array
+     */
     private $dbParams;
 
-    /** @var  PDO */
+    /**
+     * @var PDO
+     */
     private $taintedPdo;
 
     /**
@@ -32,9 +37,9 @@ class RetryTest extends ExtractorTest
     private $fetchCount = 0;
 
     /**
-     * @var bool
+     * @var ?string
      */
-    private $killerEnabled = false;
+    private $killerEnabled = null;
 
     /**
      * @var int
@@ -83,6 +88,24 @@ class RetryTest extends ExtractorTest
         $this->pid = $stmt->fetch()['pid'];
     }
 
+    private function waitForDeadConnection(): void
+    {
+        // wait for the connection to die
+        $cnt = 0;
+        while (true) {
+            try {
+                $this->taintedPdo->query('SELECT NOW();')->execute();
+                $cnt++;
+                if ($cnt > 50) {
+                    self::fail('Failed to kill the server');
+                }
+                sleep(1);
+            } catch (\Throwable $e) {
+                break;
+            }
+        }
+    }
+
     private function getConnection(): PDO
     {
         $this->dbParams = [
@@ -119,6 +142,7 @@ class RetryTest extends ExtractorTest
     public function killConnection(string $event): void
     {
         // method must be public, because it's called from the TaintedPDO class
+        /*
         fwrite(
             STDERR,
             sprintf(
@@ -128,13 +152,14 @@ class RetryTest extends ExtractorTest
                 var_export($this->killerEnabled, true)
             ) . PHP_EOL
         );
+        */
         if ($event === 'fetch') {
             $this->fetchCount++;
         }
         if ($this->killerEnabled && ($this->killerEnabled === $event)) {
-            // kill only on every 1000th fetch event, otherwise this floods the server with errors
+            // kill only on every 1000th fetch event, otherwise this floods the server with errors (PID doesn't exist)
             if (($event !== 'fetch') || (($event === 'fetch') && ($this->fetchCount % 1000 === 0))) {
-                fwrite(STDERR, sprintf('[%s] Killing', date('Y-m-d H:i:s')) . PHP_EOL);
+                //fwrite(STDERR, sprintf('[%s] Killing', date('Y-m-d H:i:s')) . PHP_EOL);
                 $this->doKillConnection();
             }
         }
@@ -174,7 +199,7 @@ class RetryTest extends ExtractorTest
         $temp->initRunFolder();
         $sourceFileName = $temp->getTmpFolder() . '/large.csv';
 
-        $res = $this->taintedPdo->query(sprintf(
+        $res = $this->serviceConnection->query(sprintf(
             "SELECT * 
             FROM information_schema.tables
             WHERE table_schema = '%s' 
@@ -208,7 +233,7 @@ class RetryTest extends ExtractorTest
                     }, $header)
                 )
             );
-            $this->taintedPdo->exec($createTableSql);
+            $this->serviceConnection->exec($createTableSql);
             $fileName = (string) $csv;
             $query = sprintf(
                 "LOAD DATA LOCAL INFILE '%s'
@@ -222,7 +247,7 @@ class RetryTest extends ExtractorTest
                 getenv('TEST_RDS_DATABASE'),
                 $tableName
             );
-            $this->taintedPdo->exec($query);
+            $this->serviceConnection->exec($query);
         }
     }
 
@@ -246,7 +271,12 @@ class RetryTest extends ExtractorTest
         exec(self::SERVER_KILLER_EXECUTABLE . ' 0', $output, $ret);
         $output = implode(PHP_EOL, $output);
         // wait for the reboot to start (otherwise waitForConnection() would pass with the old connection
-        sleep(10);
+        $this->waitForDeadConnection();
+        try {
+            $this->taintedPdo->query('SELECT NOW();')->execute();
+            self::fail('Connection must be dead now.');
+        } catch (\Throwable $e) {
+        }
         $this->waitForConnection();
 
         self::assertContains('Rabbit of Caerbannog', $output);
@@ -364,12 +394,32 @@ class RetryTest extends ExtractorTest
         self::assertEquals(self::ROW_COUNT, $this->getLineCount($outputCsvFile));
     }
 
+    public function testConnectServerError(): void
+    {
+        $handler = new TestHandler();
+        $logger = new Logger('test');
+        $logger->pushHandler($handler);
+        $this->setupLargeTable();
+        $config = $this->getRetryConfig();
+        // execute asynchronously the script to reboot the server
+        exec(self::SERVER_KILLER_EXECUTABLE . ' 0');
+        $this->waitForDeadConnection();
+        $app = new Application($config, $logger, []);
+        try {
+            $app->run();
+            self::fail('Must raise exception.');
+        } catch (UserException $e) {
+            self::assertFalse($handler->hasInfoThatContains('Retrying...'));
+            self::assertContains('Error connecting to DB: SQLSTATE[HY000] [2002] Connection refused', $e->getMessage());
+        }
+    }
+
     public function testRetryNetworkErrorPrepare(): void
     {
         $rowCount = 100;
         $this->setupLargeTable();
         $handler = new TestHandler();
-        $logger = new \Keboola\DbExtractor\Logger('test');
+        $logger = new Logger('test');
         $logger->pushHandler($handler);
         $config = $this->getRetryConfig();
         $config['parameters']['tables'][0]['query'] = 'SELECT * FROM sales LIMIT ' . $rowCount;
@@ -405,7 +455,7 @@ class RetryTest extends ExtractorTest
         $rowCount = 100;
         $this->setupLargeTable();
         $handler = new TestHandler();
-        $logger = new \Keboola\DbExtractor\Logger('test');
+        $logger = new Logger('test');
         $logger->pushHandler($handler);
         $config = $this->getRetryConfig();
         $config['parameters']['tables'][0]['query'] = 'SELECT * FROM sales LIMIT ' . $rowCount;
@@ -438,10 +488,10 @@ class RetryTest extends ExtractorTest
     {
         /* This has to be large enough so that it doesn't fit into
             prefetch cache (which exists, but seems to be undocumented). */
-        $rowCount = 100000;
+        $rowCount = 1000000;
         $this->setupLargeTable();
         $handler = new TestHandler();
-        $logger = new \Keboola\DbExtractor\Logger('test');
+        $logger = new Logger('test');
         $logger->pushHandler($handler);
         $config = $this->getRetryConfig();
         $config['parameters']['tables'][0]['query'] = 'SELECT * FROM sales LIMIT ' . $rowCount;
@@ -463,7 +513,7 @@ class RetryTest extends ExtractorTest
 
         self::assertFileExists($outputCsvFile);
         self::assertFileExists($outputCsvFile . '.manifest');
-        self::assertEquals($rowCount + 1, $this->getLineCount($outputCsvFile));
+        self::assertEquals($rowCount, $this->getLineCount($outputCsvFile));
         self::assertTrue($handler->hasInfoThatContains('Retrying...'));
         self::assertTrue($handler->hasInfoThatContains('Warning: Empty row packet body. Retrying... [1x]'));
     }
@@ -473,7 +523,7 @@ class RetryTest extends ExtractorTest
         $rowCount = 100;
         $this->setupLargeTable();
         $handler = new TestHandler();
-        $logger = new \Keboola\DbExtractor\Logger('test');
+        $logger = new Logger('test');
         $logger->pushHandler($handler);
         $config = $this->getRetryConfig();
         $config['parameters']['tables'][0]['query'] = 'SELECT * FROM sales LIMIT ' . $rowCount;
@@ -526,7 +576,7 @@ class RetryTest extends ExtractorTest
     public function testRetryException(): void
     {
         $handler = new TestHandler();
-        $logger = new \Keboola\DbExtractor\Logger('test');
+        $logger = new Logger('test');
         $logger->pushHandler($handler);
         $config = $this->getRetryConfig();
         $config['parameters']['tables'][0]['query'] = 'SELECT * FROM non_existent_table';
