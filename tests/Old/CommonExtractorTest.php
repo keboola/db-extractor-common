@@ -216,7 +216,6 @@ class CommonExtractorTest extends ExtractorTest
     public function testRunWithSSHUserException(): void
     {
         $this->cleanOutputDirectory();
-        $this->expectException(UserException::class);
 
         $config = $this->getConfig(self::DRIVER);
         $config['parameters']['db']['ssh'] = [
@@ -231,7 +230,13 @@ class CommonExtractorTest extends ExtractorTest
             'remotePort' => '3306',
         ];
 
-        ($this->getApp($config))->run();
+
+        $this->expectException(UserException::class);
+        $this->expectExceptionMessage(
+            'Unable to create ssh tunnel. Output:  ErrorOutput: ssh:'
+            . ' Could not resolve hostname wronghost: Name or service not known'
+        );
+        $this->getApp($config);
     }
 
     public function testRunWithWrongCredentials(): void
@@ -240,9 +245,13 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['db']['host'] = 'somebulshit';
         $config['parameters']['db']['#password'] = 'somecrap';
 
+
         $this->expectException(UserException::class);
-        $app = $this->getApp($config);
-        $app->run();
+        $this->expectExceptionMessage(
+            'Error connecting to DB: SQLSTATE[HY000] [2002] php_network_getaddresses:'
+            . ' getaddrinfo failed: Name or service not known'
+        );
+        $this->getApp($config);
     }
 
     public function testRetries(): void
@@ -251,11 +260,14 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['tables'][0]['query'] = "SELECT * FROM `table_that_does_not_exist`";
         $config['parameters']['tables'][0]['retries'] = 3;
 
-        try {
-            ($this->getApp($config))->run();
-        } catch (UserException $e) {
-            $this->assertContains('Tried 3 times', $e->getMessage());
-        }
+        $app = $this->getApp($config);
+
+        $this->expectException(UserException::class);
+        $this->expectExceptionMessage(
+            '[in.c-main.escaping]: DB query failed: SQLSTATE[42S02]: Base table or view not found: 1146'
+            . ' Table \'testdb.table_that_does_not_exist\' doesn\'t exist Tried 3 times.'
+        );
+        $app->run();
     }
 
     public function testRunEmptyQuery(): void
@@ -293,13 +305,15 @@ class CommonExtractorTest extends ExtractorTest
             'query' => 'KILL CONNECTION_ID();',
             'outputTable' => 'dummy',
         ];
-        try {
-            ($this->getApp($config))->run();
-            $this->fail("Failing query must raise exception.");
-        } catch (\Keboola\DbExtractor\Exception\UserException $e) {
-            // test that the error message contains the query name
-            $this->assertContains('[dummy]', $e->getMessage());
-        }
+
+        $app = $this->getApp($config);
+
+        $this->expectException(UserException::class);
+        $this->expectExceptionMessage(
+            '[dummy]: DB query failed: SQLSTATE[70100]: <<Unknown error>>:'
+            . ' 1317 Query execution was interrupted Tried 5 times.'
+        );
+        $app->run();
     }
 
     public function testTestConnectionFailure(): void
@@ -310,6 +324,9 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['db']['#password'] = 'bullshit';
 
         $this->expectException(UserException::class);
+        $this->expectExceptionMessageRegExp(
+            '~Error connecting to DB: SQLSTATE\[HY000\] \[1045\] Access denied for user \'root\'~'
+        );
         $this->getApp($config);
     }
 
@@ -590,8 +607,10 @@ class CommonExtractorTest extends ExtractorTest
         $config['action'] = 'sample';
         $config['parameters']['tables'] = [];
 
-        $this->expectException(UserException::class);
         $app = $this->getApp($config);
+
+        $this->expectException(UserException::class);
+        $this->expectExceptionMessage('Action \'sample\' does not exist.');
         $app->run();
     }
 
@@ -622,12 +641,12 @@ class CommonExtractorTest extends ExtractorTest
         $config = $this->getConfig(self::DRIVER);
         $config['parameters']['tables'][0]['table'] = ['schema' => 'testdb', 'tableName' => 'escaping'];
 
+        $app = $this->getApp($config);
+
         $this->expectException(UserException::class);
         $this->expectExceptionMessage(
             'Invalid configuration for path "parameters.tables": Both "table" and "query" cannot be set together.'
         );
-
-        $app = $this->getApp($config);
         $app->run();
     }
 
@@ -636,12 +655,12 @@ class CommonExtractorTest extends ExtractorTest
         $config = $this->getConfig(self::DRIVER);
         unset($config['parameters']['tables'][0]['query']);
 
+        $app = $this->getApp($config);
+
         $this->expectException(UserException::class);
         $this->expectExceptionMessage(
             'Invalid configuration for path "parameters.tables": Either "table" or "query" must be defined'
         );
-
-        $app = $this->getApp($config);
         $app->run();
     }
 
@@ -798,27 +817,38 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertEmpty($result['state']);
     }
 
-    public function testIncrementalFetchingInvalidColumns(): void
+    public function testIncrementalFetchingOnInvalidColumnName(): void
     {
         $this->createAutoIncrementAndTimestampTable();
         $config = $this->getIncrementalFetchingConfig();
         $config['parameters']['incrementalFetchingColumn'] = 'fakeCol'; // column does not exist
 
-        try {
-            $result = ($this->getApp($config))->run();
-            $this->fail('specified autoIncrement column does not exist, should fail.');
-        } catch (UserException $e) {
-            $this->assertStringStartsWith("Column [fakeCol]", $e->getMessage());
-        }
+        $app = $this->getApp($config);
+
+        $this->expectException(UserException::class);
+        $this->expectExceptionMessage(
+            'Column [fakeCol] specified for incremental fetching was not found in the table'
+        );
+        $app->run();
+    }
+
+    public function testIncrementalFetchingOnInvalidColumnAttributes(): void
+    {
+        $this->createAutoIncrementAndTimestampTable();
+        $config = $this->getIncrementalFetchingConfig();
+        $config['parameters']['incrementalFetchingColumn'] = 'fakeCol'; // column does not exist
 
         // column exists but is not auto-increment nor updating timestamp so should fail
         $config['parameters']['incrementalFetchingColumn'] = 'name';
-        try {
-            $result = ($this->getApp($config))->run();
-            $this->fail('specified column is not auto increment nor timestamp, should fail.');
-        } catch (UserException $e) {
-            $this->assertStringStartsWith("Column [name] specified for incremental fetching", $e->getMessage());
-        }
+
+        $app = $this->getApp($config);
+
+        $this->expectException(UserException::class);
+        $this->expectExceptionMessage(
+            'Column [name] specified for incremental fetching is not an auto increment column'
+            . ' or an auto update timestamp'
+        );
+        $app->run();
     }
 
     public function testIncrementalFetchingInvalidConfig(): void
@@ -828,12 +858,12 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['query'] = 'SELECT * FROM auto_increment_timestamp';
         unset($config['parameters']['table']);
 
+        $app = $this->getApp($config);
+
         $this->expectException(UserException::class);
         $this->expectExceptionMessage(
             'Invalid configuration for path "parameters": Incremental fetching is not supported for advanced queries.'
         );
-
-        $app = $this->getApp($config);
         $app->run();
     }
 
@@ -904,12 +934,12 @@ class CommonExtractorTest extends ExtractorTest
         // we want to test the no results case
         $config['parameters']['query'] = "SELECT 1 LIMIT 0";
 
+        $app = $this->getApp($config);
+
         $this->expectException(UserException::class);
         $this->expectExceptionMessage(
             'Invalid configuration for path "parameters": Both "table" and "query" cannot be set together.'
         );
-
-        $app = $this->getApp($config);
         $app->run();
     }
 
@@ -923,10 +953,11 @@ class CommonExtractorTest extends ExtractorTest
         // we want to test the no results case
         $config['parameters']['query'] = "SELECT 1 LIMIT 0";
 
+        $app = $this->getApp($config);
+
         $this->expectException(UserException::class);
         $this->expectExceptionMessageRegExp('(.*Incremental fetching is not supported for advanced queries.*)');
-
-        ($this->getApp($config))->run();
+        $app->run();
     }
 
     public function testInvalidConfigsNeitherTableNorQueryWithNoName(): void
@@ -935,12 +966,12 @@ class CommonExtractorTest extends ExtractorTest
         unset($config['parameters']['name']);
         unset($config['parameters']['table']);
 
+        $app = $this->getApp($config);
+
         $this->expectException(UserException::class);
         $this->expectExceptionMessage(
             'Invalid configuration for path "parameters": Either "table" or "query" must be defined.'
         );
-
-        $app = $this->getApp($config);
         $app->run();
     }
 
@@ -950,12 +981,13 @@ class CommonExtractorTest extends ExtractorTest
         unset($config['parameters']['name']);
         $config['parameters']['table'] = ['tableName' => 'sales'];
 
+        $app = $this->getApp($config);
+
         $this->expectException(UserException::class);
         $this->expectExceptionMessage(
             'The child node "schema" at path "parameters.table" must be configured.'
         );
-
-        ($this->getApp($config))->run();
+        $app->run();
     }
 
     public function testNoRetryOnCsvError(): void
