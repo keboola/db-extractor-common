@@ -1,11 +1,10 @@
-version: "3"
+version: "2"
 services:
   tests:
     build: .
     image: keboola/db-extractor-common
     volumes:
       - .:/code
-      - /var/run/docker.sock:/var/run/docker.sock
     command: sh -c 'composer install -n && composer ci'
     environment:
       COMMON_DB_USER: root

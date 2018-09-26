@@ -16,7 +16,7 @@ class RetryProxy implements RetryProxyInterface
 {
     public const DEFAULT_MAX_TRIES = 5;
 
-    public const DEFAULT_BACKOFF_INTERVAL = 10;
+    public const DEFAULT_BACKOFF_INTERVAL = 100;
 
     public const DEFAULT_EXCEPTED_EXCEPTIONS = ['PDOException', 'ErrorException'];
 

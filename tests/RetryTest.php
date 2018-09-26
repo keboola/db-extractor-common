@@ -364,7 +364,7 @@ class RetryTest extends ExtractorTest
             will convert the warnings to PHPUnit\Framework\Error\Warning */
         ErrorHandler::register(null, true);
 
-        $stmt = $this->taintedPdo->query('SELECT * FROM sales LIMIT 10000');
+        $stmt = $this->taintedPdo->query('SELECT * FROM sales LIMIT 100000');
         $stmt->execute();
         self::expectException(\ErrorException::class);
         self::expectExceptionMessage('Warning: Empty row packet body');
