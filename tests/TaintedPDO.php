@@ -14,11 +14,6 @@ class TaintedPDO extends \PDO
         $this->callback = $onEvent;
     }
 
-    private function __clone()
-    {
-        // TODO: Implement __clone() method.
-    }
-
     public function prepare($statement, $options = array())
     {
         call_user_func($this->callback, 'prepare');
