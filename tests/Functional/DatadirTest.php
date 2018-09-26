@@ -270,7 +270,8 @@ class DatadirTest extends AbstractDatadirTestCase
             $configuration,
             1,
             null,
-            'Invalid Configuration for "table1". Both table and query cannot be set together.' . PHP_EOL
+            'Invalid configuration for path "parameters.tables":'
+            . ' Both "table" and "query" cannot be set together.' . PHP_EOL
         );
     }
 
@@ -299,7 +300,7 @@ class DatadirTest extends AbstractDatadirTestCase
             $configuration,
             1,
             null,
-            'Invalid Configuration for "table1". One of table or query is required.' . PHP_EOL
+            'Invalid configuration for path "parameters.tables": Either "table" or "query" must be defined.' . PHP_EOL
         );
     }
 
@@ -555,7 +556,63 @@ class DatadirTest extends AbstractDatadirTestCase
             $configuration,
             1,
             null,
-            'Invalid Configuration for "table1". The table property requires "tableName" and "schema"' . PHP_EOL
+            'The child node "schema" at path "parameters.tables.0.table" must be configured.' . PHP_EOL
+        );
+    }
+
+    public function testExportTableByOldConfigWithWrongSchema(): void
+    {
+        $testDirectory = __DIR__ . '/empty-data';
+
+        $credentials = $this->getCredentials();
+
+        $configuration = $this->getConfig($testDirectory);
+        $configuration['parameters']['db'] = $credentials;
+        $configuration['parameters']['tables'] = [
+            [
+                'id' => 1,
+                'name' => 'table1',
+                'table' => [
+                    'tableName' => 'tableName',
+                ],
+                'outputTable' => 'table1',
+            ],
+        ];
+
+        $this->runCommonTest(
+            $testDirectory,
+            $configuration,
+            1,
+            null,
+            'The child node "schema" at path "parameters.tables.0.table" must be configured.' . PHP_EOL
+        );
+    }
+
+    public function testExportTableByOldConfigWithWrongTableName(): void
+    {
+        $testDirectory = __DIR__ . '/empty-data';
+
+        $credentials = $this->getCredentials();
+
+        $configuration = $this->getConfig($testDirectory);
+        $configuration['parameters']['db'] = $credentials;
+        $configuration['parameters']['tables'] = [
+            [
+                'id' => 1,
+                'name' => 'table1',
+                'table' => [
+                    'schema' => 'database',
+                ],
+                'outputTable' => 'table1',
+            ],
+        ];
+
+        $this->runCommonTest(
+            $testDirectory,
+            $configuration,
+            1,
+            null,
+            'The child node "tableName" at path "parameters.tables.0.table" must be configured.' . PHP_EOL
         );
     }
 
@@ -746,7 +803,7 @@ class DatadirTest extends AbstractDatadirTestCase
             $configuration,
             1,
             null,
-            'Invalid Configuration for "table1". Both table and query cannot be set together.' . PHP_EOL
+            'Invalid configuration for path "parameters": Both "table" and "query" cannot be set together.' . PHP_EOL
         );
     }
 
@@ -770,7 +827,8 @@ class DatadirTest extends AbstractDatadirTestCase
             $configuration,
             1,
             null,
-            'Invalid Configuration for "table1". One of table or query is required.' . PHP_EOL
+            'Invalid configuration for path "parameters":'
+            . ' Either "table" or "query" must be defined.' . PHP_EOL
         );
     }
 
@@ -1006,7 +1064,53 @@ class DatadirTest extends AbstractDatadirTestCase
             $configuration,
             1,
             null,
-            'Invalid Configuration for "table1". The table property requires "tableName" and "schema"' . PHP_EOL
+            'The child node "schema" at path "parameters.table" must be configured.' . PHP_EOL
+        );
+    }
+
+    public function testExportTableByConfigRowsWithWrongSchema(): void
+    {
+        $testDirectory = __DIR__ . '/empty-data';
+
+        $credentials = $this->getCredentials();
+
+        $configuration = $this->getConfig($testDirectory);
+        $configuration['parameters']['db'] = $credentials;
+        $configuration['parameters']['name'] = 'table1';
+        $configuration['parameters']['outputTable'] = 'table1';
+        $configuration['parameters']['table'] = [
+            'tableName' => 'table',
+        ];
+
+        $this->runCommonTest(
+            $testDirectory,
+            $configuration,
+            1,
+            null,
+            'The child node "schema" at path "parameters.table" must be configured.' . PHP_EOL
+        );
+    }
+
+    public function testExportTableByConfigRowsWithWrongTableName(): void
+    {
+        $testDirectory = __DIR__ . '/empty-data';
+
+        $credentials = $this->getCredentials();
+
+        $configuration = $this->getConfig($testDirectory);
+        $configuration['parameters']['db'] = $credentials;
+        $configuration['parameters']['name'] = 'table1';
+        $configuration['parameters']['outputTable'] = 'table1';
+        $configuration['parameters']['table'] = [
+            'schema' => 'database',
+        ];
+
+        $this->runCommonTest(
+            $testDirectory,
+            $configuration,
+            1,
+            null,
+            'The child node "tableName" at path "parameters.table" must be configured.' . PHP_EOL
         );
     }
 
