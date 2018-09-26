@@ -27,7 +27,7 @@ class ActionConfigDefinition extends BaseExtractorConfigDefinition
                     ->isRequired()
                     ->cannotBeEmpty()
                 ->end()
-                ->append($this->getDbNode())
+                ->append($this->getDbParametersDefinition())
             ->end();
         // @formatter:on
 
