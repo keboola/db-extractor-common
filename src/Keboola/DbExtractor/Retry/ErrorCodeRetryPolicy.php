@@ -35,7 +35,7 @@ class ErrorCodeRetryPolicy extends AbstractRetryPolicy
      *
      * @var array
      */
-    private $ignorableSqlstateMasks = [];
+    private $ignorableErrorCodes = [];
 
     /**
      * @param int        $maxAttempts The number of attempts before a retry becomes impossible.
@@ -44,7 +44,7 @@ class ErrorCodeRetryPolicy extends AbstractRetryPolicy
     public function __construct(
         ?int $maxAttempts = null,
         ?array $retryableExceptions = null,
-        ?array $ignorableSqlstateMasks = null
+        ?array $ignorableErrorCodes = null
     ) {
 
         $this->maxAttempts = $maxAttempts ?? self::DEFAULT_MAX_ATTEMPTS;
@@ -53,8 +53,8 @@ class ErrorCodeRetryPolicy extends AbstractRetryPolicy
             $this->retryableExceptions = $retryableExceptions;
         }
 
-        if ($ignorableSqlstateMasks) {
-            $this->ignorableSqlstateMasks = $ignorableSqlstateMasks;
+        if ($ignorableErrorCodes) {
+            $this->ignorableErrorCodes = $ignorableErrorCodes;
         }
     }
 
@@ -88,7 +88,7 @@ class ErrorCodeRetryPolicy extends AbstractRetryPolicy
             return false;
         }
         $sqlCode = $matches[1];
-        foreach ($this->ignorableSqlstateMasks as $ignorable) {
+        foreach ($this->ignorableErrorCodes as $ignorable) {
             preg_match('/' . $ignorable . '/', $sqlCode, $ignorableMatches);
             if (count($ignorableMatches) > 0) {
                 return true;
