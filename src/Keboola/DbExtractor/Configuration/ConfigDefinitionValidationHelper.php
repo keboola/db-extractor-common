@@ -12,12 +12,12 @@ class ConfigDefinitionValidationHelper
         = 'Incremental fetching is not supported for advanced queries.';
 
 
-    public static function isQueryAndTableNotDefined(array $table): bool
+    public static function isNeitherQueryNorTableDefined(array $table): bool
     {
         return !isset($table['query']) && !isset($table['table']);
     }
 
-    public static function isQueryAndTableSetTogether(array $table): bool
+    public static function areBothQueryAndTableSet(array $table): bool
     {
         return isset($table['query']) && isset($table['table']);
     }

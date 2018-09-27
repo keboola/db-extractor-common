@@ -12,7 +12,7 @@ abstract class BaseExtractorConfigDefinition implements ConfigurationInterface
 {
     abstract public function getConfigTreeBuilder(): TreeBuilder;
 
-    protected function getDbParametersDefinition(): ArrayNodeDefinition
+    protected function getDbNode(): ArrayNodeDefinition
     {
         $builder = new TreeBuilder();
 
@@ -34,14 +34,14 @@ abstract class BaseExtractorConfigDefinition implements ConfigurationInterface
                 ->scalarNode('#password')
                     ->isRequired()
                 ->end()
-                ->append($this->getSshParametersNode());
+                ->append($this->getSshNode());
             //->end();
         // @formatter:on
 
         return $node;
     }
 
-    protected function getSshParametersNode(): ArrayNodeDefinition
+    protected function getSshNode(): ArrayNodeDefinition
     {
         $builder = new TreeBuilder();
 
@@ -142,7 +142,7 @@ abstract class BaseExtractorConfigDefinition implements ConfigurationInterface
         $node->validate()
             ->ifTrue(function ($v) {
                 foreach ($v as $table) {
-                    return ConfigDefinitionValidationHelper::isQueryAndTableNotDefined($table);
+                    return ConfigDefinitionValidationHelper::isNeitherQueryNorTableDefined($table);
                 }
             })
             ->thenInvalid(ConfigDefinitionValidationHelper::MESSAGE_TABLE_OR_QUERY_MUST_BE_DEFINED)
@@ -151,7 +151,7 @@ abstract class BaseExtractorConfigDefinition implements ConfigurationInterface
         $node->validate()
             ->ifTrue(function ($v) {
                 foreach ($v as $table) {
-                    return ConfigDefinitionValidationHelper::isQueryAndTableSetTogether($table);
+                    return ConfigDefinitionValidationHelper::areBothQueryAndTableSet($table);
                 }
             })
             ->thenInvalid(ConfigDefinitionValidationHelper::MESSAGE_TABLE_AND_QUERY_CANNOT_BE_SET_TOGETHER)

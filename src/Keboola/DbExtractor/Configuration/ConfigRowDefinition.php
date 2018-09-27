@@ -26,7 +26,7 @@ class ConfigRowDefinition extends BaseExtractorConfigDefinition
                     ->isRequired()
                     ->cannotBeEmpty()
                 ->end()
-                ->append($this->getDbParametersDefinition())
+                ->append($this->getDbNode())
                 ->integerNode('id')->end()
                 ->scalarNode('name')->end()
                 ->scalarNode('query')->end()
@@ -56,14 +56,14 @@ class ConfigRowDefinition extends BaseExtractorConfigDefinition
 
         $rootNode->validate()
             ->ifTrue(function ($v) {
-                return ConfigDefinitionValidationHelper::isQueryAndTableNotDefined($v);
+                return ConfigDefinitionValidationHelper::isNeitherQueryNorTableDefined($v);
             })
             ->thenInvalid(ConfigDefinitionValidationHelper::MESSAGE_TABLE_OR_QUERY_MUST_BE_DEFINED)
             ->end();
 
         $rootNode->validate()
             ->ifTrue(function ($v) {
-                return ConfigDefinitionValidationHelper::isQueryAndTableSetTogether($v);
+                return ConfigDefinitionValidationHelper::areBothQueryAndTableSet($v);
             })
             ->thenInvalid(ConfigDefinitionValidationHelper::MESSAGE_TABLE_AND_QUERY_CANNOT_BE_SET_TOGETHER)
             ->end();

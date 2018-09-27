@@ -26,7 +26,7 @@ class ConfigDefinition extends BaseExtractorConfigDefinition
                     ->isRequired()
                     ->cannotBeEmpty()
                 ->end()
-                ->append($this->getDbParametersDefinition())
+                ->append($this->getDbNode())
                 ->append($this->getTablesNode())
             ->end();
         // @formatter:on
