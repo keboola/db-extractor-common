@@ -836,7 +836,6 @@ class CommonExtractorTest extends ExtractorTest
     {
         $this->createAutoIncrementAndTimestampTable();
         $config = $this->getIncrementalFetchingConfig();
-        $config['parameters']['incrementalFetchingColumn'] = 'fakeCol'; // column does not exist
 
         // column exists but is not auto-increment nor updating timestamp so should fail
         $config['parameters']['incrementalFetchingColumn'] = 'name';
