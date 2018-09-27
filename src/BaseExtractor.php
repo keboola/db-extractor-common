@@ -18,6 +18,8 @@ use Keboola\DbExtractorCommon\Configuration\Definition\ConfigRowDefinition;
 use Keboola\DbExtractorCommon\Configuration\SshParameters;
 use Keboola\DbExtractorCommon\Configuration\TableDetailParameters;
 use Keboola\DbExtractorCommon\Configuration\TableParameters;
+use Keboola\DbExtractorCommon\DatabaseMetadata\Column;
+use Keboola\DbExtractorCommon\DatabaseMetadata\Table;
 use Keboola\DbExtractorCommon\Exception\DeadConnectionException;
 use Keboola\SSHTunnel\SSH;
 use Keboola\SSHTunnel\SSHException;
@@ -42,7 +44,7 @@ abstract class BaseExtractor extends BaseComponent
     /**
      * @param TableDetailParameters[] $tables
      *
-     * @return array
+     * @return Table[]
      */
     abstract public function getTables(array $tables = []): array;
 
@@ -125,14 +127,14 @@ abstract class BaseExtractor extends BaseComponent
                 $sanitizedPks = [];
                 $iterColumns = $table->getColumns();
                 if (count($iterColumns) === 0) {
-                    $iterColumns = array_map(function ($column) {
-                        return $column['name'];
-                    }, $tableDetails['columns']);
+                    $iterColumns = array_map(function (Column $column) {
+                        return $column->getName();
+                    }, $tableDetails->getColumns());
                 }
                 foreach ($iterColumns as $ind => $columnName) {
                     $column = null;
-                    foreach ($tableDetails['columns'] as $detailColumn) {
-                        if ($detailColumn['name'] === $columnName) {
+                    foreach ($tableDetails->getColumns() as $detailColumn) {
+                        if ($detailColumn->getName() === $columnName) {
                             $column = $detailColumn;
                         }
                     }
@@ -142,14 +144,14 @@ abstract class BaseExtractor extends BaseComponent
                         );
                     }
                     // use sanitized name for primary key if available
-                    if (in_array($column['name'], $table->getPrimaryKey())
-                        && array_key_exists('sanitizedName', $column)
+                    if (in_array($column->getName(), $table->getPrimaryKey())
+                        && $column->getSanitizedName()
                     ) {
-                        $sanitizedPks[] = $column['sanitizedName'];
+                        $sanitizedPks[] = $column->getSanitizedName();
                     }
-                    $columnName = $column['name'];
-                    if (array_key_exists('sanitizedName', $column)) {
-                        $columnName = $column['sanitizedName'];
+                    $columnName = $column->getName();
+                    if ($column->getSanitizedName()) {
+                        $columnName = $column->getSanitizedName();
                     }
                     $columnMetadata[$columnName] = self::getColumnMetadata($column);
                     $manifestColumns[] = $columnName;
@@ -266,8 +268,9 @@ abstract class BaseExtractor extends BaseComponent
         return $dataType->toMetadata();
     }
 
-    public static function getColumnMetadata(array $column): array
+    public static function getColumnMetadata(Column $column): array
     {
+        $column = JsonHelper::decode((string) json_encode($column));
         $columnMetadata = self::getDataTypeMetadata($column);
         $nonDatatypeKeys = array_diff_key($column, array_flip(self::DATATYPE_KEYS));
         foreach ($nonDatatypeKeys as $key => $value) {
@@ -286,8 +289,9 @@ abstract class BaseExtractor extends BaseComponent
         return $columnMetadata;
     }
 
-    public static function getTableLevelMetadata(array $tableDetails): array
+    public static function getTableLevelMetadata(Table $tableDetails): array
     {
+        $tableDetails = JsonHelper::decode((string) json_encode($tableDetails));
         $metadata = [];
         foreach ($tableDetails as $key => $value) {
             if ($key === 'columns') {

@@ -25,11 +25,11 @@
     },
     {
       "key": "KBC.rowCount",
-      "value": "2"
+      "value": 2
     },
     {
       "key": "KBC.autoIncrement",
-      "value": "3"
+      "value": 3
     }
   ],
   "column_metadata": {
@@ -64,7 +64,7 @@
       },
       {
         "key": "KBC.ordinalPosition",
-        "value": "1"
+        "value": 1
       },
       {
         "key": "KBC.constraintName",
@@ -76,7 +76,7 @@
       },
       {
         "key": "KBC.autoIncrement",
-        "value": "3"
+        "value": 3
       }
     ],
     "col1": [
@@ -110,7 +110,7 @@
       },
       {
         "key": "KBC.ordinalPosition",
-        "value": "2"
+        "value": 2
       }
     ],
     "col2": [
@@ -144,7 +144,7 @@
       },
       {
         "key": "KBC.ordinalPosition",
-        "value": "3"
+        "value": 3
       }
     ]
   }

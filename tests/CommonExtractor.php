@@ -7,14 +7,18 @@ namespace Keboola\DbExtractorCommon\Tests;
 use Keboola\Component\UserException;
 use Keboola\Csv\CsvWriter;
 use Keboola\Csv\Exception as CsvException;
+use Keboola\DbExtractorCommon\ColumnMetadata;
 use Keboola\DbExtractorCommon\Configuration\BaseExtractorConfig;
 use Keboola\DbExtractorCommon\Configuration\DatabaseParametersInterface;
 use Keboola\DbExtractorCommon\Configuration\TableDetailParameters;
 use Keboola\DbExtractorCommon\Configuration\TableParameters;
+use Keboola\DbExtractorCommon\DatabaseMetadata\Table;
 use Keboola\DbExtractorCommon\Exception\ApplicationException;
 use Keboola\DbExtractorCommon\Exception\DeadConnectionException;
 use Keboola\DbExtractorCommon\BaseExtractor;
+use Keboola\DbExtractorCommon\IncrementalFetchingSettings;
 use Keboola\DbExtractorCommon\RetryProxy;
+use Keboola\DbExtractorCommon\Tests\Old\CommonExtractorColumnMetadata;
 
 class CommonExtractor extends BaseExtractor
 {
@@ -24,7 +28,7 @@ class CommonExtractor extends BaseExtractor
     /** @var \PDO|null */
     private $connection;
 
-    /** @var array */
+    /** @var IncrementalFetchingSettings|null */
     private $incrementalFetching;
 
     public function extract(BaseExtractorConfig $config): array
@@ -113,20 +117,21 @@ class CommonExtractor extends BaseExtractor
         }
 
         $tableNameArray = [];
+        /** @var Table[] $tableDefs */
         $tableDefs = [];
 
         foreach ($arr as $table) {
             $tableNameArray[] = $table['TABLE_NAME'];
             $tableNameWithSchema = $table['TABLE_SCHEMA'] . '.' . $table['TABLE_NAME'];
-            $tableDefs[$tableNameWithSchema] = [
-                'name' => $table['TABLE_NAME'],
-                'sanitizedName' => \Keboola\Utils\sanitizeColumnName($table['TABLE_NAME']),
-                'schema' => (isset($table['TABLE_SCHEMA'])) ? $table['TABLE_SCHEMA'] : '',
-                'type' => (isset($table['TABLE_TYPE'])) ? $table['TABLE_TYPE'] : '',
-                'rowCount' => (isset($table['TABLE_ROWS'])) ? $table['TABLE_ROWS'] : '',
-            ];
+            $tableDefs[$tableNameWithSchema] = new Table(
+                $table['TABLE_NAME'],
+                \Keboola\Utils\sanitizeColumnName($table['TABLE_NAME']),
+                $table['TABLE_SCHEMA'] ?? '',
+                $table['TABLE_TYPE'] ?? '',
+                $table['TABLE_ROWS'] ? (int) $table['TABLE_ROWS'] : 0
+            );
             if ($table["AUTO_INCREMENT"]) {
-                $tableDefs[$tableNameWithSchema]['autoIncrement'] = $table['AUTO_INCREMENT'];
+                $tableDefs[$tableNameWithSchema]->setAutoIncrement((int) $table['AUTO_INCREMENT']);
             }
         }
 
@@ -160,36 +165,38 @@ class CommonExtractor extends BaseExtractor
                     $length = $column['NUMERIC_PRECISION'];
                 }
             }
-            $curColumn = [
-                "name" => $column['COLUMN_NAME'],
-                "sanitizedName" => \Keboola\Utils\sanitizeColumnName($column['COLUMN_NAME']),
-                "type" => $column['DATA_TYPE'],
-                "primaryKey" => ($column['COLUMN_KEY'] === "PRI") ? true : false,
-                "length" => $length,
-                "nullable" => ($column['IS_NULLABLE'] === "NO") ? false : true,
-                "default" => $column['COLUMN_DEFAULT'],
-                "ordinalPosition" => $column['ORDINAL_POSITION'],
-            ];
+            $curColumn = new CommonExtractorColumnMetadata(
+                $column['COLUMN_NAME'],
+                \Keboola\Utils\sanitizeColumnName($column['COLUMN_NAME']),
+                $column['DATA_TYPE'],
+                ($column['COLUMN_KEY'] === "PRI") ? true : false,
+                $length,
+                ($column['IS_NULLABLE'] === "NO") ? false : true,
+                $column['COLUMN_DEFAULT'],
+                (int) $column['ORDINAL_POSITION']
+            );
 
             if (array_key_exists('CONSTRAINT_NAME', $column) && !is_null($column['CONSTRAINT_NAME'])) {
-                $curColumn['constraintName'] = $column['CONSTRAINT_NAME'];
+                $curColumn->setConstraintName($column['CONSTRAINT_NAME']);
             }
             if (array_key_exists('REFERENCED_TABLE_NAME', $column) && !is_null($column['REFERENCED_TABLE_NAME'])) {
-                $curColumn['foreignKeyRefSchema'] = $column['REFERENCED_TABLE_SCHEMA'];
-                $curColumn['foreignKeyRefTable'] = $column['REFERENCED_TABLE_NAME'];
-                $curColumn['foreignKeyRefColumn'] = $column['REFERENCED_COLUMN_NAME'];
+                $curColumn->setForeignKey(
+                    $column['REFERENCED_TABLE_SCHEMA'],
+                    $column['REFERENCED_TABLE_NAME'],
+                    $column['REFERENCED_COLUMN_NAME']
+                );
             }
             if ($column['EXTRA']) {
-                $curColumn["extra"] = $column["EXTRA"];
+                $curColumn->setExtra($column["EXTRA"]);
                 if ($column['EXTRA'] === 'auto_increment') {
-                    $curColumn['autoIncrement'] = $tableDefs[$curTable]['autoIncrement'];
+                    $curColumn->setAutoIncrement($tableDefs[$curTable]->getAutoIncrement());
                 }
                 if ($column['EXTRA'] === 'on update CURRENT_TIMESTAMP'
                     && $column['COLUMN_DEFAULT'] === 'CURRENT_TIMESTAMP') {
-                    $tableDefs[$curTable]['timestampUpdateColumn'] = $column['COLUMN_NAME'];
+                    $tableDefs[$curTable]->setTimestampUpdateColumn($column['COLUMN_NAME']);
                 }
             }
-            $tableDefs[$curTable]['columns'][$column['ORDINAL_POSITION'] - 1] = $curColumn;
+            $tableDefs[$curTable]->addColumn($column['ORDINAL_POSITION'] - 1, $curColumn);
         }
         return array_values($tableDefs);
     }
@@ -222,12 +229,17 @@ class CommonExtractor extends BaseExtractor
             );
         }
         if ($columns[0]['EXTRA'] === 'auto_increment') {
-            $this->incrementalFetching['column'] = $columnName;
-            $this->incrementalFetching['type'] = self::TYPE_AUTO_INCREMENT;
+            $this->incrementalFetching = new IncrementalFetchingSettings(
+                $columnName,
+                IncrementalFetchingSettings::TYPE_AUTO_INCREMENT
+            );
         } else if ($columns[0]['EXTRA'] === 'on update CURRENT_TIMESTAMP'
-            && $columns[0]['COLUMN_DEFAULT'] === 'CURRENT_TIMESTAMP') {
-            $this->incrementalFetching['column'] = $columnName;
-            $this->incrementalFetching['type'] = self::TYPE_TIMESTAMP;
+            && $columns[0]['COLUMN_DEFAULT'] === 'CURRENT_TIMESTAMP'
+        ) {
+            $this->incrementalFetching = new IncrementalFetchingSettings(
+                $columnName,
+                IncrementalFetchingSettings::TYPE_TIMESTAMP
+            );
         } else {
             throw new UserException(
                 sprintf(
@@ -238,7 +250,7 @@ class CommonExtractor extends BaseExtractor
             );
         }
         if ($limit) {
-            $this->incrementalFetching['limit'] = $limit;
+            $this->incrementalFetching->setLimit($limit);
         }
     }
 
@@ -280,22 +292,22 @@ class CommonExtractor extends BaseExtractor
             }
             $stmt->closeCursor();
 
-            if (isset($this->incrementalFetching['column'])) {
-                if (!array_key_exists($this->incrementalFetching['column'], $lastRow)) {
+            if ($this->incrementalFetching) {
+                if (!array_key_exists($this->incrementalFetching->getColumn(), $lastRow)) {
                     throw new UserException(
                         sprintf(
                             "The specified incremental fetching column %s not found in the table",
-                            $this->incrementalFetching['column']
+                            $this->incrementalFetching->getColumn()
                         )
                     );
                 }
-                $output['lastFetchedRow'] = $lastRow[$this->incrementalFetching['column']];
+                $output['lastFetchedRow'] = $lastRow[$this->incrementalFetching->getColumn()];
             }
             $output['rows'] = $numRows;
             return $output;
         }
         // no rows found.  If incremental fetching is turned on, we need to preserve the last state
-        if ($this->incrementalFetching['column'] && isset($this->getInputState()['lastFetchedRow'])) {
+        if ($this->incrementalFetching && isset($this->getInputState()['lastFetchedRow'])) {
             $output = $this->getInputState();
         }
         $output['rows'] = 0;
@@ -452,21 +464,21 @@ class CommonExtractor extends BaseExtractor
 
         $incrementalAddon = null;
         if ($this->incrementalFetching && isset($this->getInputState()['lastFetchedRow'])) {
-            if ($this->incrementalFetching['type'] === self::TYPE_AUTO_INCREMENT) {
+            if ($this->incrementalFetching->isTypeTimestamp()) {
                 $incrementalAddon = sprintf(
                     ' %s > %d',
-                    $this->quoteIdentifier($this->incrementalFetching['column']),
+                    $this->quoteIdentifier($this->incrementalFetching->getColumn()),
                     (int) $this->getInputState()['lastFetchedRow']
                 );
-            } else if ($this->incrementalFetching['type'] === self::TYPE_AUTO_INCREMENT) {
+            } else if ($this->incrementalFetching->isTypeAutoIncrement()) {
                 $incrementalAddon = sprintf(
                     " %s > '%s'",
-                    $this->quoteIdentifier($this->incrementalFetching['column']),
+                    $this->quoteIdentifier($this->incrementalFetching->getColumn()),
                     $this->getInputState()['lastFetchedRow']
                 );
             } else {
                 throw new ApplicationException(
-                    sprintf('Unknown incremental fetching column type %s', $this->incrementalFetching['type'])
+                    sprintf('Unknown incremental fetching column type %s', $this->incrementalFetching->getType())
                 );
             }
         }
@@ -475,13 +487,13 @@ class CommonExtractor extends BaseExtractor
             $query .= sprintf(
                 " WHERE %s ORDER BY %s",
                 $incrementalAddon,
-                $this->quoteIdentifier($this->incrementalFetching['column'])
+                $this->quoteIdentifier($this->incrementalFetching->getColumn())
             );
         }
-        if (isset($this->incrementalFetching['limit'])) {
+        if ($this->incrementalFetching && $this->incrementalFetching->getLimit()) {
             $query .= sprintf(
                 " LIMIT %d",
-                $this->incrementalFetching['limit']
+                $this->incrementalFetching->getLimit()
             );
         }
         return $query;
