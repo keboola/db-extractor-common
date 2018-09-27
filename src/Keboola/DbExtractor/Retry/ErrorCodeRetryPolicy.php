@@ -68,7 +68,7 @@ class ErrorCodeRetryPolicy extends AbstractRetryPolicy
     private function shouldRetryForException(\Exception $e): bool
     {
         foreach ($this->retryableExceptions as $class) {
-            if (is_a($e, $class)) {
+            if ($e instanceof $class) {
                 if ($this->shouldIgnoreForSqlStateCode($e->getMessage())) {
                     return false;
                 }
