@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Keboola\DbExtractor\Test;
 
 use Keboola\DbExtractor\Application;
-use Keboola\DbExtractor\Logger;
+use Keboola\Component\Logger;
 use PHPUnit\Framework\TestCase;
 
 class ExtractorTest extends TestCase
@@ -83,8 +83,8 @@ class ExtractorTest extends TestCase
         return str_replace('"', '', str_replace('\n', "\n", $this->getEnv($driver, 'DB_SSH_KEY_PRIVATE')));
     }
 
-    protected function getApplication(string $appName, array $config, array $state = []): Application
+    protected function getApplication(array $config, array $state = []): Application
     {
-        return new Application($config, new Logger($appName), $state);
+        return new Application($config, new Logger(), $state);
     }
 }

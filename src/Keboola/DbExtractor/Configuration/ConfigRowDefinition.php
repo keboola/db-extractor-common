@@ -6,14 +6,12 @@ namespace Keboola\DbExtractor\Configuration;
 
 use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
-use Symfony\Component\Config\Definition\ConfigurationInterface;
 
-class ConfigRowDefinition implements ConfigurationInterface
+class ConfigRowDefinition extends BaseExtractorConfigDefinition
 {
     public function getConfigTreeBuilder(): TreeBuilder
     {
         $treeBuilder = new TreeBuilder();
-
         /** @var ArrayNodeDefinition */
         $rootNode = $treeBuilder->root('parameters');
 
@@ -28,38 +26,11 @@ class ConfigRowDefinition implements ConfigurationInterface
                     ->isRequired()
                     ->cannotBeEmpty()
                 ->end()
-                ->arrayNode('db')
-                    ->children()
-                        ->scalarNode('driver')->end()
-                        ->scalarNode('host')->end()
-                        ->scalarNode('port')->end()
-                        ->scalarNode('database')
-                            ->isRequired()
-                            ->cannotBeEmpty()
-                        ->end()
-                        ->scalarNode('user')
-                            ->isRequired()
-                        ->end()
-                        ->scalarNode('password')->end()
-                        ->scalarNode('#password')->end()
-                        ->append($this->addSshNode())
-                    ->end()
-                ->end()
+                ->append($this->getDbNode())
                 ->integerNode('id')->end()
                 ->scalarNode('name')->end()
                 ->scalarNode('query')->end()
-                ->arrayNode('table')
-                    ->children()
-                        ->scalarNode('schema')
-                            ->isRequired()
-                            ->cannotBeEmpty()
-                        ->end()
-                        ->scalarNode('tableName')
-                            ->isRequired()
-                            ->cannotBeEmpty()
-                        ->end()
-                    ->end()
-                ->end()
+                ->append($this->getTableNode())
                 ->arrayNode('columns')
                     ->prototype('scalar')->end()
                 ->end()
@@ -85,56 +56,26 @@ class ConfigRowDefinition implements ConfigurationInterface
 
         $rootNode->validate()
             ->ifTrue(function ($v) {
-                return (!isset($v['query']) && !isset($v['table']));
+                return ConfigDefinitionValidationHelper::isNeitherQueryNorTableDefined($v);
             })
-            ->thenInvalid('Either "table" or "query" must be defined.')
+            ->thenInvalid(ConfigDefinitionValidationHelper::MESSAGE_TABLE_OR_QUERY_MUST_BE_DEFINED)
             ->end();
 
         $rootNode->validate()
             ->ifTrue(function ($v) {
-                return (isset($v['query']) && isset($v['table']));
+                return ConfigDefinitionValidationHelper::areBothQueryAndTableSet($v);
             })
-            ->thenInvalid('Both "table" and "query" cannot be set together.')
+            ->thenInvalid(ConfigDefinitionValidationHelper::MESSAGE_TABLE_AND_QUERY_CANNOT_BE_SET_TOGETHER)
             ->end();
 
         $rootNode->validate()
             ->ifTrue(function ($v) {
-                return (isset($v['query']) && isset($v['incrementalFetchingColumn']));
+                return ConfigDefinitionValidationHelper::isIncrementalFetchingSetForAdvancedQuery($v);
             })
-            ->thenInvalid('Incremental fetching is not supported for advanced queries.')
+            ->thenInvalid(ConfigDefinitionValidationHelper::MESSAGE_CUSTOM_QUERY_CANNOT_BE_FETCHED_INCREMENTALLY)
             ->end();
         // @formatter:on
 
         return $treeBuilder;
-    }
-
-    public function addSshNode(): ArrayNodeDefinition
-    {
-        $builder = new TreeBuilder();
-
-        /** @var ArrayNodeDefinition */
-        $node = $builder->root('ssh');
-
-        // @formatter:off
-        $node
-            ->children()
-                ->booleanNode('enabled')->end()
-                ->arrayNode('keys')
-                    ->children()
-                        ->scalarNode('private')->end()
-                        ->scalarNode('#private')->end()
-                        ->scalarNode('public')->end()
-                    ->end()
-                ->end()
-                ->scalarNode('sshHost')->end()
-                ->scalarNode('sshPort')->end()
-                ->scalarNode('remoteHost')->end()
-                ->scalarNode('remotePort')->end()
-                ->scalarNode('localPort')->end()
-                ->scalarNode('user')->end()
-            ->end();
-        // @formatter:on
-
-        return $node;
     }
 }
