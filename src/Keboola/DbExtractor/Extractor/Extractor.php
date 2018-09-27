@@ -10,7 +10,7 @@ use Keboola\Datatype\Definition\GenericStorage;
 use Keboola\DbExtractor\Exception\ApplicationException;
 use Keboola\DbExtractor\Exception\DeadConnectionException;
 use Keboola\DbExtractor\Exception\UserException;
-use Keboola\DbExtractor\Logger;
+use Keboola\Component\Logger;
 use Keboola\DbExtractor\RetryProxy;
 use Keboola\SSHTunnel\SSH;
 use Keboola\SSHTunnel\SSHException;
@@ -44,13 +44,11 @@ abstract class Extractor
     /** @var array */
     private $dbParameters;
 
-    public function __construct(array $parameters, array $state = [], ?Logger $logger = null)
+    public function __construct(array $parameters, array $state, Logger $logger)
     {
-        if ($logger) {
-            $this->logger = $logger;
-        }
         $this->dataDir = $parameters['data_dir'];
         $this->state = $state;
+        $this->logger = $logger;
 
         if (isset($parameters['db']['ssh']['enabled']) && $parameters['db']['ssh']['enabled']) {
             $parameters['db'] = $this->createSshTunnel($parameters['db']);
@@ -64,13 +62,6 @@ abstract class Extractor
                 throw new ApplicationException("Missing driver: " . $e->getMessage());
             }
             throw new UserException("Error connecting to DB: " . $e->getMessage(), 0, $e);
-        }
-        if (isset($parameters['incrementalFetchingColumn']) && $parameters['incrementalFetchingColumn'] !== "") {
-            $this->validateIncrementalFetching(
-                $parameters['table'],
-                $parameters['incrementalFetchingColumn'],
-                isset($parameters['incrementalFetchingLimit']) ? $parameters['incrementalFetchingLimit'] : null
-            );
         }
     }
 

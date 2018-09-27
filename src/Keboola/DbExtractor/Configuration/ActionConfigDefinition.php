@@ -7,9 +7,9 @@ namespace Keboola\DbExtractor\Configuration;
 use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 
-class ConfigDefinition extends BaseExtractorConfigDefinition
+class ActionConfigDefinition extends BaseExtractorConfigDefinition
 {
-    public function getConfigTreeBuilder() : TreeBuilder
+    public function getConfigTreeBuilder(): TreeBuilder
     {
         $treeBuilder = new TreeBuilder();
         /** @var ArrayNodeDefinition */
@@ -17,6 +17,7 @@ class ConfigDefinition extends BaseExtractorConfigDefinition
 
         // @formatter:off
         $rootNode
+            ->ignoreExtraKeys()
             ->children()
                 ->scalarNode('data_dir')
                     ->isRequired()
@@ -27,7 +28,6 @@ class ConfigDefinition extends BaseExtractorConfigDefinition
                     ->cannotBeEmpty()
                 ->end()
                 ->append($this->getDbNode())
-                ->append($this->getTablesNode())
             ->end();
         // @formatter:on
 

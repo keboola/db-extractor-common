@@ -1,4 +1,5 @@
 {
+  "action": "run",
   "parameters": {
     "tables": [
       {
