@@ -7,7 +7,7 @@ namespace Keboola\DbExtractor\Retry;
 use Retry\Policy\AbstractRetryPolicy;
 use Retry\RetryContextInterface;
 
-class SqlRetryPolicy extends AbstractRetryPolicy
+class ErrorCodeRetryPolicy extends AbstractRetryPolicy
 {
     /**
      * The default limit to the number of attempts for a new policy.

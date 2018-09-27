@@ -42,7 +42,7 @@ class RetryProxy implements RetryProxyInterface
         ?BackoffPolicyInterface $backoffPolicy = null
     ) {
         if ($retryPolicy === null) {
-            $retryPolicy = new SqlRetryPolicy(
+            $retryPolicy = new ErrorCodeRetryPolicy(
                 $maxTries ?? self::DEFAULT_MAX_TRIES,
                 $expectedExceptions ? $expectedExceptions : self::DEFAULT_EXCEPTED_EXCEPTIONS,
                 $ignorableSqlCodes ? $ignorableSqlCodes : self::DEFAULT_IGNORABLE_SQLCODES
