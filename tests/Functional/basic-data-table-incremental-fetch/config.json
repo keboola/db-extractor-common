@@ -1,4 +1,5 @@
 {
+  "action": "run",
   "parameters": {
     "name": "table1",
     "outputTable": "table1",
