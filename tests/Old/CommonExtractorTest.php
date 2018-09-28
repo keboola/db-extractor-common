@@ -33,6 +33,18 @@ class CommonExtractorTest extends ExtractorTest
         $this->initDatabase();
     }
 
+    public function tearDown(): void
+    {
+        parent::tearDown();
+
+        $configFilePath = $this->dataDir . DIRECTORY_SEPARATOR . 'config.json';
+        if (file_exists($configFilePath)) {
+            unlink($configFilePath);
+        }
+
+        $this->cleanOutputDirectory();
+    }
+
     private function getApp(array $config, array $state = []): Application
     {
         return parent::getApplication($config, $state);

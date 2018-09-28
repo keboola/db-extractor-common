@@ -89,6 +89,11 @@ class Application extends BaseComponent
         return $this->configDefinition;
     }
 
+    public function getConfigDefinition(): ?ConfigurationInterface
+    {
+        return $this->configDefinition;
+    }
+
     private function validateTableParameters(array $table): void
     {
         if (isset($table['incrementalFetchingColumn'])
@@ -124,7 +129,7 @@ class Application extends BaseComponent
         }
     }
 
-    private function runAction(): array
+    private function runAction(): void
     {
         $imported = [];
         $outputState = [];
@@ -148,14 +153,17 @@ class Application extends BaseComponent
             $imported = $exportResults;
         }
 
-        return [
-            'status' => 'success',
-            'imported' => $imported,
-            'state' => $outputState,
-        ];
+        print json_encode(
+            [
+                'status' => 'success',
+                'imported' => $imported,
+                'state' => $outputState,
+            ],
+            JSON_PRETTY_PRINT
+        );
     }
 
-    private function testConnectionAction(): array
+    private function testConnectionAction(): void
     {
         try {
             $this->extractor->testConnection();
@@ -166,7 +174,7 @@ class Application extends BaseComponent
         return ['status' => 'success'];
     }
 
-    private function getTablesAction(): array
+    private function getTablesAction(): void
     {
         try {
             $output = [];
