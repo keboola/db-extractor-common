@@ -597,12 +597,12 @@ class RetryTest extends ExtractorTest
             self::fail('Must raise exception.');
         } catch (UserException $e) {
             self::assertContains(
-                '1146 Table \'odin4test.non_existent_table\' doesn\'t exist Tried 10 times',
+                'non_existent_table\' doesn\'t exist Tried 10 times',
                 $e->getMessage()
             );
             self::assertTrue($handler->hasInfoThatContains('Retrying...'));
             self::assertTrue($handler->hasInfoThatContains(
-                '1146 Table \'odin4test.non_existent_table\' doesn\'t exist. Retrying... [9x]'
+                'non_existent_table\' doesn\'t exist. Retrying... [9x]'
             ));
         }
     }
