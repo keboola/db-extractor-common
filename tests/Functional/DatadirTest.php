@@ -270,7 +270,7 @@ class DatadirTest extends AbstractDatadirTestCase
             $configuration,
             1,
             null,
-            'Invalid configuration for path "parameters.tables":'
+            'Invalid configuration for path "root.parameters.tables":'
             . ' Both "table" and "query" cannot be set together.' . PHP_EOL
         );
     }
@@ -300,7 +300,8 @@ class DatadirTest extends AbstractDatadirTestCase
             $configuration,
             1,
             null,
-            'Invalid configuration for path "parameters.tables": Either "table" or "query" must be defined.' . PHP_EOL
+            'Invalid configuration for path "root.parameters.tables":'
+            . ' Either "table" or "query" must be defined.' . PHP_EOL
         );
     }
 
@@ -329,7 +330,7 @@ class DatadirTest extends AbstractDatadirTestCase
             $configuration,
             1,
             null,
-            'The child node "outputTable" at path "parameters.tables.0" must be configured.' . PHP_EOL
+            'The child node "outputTable" at path "root.parameters.tables.0" must be configured.' . PHP_EOL
         );
     }
 
@@ -556,7 +557,7 @@ class DatadirTest extends AbstractDatadirTestCase
             $configuration,
             1,
             null,
-            'The child node "schema" at path "parameters.tables.0.table" must be configured.' . PHP_EOL
+            'The child node "schema" at path "root.parameters.tables.0.table" must be configured.' . PHP_EOL
         );
     }
 
@@ -584,7 +585,7 @@ class DatadirTest extends AbstractDatadirTestCase
             $configuration,
             1,
             null,
-            'The child node "schema" at path "parameters.tables.0.table" must be configured.' . PHP_EOL
+            'The child node "schema" at path "root.parameters.tables.0.table" must be configured.' . PHP_EOL
         );
     }
 
@@ -612,7 +613,7 @@ class DatadirTest extends AbstractDatadirTestCase
             $configuration,
             1,
             null,
-            'The child node "tableName" at path "parameters.tables.0.table" must be configured.' . PHP_EOL
+            'The child node "tableName" at path "root.parameters.tables.0.table" must be configured.' . PHP_EOL
         );
     }
 
@@ -803,7 +804,8 @@ class DatadirTest extends AbstractDatadirTestCase
             $configuration,
             1,
             null,
-            'Invalid configuration for path "parameters": Both "table" and "query" cannot be set together.' . PHP_EOL
+            'Invalid configuration for path "root.parameters":'
+            . ' Both "table" and "query" cannot be set together.' . PHP_EOL
         );
     }
 
@@ -827,7 +829,7 @@ class DatadirTest extends AbstractDatadirTestCase
             $configuration,
             1,
             null,
-            'Invalid configuration for path "parameters":'
+            'Invalid configuration for path "root.parameters":'
             . ' Either "table" or "query" must be defined.' . PHP_EOL
         );
     }
@@ -852,7 +854,7 @@ class DatadirTest extends AbstractDatadirTestCase
             $configuration,
             1,
             null,
-            'The child node "outputTable" at path "parameters" must be configured.' . PHP_EOL
+            'The child node "outputTable" at path "root.parameters" must be configured.' . PHP_EOL
         );
     }
 
@@ -1064,7 +1066,7 @@ class DatadirTest extends AbstractDatadirTestCase
             $configuration,
             1,
             null,
-            'The child node "schema" at path "parameters.table" must be configured.' . PHP_EOL
+            'The child node "schema" at path "root.parameters.table" must be configured.' . PHP_EOL
         );
     }
 
@@ -1087,7 +1089,7 @@ class DatadirTest extends AbstractDatadirTestCase
             $configuration,
             1,
             null,
-            'The child node "schema" at path "parameters.table" must be configured.' . PHP_EOL
+            'The child node "schema" at path "root.parameters.table" must be configured.' . PHP_EOL
         );
     }
 
@@ -1110,7 +1112,7 @@ class DatadirTest extends AbstractDatadirTestCase
             $configuration,
             1,
             null,
-            'The child node "tableName" at path "parameters.table" must be configured.' . PHP_EOL
+            'The child node "tableName" at path "root.parameters.table" must be configured.' . PHP_EOL
         );
     }
 

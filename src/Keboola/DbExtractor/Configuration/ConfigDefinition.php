@@ -5,15 +5,12 @@ declare(strict_types=1);
 namespace Keboola\DbExtractor\Configuration;
 
 use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
-use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 
 class ConfigDefinition extends BaseExtractorConfigDefinition
 {
-    public function getConfigTreeBuilder() : TreeBuilder
+    public function getParametersDefinition(): ArrayNodeDefinition
     {
-        $treeBuilder = new TreeBuilder();
-        /** @var ArrayNodeDefinition */
-        $rootNode = $treeBuilder->root('parameters');
+        $rootNode = parent::getParametersDefinition();
 
         // @formatter:off
         $rootNode
@@ -31,6 +28,6 @@ class ConfigDefinition extends BaseExtractorConfigDefinition
             ->end();
         // @formatter:on
 
-        return $treeBuilder;
+        return $rootNode;
     }
 }

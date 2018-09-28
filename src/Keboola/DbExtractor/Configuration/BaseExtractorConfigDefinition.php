@@ -4,13 +4,22 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Configuration;
 
+use Keboola\Component\Config\BaseConfigDefinition;
 use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
-use Symfony\Component\Config\Definition\ConfigurationInterface;
 
-abstract class BaseExtractorConfigDefinition implements ConfigurationInterface
+abstract class BaseExtractorConfigDefinition extends BaseConfigDefinition
 {
-    abstract public function getConfigTreeBuilder(): TreeBuilder;
+    protected function getRootDefinition(TreeBuilder $treeBuilder): ArrayNodeDefinition
+    {
+        $node = parent::getRootDefinition($treeBuilder);
+
+        $node
+            ->children()
+                ->scalarNode('action')->end();
+
+        return $node;
+    }
 
     protected function getDbNode(): ArrayNodeDefinition
     {
@@ -21,6 +30,7 @@ abstract class BaseExtractorConfigDefinition implements ConfigurationInterface
 
         // @formatter:off
         $node
+            ->ignoreExtraKeys(false)
             ->children()
                 ->scalarNode('driver')->end()
                 ->scalarNode('host')->end()
