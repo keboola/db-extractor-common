@@ -17,9 +17,6 @@ use Symfony\Component\Config\Definition\Exception\Exception as ConfigException;
 
 class Application extends BaseComponent
 {
-    /** @var array */
-    private $state;
-
     /** @var Extractor */
     private $extractor;
 
@@ -36,9 +33,7 @@ class Application extends BaseComponent
 
         parent::__construct($logger);
 
-        $this->state = $state;
-
-        $extractorFactory = new ExtractorFactory($this->getConfig()->getParameters(), $this->state);
+        $extractorFactory = new ExtractorFactory($this->getConfig()->getParameters(), $state);
         $this->extractor = $extractorFactory->create($this->getLogger());
     }
 
