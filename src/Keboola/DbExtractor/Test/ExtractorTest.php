@@ -30,7 +30,6 @@ class ExtractorTest extends TestCase
             (string) file_get_contents($this->dataDir . '/' .$driver . '/exampleConfig.json'),
             true
         );
-        $config['parameters']['data_dir'] = $this->dataDir;
         $config['parameters']['db'] = $this->getConfigDbNode($driver);
         $config['parameters']['extractor_class'] = ucfirst($driver);
         
@@ -44,7 +43,6 @@ class ExtractorTest extends TestCase
             true
         );
 
-        $config['parameters']['data_dir'] = $this->dataDir;
         $config['parameters']['db'] = $this->getConfigDbNode($driver);
         $config['parameters']['extractor_class'] = ucfirst($driver);
 
@@ -58,7 +56,6 @@ class ExtractorTest extends TestCase
             true
         );
 
-        $config['parameters']['data_dir'] = $this->dataDir;
         $config['parameters']['db'] = $this->getConfigDbNode($driver);
         $config['parameters']['extractor_class'] = ucfirst($driver);
 
@@ -85,6 +82,7 @@ class ExtractorTest extends TestCase
 
     protected function getApplication(array $config, array $state = []): Application
     {
+        putenv(sprintf('KBC_DATADIR=%s', $this->dataDir));
         return new Application($config, new Logger(), $state);
     }
 

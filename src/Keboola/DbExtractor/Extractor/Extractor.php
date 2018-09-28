@@ -44,7 +44,7 @@ abstract class Extractor
 
     public function __construct(array $parameters, array $state, Logger $logger)
     {
-        $this->dataDir = $parameters['data_dir'];
+        $this->dataDir = (string) getenv('KBC_DATADIR');
         $this->state = $state;
         $this->logger = $logger;
 

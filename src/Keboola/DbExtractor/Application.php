@@ -28,7 +28,6 @@ class Application extends BaseComponent
 
     public function __construct(array $config, LoggerInterface $logger, array $state = [])
     {
-        putenv(sprintf('KBC_DATADIR=%s', $config['parameters']['data_dir']));
         $this->setConfigDefinitionClassNameByConfig($config);
 
         parent::__construct($logger);

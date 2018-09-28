@@ -1100,6 +1100,7 @@ class CommonExtractorTest extends ExtractorTest
         $handler = new TestHandler();
         $logger = new Logger();
         $logger->pushHandler($handler);
+        putenv(sprintf('KBC_DATADIR=%s', $this->dataDir));
         $app = new Application($config, $logger, []);
         try {
             $app->run();

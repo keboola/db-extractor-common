@@ -16,10 +16,6 @@ class ActionConfigDefinition extends BaseExtractorConfigDefinition
         $rootNode
             ->ignoreExtraKeys(false)
             ->children()
-                ->scalarNode('data_dir')
-                    ->isRequired()
-                    ->cannotBeEmpty()
-                ->end()
                 ->scalarNode('extractor_class')
                     ->isRequired()
                     ->cannotBeEmpty()

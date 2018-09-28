@@ -96,8 +96,6 @@ class DatadirTest extends AbstractDatadirTestCase
         );
         $tempDatadir = $this->getTempDatadir($specification);
 
-        $configuration['parameters']['data_dir'] = $tempDatadir->getTmpFolder();
-
         file_put_contents(
             $tempDatadir->getTmpFolder() . '/config.json',
             json_encode($configuration, JSON_PRETTY_PRINT)
