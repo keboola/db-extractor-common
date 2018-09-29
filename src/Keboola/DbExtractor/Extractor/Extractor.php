@@ -426,9 +426,4 @@ abstract class Extractor
         $sanitizedTablename = Utils\Strings::webalize($outputTableName, '._');
         return $this->dataDir . '/out/tables/' . $sanitizedTablename . '.csv';
     }
-
-    protected function getDbParameters(): array
-    {
-        return $this->dbParameters;
-    }
 }

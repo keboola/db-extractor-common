@@ -104,7 +104,6 @@ abstract class BaseExtractorConfigDefinition extends BaseConfigDefinition
         // @formatter:off
         $node
             ->arrayPrototype()
-            ->addDefaultsIfNotSet()
                 ->children()
                     ->integerNode('id')
                         ->isRequired()
