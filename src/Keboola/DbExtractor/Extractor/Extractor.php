@@ -20,6 +20,9 @@ use Throwable;
 use PDO;
 use PDOStatement;
 
+/**
+ * @deprecated
+ */
 abstract class Extractor
 {
     public const DEFAULT_MAX_TRIES = 5;

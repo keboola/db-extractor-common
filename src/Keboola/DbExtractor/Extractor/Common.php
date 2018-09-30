@@ -8,6 +8,9 @@ use Keboola\DbExtractor\Exception\ApplicationException;
 use Keboola\Component\UserException;
 use PDO;
 
+/**
+ * @deprecated
+ */
 class Common extends Extractor
 {
     public const TYPE_AUTO_INCREMENT = 'autoIncrement';
