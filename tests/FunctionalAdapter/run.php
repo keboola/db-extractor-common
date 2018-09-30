@@ -16,8 +16,7 @@ $logger = new Logger();
 
 
 try {
-    // @todo - pass state from state.json
-    $commonExtractor = new CommonExtractor($logger, $config['parameters']['db']);
+    $commonExtractor = new CommonExtractor($logger, $config['parameters']['db'], []);
     $extractorAdapter = new ExtractorAdapter($commonExtractor, $logger, $config['action'], $config['parameters']);
     $extractorAdapter->run();
 

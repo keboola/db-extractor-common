@@ -59,7 +59,7 @@ class ExtractorAdapter extends BaseComponent
             switch ($this->action) {
                 case 'run':
                     $this->extractor->validateParameters($this->parameters);
-                    $result = $this->runExtract();
+                    $result = $this->runExtract(); // @todo - save state into state file
                     break;
                 case 'testConnection':
                     $result = $this->testConnection();

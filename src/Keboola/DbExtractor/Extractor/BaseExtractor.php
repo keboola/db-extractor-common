@@ -28,7 +28,7 @@ abstract class BaseExtractor
     /** @var array */
     protected $state;
 
-    public function __construct(LoggerInterface $logger, array $dbParameters, array $state = [])
+    public function __construct(LoggerInterface $logger, array $dbParameters, array $state)
     {
         $this->dataDir = (string) getenv('KBC_DATADIR');
         $this->logger = $logger;
