@@ -37,20 +37,12 @@ class ExtractorAdapter extends BaseComponent
         $this->parameters = $this->getConfig()->getParameters();
     }
 
-    protected function getConfigDefinitionClass(): string
+    public function getTables(): array
     {
-        if ($this->action !== 'run') {
-            return ActionConfigDefinition::class;
-        } elseif (!$this->isConfigRow) {
-            return ConfigDefinition::class;
-        } else {
-            return ConfigRowDefinition::class;
-        }
-    }
-
-    protected function getConfigClass(): string
-    {
-        return Config::class;
+        return [
+            'tables' => $this->extractor->getTables(),
+            'status' => 'success',
+        ];
     }
 
     public function run(): void
@@ -89,11 +81,19 @@ class ExtractorAdapter extends BaseComponent
         return ['status' => 'success'];
     }
 
-    public function getTables(): array
+    protected function getConfigDefinitionClass(): string
     {
-        return [
-            'tables' => $this->extractor->getTables(),
-            'status' => 'success',
-        ];
+        if ($this->action !== 'run') {
+            return ActionConfigDefinition::class;
+        } elseif (!$this->isConfigRow) {
+            return ConfigDefinition::class;
+        } else {
+            return ConfigRowDefinition::class;
+        }
+    }
+
+    protected function getConfigClass(): string
+    {
+        return Config::class;
     }
 }

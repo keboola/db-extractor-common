@@ -42,6 +42,21 @@ abstract class BaseExtractor
 
     abstract public function testConnection(): void;
 
+    public function validateParameters(array $parameters): void
+    {
+        try {
+            if (isset($parameters['tables'])) {
+                foreach ($parameters['tables'] as $table) {
+                    $this->validateTableParameters($table);
+                }
+            } else {
+                $this->validateTableParameters($parameters);
+            }
+        } catch (ConfigException $e) {
+            throw new UserException($e->getMessage(), 0, $e);
+        }
+    }
+
     protected function createManifest(array $table): void
     {
         $outFilename = $this->getOutputFilename($table['outputTable']) . '.manifest';
@@ -118,6 +133,31 @@ abstract class BaseExtractor
         return $this->dbParameters;
     }
 
+    protected function getOutputFilename(string $outputTableName): string
+    {
+        $sanitizedTableName = Strings::webalize($outputTableName, '._');
+        return $this->dataDir . '/out/tables/' . $sanitizedTableName . '.csv';
+    }
+
+    protected function isAlive(): void
+    {
+        try {
+            $this->testConnection();
+        } catch (\Throwable $e) {
+            throw new DeadConnectionException("Dead connection: " . $e->getMessage());
+        }
+    }
+
+    protected function validateIncrementalFetching(array $table, string $columnName, ?int $limit = null): void
+    {
+        throw new UserException('Incremental Fetching is not supported by this extractor.');
+    }
+
+    protected function quote(string $obj): string
+    {
+        return "`{$obj}`";
+    }
+
     private function getColumnMetadata(array $column): array
     {
         $datatypeKeys = ['type', 'length', 'nullable', 'default', 'format'];
@@ -158,26 +198,6 @@ abstract class BaseExtractor
         return $metadata;
     }
 
-    protected function getOutputFilename(string $outputTableName): string
-    {
-        $sanitizedTableName = Strings::webalize($outputTableName, '._');
-        return $this->dataDir . '/out/tables/' . $sanitizedTableName . '.csv';
-    }
-
-    protected function isAlive(): void
-    {
-        try {
-            $this->testConnection();
-        } catch (\Throwable $e) {
-            throw new DeadConnectionException("Dead connection: " . $e->getMessage());
-        }
-    }
-
-    protected function validateIncrementalFetching(array $table, string $columnName, ?int $limit = null): void
-    {
-        throw new UserException('Incremental Fetching is not supported by this extractor.');
-    }
-
     private function validateTableParameters(array $table): void
     {
         if (isset($table['incrementalFetchingColumn'])
@@ -194,25 +214,5 @@ abstract class BaseExtractor
                 "An import autoIncrement column is being used but output primary key is not set."
             );
         }
-    }
-
-    public function validateParameters(array $parameters): void
-    {
-        try {
-            if (isset($parameters['tables'])) {
-                foreach ($parameters['tables'] as $table) {
-                    $this->validateTableParameters($table);
-                }
-            } else {
-                $this->validateTableParameters($parameters);
-            }
-        } catch (ConfigException $e) {
-            throw new UserException($e->getMessage(), 0, $e);
-        }
-    }
-
-    protected function quote(string $obj): string
-    {
-        return "`{$obj}`";
     }
 }
