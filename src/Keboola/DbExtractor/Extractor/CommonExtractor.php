@@ -141,13 +141,29 @@ class CommonExtractor extends BaseExtractor
         return new UserException($message, 0, $e);
     }
 
-    private function quote(string $obj): string
-    {
-        return "`{$obj}`";
-    }
-
     private function simpleQuery(array $table, array $columns = array()): string
     {
+        if (count($columns) > 0) {
+            $columnQuery = implode(
+                ', ',
+                array_map(
+                    function ($column) {
+                        return $this->quote($column);
+                    },
+                    $columns
+                )
+            );
+        } else {
+            $columnQuery = '*';
+        }
+
+        $query = sprintf(
+            "SELECT %s FROM %s.%s",
+            $columnQuery,
+            $this->quote($table['schema']),
+            $this->quote($table['tableName'])
+        );
+
         $incrementalAddon = null;
         if ($this->incrementalFetching && isset($this->state['lastFetchedRow'])) {
             if ($this->incrementalFetching['type'] === self::TYPE_AUTO_INCREMENT) {
@@ -167,28 +183,6 @@ class CommonExtractor extends BaseExtractor
                     sprintf('Unknown incremental fetching column type %s', $this->incrementalFetching['type'])
                 );
             }
-        }
-        if (count($columns) > 0) {
-            $query = sprintf(
-                "SELECT %s FROM %s.%s",
-                implode(
-                    ', ',
-                    array_map(
-                        function ($column) {
-                            return $this->quote($column);
-                        },
-                        $columns
-                    )
-                ),
-                $this->quote($table['schema']),
-                $this->quote($table['tableName'])
-            );
-        } else {
-            $query = sprintf(
-                "SELECT * FROM %s.%s",
-                $this->quote($table['schema']),
-                $this->quote($table['tableName'])
-            );
         }
 
         if ($incrementalAddon) {

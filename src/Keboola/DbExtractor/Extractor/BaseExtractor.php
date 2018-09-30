@@ -210,4 +210,9 @@ abstract class BaseExtractor
             throw new UserException($e->getMessage(), 0, $e);
         }
     }
+
+    protected function quote(string $obj): string
+    {
+        return "`{$obj}`";
+    }
 }
