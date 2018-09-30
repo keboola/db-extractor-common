@@ -16,8 +16,13 @@ $logger = new Logger();
 
 
 try {
-    $commonExtractor = new CommonExtractor($logger, $config['parameters']['db'], []);
-    $extractorAdapter = new ExtractorAdapter($commonExtractor, $logger, $config['action'], $config['parameters']);
+    $commonExtractor = new CommonExtractor(
+        $logger,
+        $config['parameters']['db'],
+        [],
+        !isset($config['parameters']['tables'])
+    );
+    $extractorAdapter = new ExtractorAdapter($commonExtractor, $logger, $config['action']);
     $extractorAdapter->run();
 
     exit(0);

@@ -17,7 +17,10 @@ abstract class BaseExtractor
     public const DEFAULT_MAX_TRIES = 5;
 
     /** @var string */
-    protected $dataDir;
+    private $dataDir;
+
+    /** @var bool */
+    private $isConfigRow;
 
     /** @var LoggerInterface */
     protected $logger;
@@ -28,9 +31,10 @@ abstract class BaseExtractor
     /** @var array */
     protected $state;
 
-    public function __construct(LoggerInterface $logger, array $dbParameters, array $state)
+    public function __construct(LoggerInterface $logger, array $dbParameters, array $state, bool $isConfigRow = true)
     {
         $this->dataDir = (string) getenv('KBC_DATADIR');
+        $this->isConfigRow = $isConfigRow;
         $this->logger = $logger;
         $this->dbParameters = $dbParameters;
         $this->state = $state;
@@ -42,10 +46,20 @@ abstract class BaseExtractor
 
     abstract public function testConnection(): void;
 
+    public function getDataDir(): string
+    {
+        return $this->dataDir;
+    }
+
+    public function isConfigRow(): bool
+    {
+        return $this->isConfigRow;
+    }
+
     public function validateParameters(array $parameters): void
     {
         try {
-            if (isset($parameters['tables'])) {
+            if (!$this->isConfigRow()) {
                 foreach ($parameters['tables'] as $table) {
                     $this->validateTableParameters($table);
                 }
@@ -121,7 +135,7 @@ abstract class BaseExtractor
 
     protected function createOutputCsv(string $outputTable): CsvWriter
     {
-        $outTablesDir = $this->dataDir . '/out/tables';
+        $outTablesDir = $this->getDataDir() . '/out/tables';
         if (!is_dir($outTablesDir)) {
             mkdir($outTablesDir, 0777, true);
         }
@@ -136,7 +150,7 @@ abstract class BaseExtractor
     protected function getOutputFilename(string $outputTableName): string
     {
         $sanitizedTableName = Strings::webalize($outputTableName, '._');
-        return $this->dataDir . '/out/tables/' . $sanitizedTableName . '.csv';
+        return $this->getDataDir() . '/out/tables/' . $sanitizedTableName . '.csv';
     }
 
     protected function isAlive(): void

@@ -296,7 +296,7 @@ class CommonExtractor extends BaseExtractor
     {
         $imported = [];
         $outputState = [];
-        if (isset($parameters['tables'])) {
+        if (!$this->isConfigRow()) {
             $tables = array_filter(
                 $parameters['tables'],
                 function ($table) {

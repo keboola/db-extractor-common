@@ -15,25 +15,21 @@ use Psr\Log\LoggerInterface;
 class ExtractorAdapter extends BaseComponent
 {
     /** @var BaseExtractor */
-    private $extractor;
+    protected $extractor;
 
     /** @var string */
     private $action;
-
-    /** @var bool */
-    private $isConfigRow;
 
     /** @var array */
     private $parameters;
 
     // @todo - $action and $parameters might be accessed from parent class
-    public function __construct(BaseExtractor $extractor, LoggerInterface $logger, string $action, array $parameters)
+    public function __construct(BaseExtractor $extractor, LoggerInterface $logger, string $action)
     {
         $this->action = $action;
-        $this->isConfigRow = !isset($parameters['tables']);
+        $this->extractor = $extractor;
         parent::__construct($logger);
 
-        $this->extractor = $extractor;
         $this->parameters = $this->getConfig()->getParameters();
     }
 
@@ -85,7 +81,7 @@ class ExtractorAdapter extends BaseComponent
     {
         if ($this->action !== 'run') {
             return ActionConfigDefinition::class;
-        } elseif (!$this->isConfigRow) {
+        } elseif (!$this->extractor->isConfigRow()) {
             return ConfigDefinition::class;
         } else {
             return ConfigRowDefinition::class;
