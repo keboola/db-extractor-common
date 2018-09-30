@@ -26,10 +26,30 @@ Add the library to your component's composer:
 composer.json
 
     {
-      "require": "db-extractor-common": ^8.0
+      "require": "db-extractor-common": ^10.0
     }
-    
+
 ## Usage
+_Version 10 changes a way of creating an instance of extractors. Old usage is still available but it is marked as deprecated and will be remove in next major version._
+
+Create entrypoint script the `run.php` like this one in DataDir Tests:
+https://github.com/keboola/db-extractor-common/blob/david-adapter/tests/FunctionalAdapter/run.php
+
+The `$config` is loaded from `config.json` file. You have to set ENV variable `KBC_DATADIR` with path to your data folder (running component inside KBC provide it automatically). 
+_We strongly recommend using [configuration rows schema](https://github.com/keboola/db-extractor-common/blob/david-adapter/tests/Old/data/common/exampleConfigRow.json)_
+
+The extractor class must be child of [\Keboola\DbExtractor\Extractor\BaseExtractor](https://github.com/keboola/db-extractor-common/blob/david-adapter/src/Keboola/DbExtractor/Extractor/BaseExtractor.php) and implement all abstract methods:
+ 
+- `extract(array $tables): array`
+- `getTables(array $tables = []): array`
+- `testConnection(): void`
+- `validateIncrementalFetching(array $table, string $columnName, ?int $limit = null): void`
+
+Then you can pass the extractor class as a first constructor's argument to [\Keboola\DbExtractor\Extractor\ExtractorAdapter](https://github.com/keboola/db-extractor-common/blob/david-adapter/src/Keboola/DbExtractor/Extractor/ExtractorAdapter.php)
+
+On created instance of `ExtractorAdapter` you can simply call method `run()` and that's it!
+
+## Usage _[deprecated]_
 Create entrypoint script file `run.php` like this one for Mysql extractor:
 https://github.com/keboola/db-extractor-mysql/blob/master/src/run.php
 
