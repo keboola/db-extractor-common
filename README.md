@@ -29,7 +29,7 @@ composer.json
       "require": "db-extractor-common": ^10.0
     }
 
-## Usage
+### Version 10
 _Version 10 changes a way of creating an instance of extractors. Old usage is still available but it is marked as deprecated and will be remove in next major version._
 
 Create entrypoint script the `run.php` like this one in DataDir Tests:
@@ -49,7 +49,7 @@ Then you can pass the extractor class as a first constructor's argument to [\Keb
 
 On created instance of `ExtractorAdapter` you can simply call method `run()` and that's it!
 
-## Usage _[deprecated]_
+### Version 9 and older _[deprecated]_
 Create entrypoint script file `run.php` like this one for Mysql extractor:
 https://github.com/keboola/db-extractor-mysql/blob/master/src/run.php
 
