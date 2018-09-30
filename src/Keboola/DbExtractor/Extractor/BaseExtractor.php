@@ -42,8 +42,6 @@ abstract class BaseExtractor
 
     abstract public function testConnection(): void;
 
-    abstract public function validateIncrementalFetching(array $table, string $columnName, ?int $limit = null): void;
-
     protected function createManifest(array $table): void
     {
         $outFilename = $this->getOutputFilename($table['outputTable']) . '.manifest';
@@ -173,6 +171,11 @@ abstract class BaseExtractor
         } catch (\Throwable $e) {
             throw new DeadConnectionException("Dead connection: " . $e->getMessage());
         }
+    }
+
+    protected function validateIncrementalFetching(array $table, string $columnName, ?int $limit = null): void
+    {
+        throw new UserException('Incremental Fetching is not supported by this extractor.');
     }
 
     private function validateTableParameters(array $table): void
