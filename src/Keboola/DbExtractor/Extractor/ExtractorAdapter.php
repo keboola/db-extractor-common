@@ -9,19 +9,11 @@ use Keboola\Component\UserException;
 class ExtractorAdapter
 {
     /** @var BaseExtractor */
-    protected $extractor;
+    private $extractor;
 
     public function __construct(BaseExtractor $extractor)
     {
         $this->extractor = $extractor;
-    }
-
-    public function getTables(): array
-    {
-        return [
-            'tables' => $this->extractor->getTables(),
-            'status' => 'success',
-        ];
     }
 
     public function run(): void
@@ -50,12 +42,20 @@ class ExtractorAdapter
         print json_encode($result, JSON_PRETTY_PRINT);
     }
 
-    public function runExtract(array $parameters): array
+    private function getTables(): array
+    {
+        return [
+            'tables' => $this->extractor->getTables(),
+            'status' => 'success',
+        ];
+    }
+
+    private function runExtract(array $parameters): array
     {
         return $this->extractor->extract($parameters);
     }
 
-    public function testConnection(): array
+    private function testConnection(): array
     {
         $this->extractor->testConnection();
 
