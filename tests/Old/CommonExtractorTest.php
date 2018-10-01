@@ -29,19 +29,8 @@ class CommonExtractorTest extends ExtractorTest
 
     public function setUp(): void
     {
-        $this->initDatabase();
-    }
-
-    public function tearDown(): void
-    {
-        parent::tearDown();
-
-        $configFilePath = $this->dataDir . DIRECTORY_SEPARATOR . 'config.json';
-        if (file_exists($configFilePath)) {
-            unlink($configFilePath);
-        }
-
         $this->cleanOutputDirectory();
+        $this->initDatabase();
     }
 
     private function getApp(array $config, array $state = []): Application
@@ -109,6 +98,11 @@ class CommonExtractorTest extends ExtractorTest
 
     private function cleanOutputDirectory(): void
     {
+        $configFilePath = $this->dataDir . DIRECTORY_SEPARATOR . 'config.json';
+        if (file_exists($configFilePath)) {
+            unlink($configFilePath);
+        }
+
         $finder = new Finder();
         if (file_exists($this->dataDir . '/out/tables')) {
             $finder->files()->in($this->dataDir . '/out/tables');

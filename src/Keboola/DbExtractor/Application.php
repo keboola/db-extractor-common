@@ -26,8 +26,16 @@ class Application extends BaseComponent
     /** @var string */
     private $configDefinitionClassName;
 
-    public function __construct(array $config, LoggerInterface $logger, array $state = [])
+    public function __construct(
+        array $config,
+        LoggerInterface $logger,
+        array $state = [],
+        ?ConfigurationInterface $customConfigDefinition = null)
     {
+        if ($customConfigDefinition) {
+            $this->configDefinition = $customConfigDefinition;
+        }
+
         $this->setConfigDefinitionClassNameByConfig($config);
 
         parent::__construct($logger);
@@ -69,11 +77,6 @@ class Application extends BaseComponent
         }
 
         $this->$actionMethod();
-    }
-
-    public function setConfigDefinition(ConfigurationInterface $definition): void
-    {
-        $this->configDefinition = $definition;
     }
 
     public function getConfigDefinition(): ?ConfigurationInterface
