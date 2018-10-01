@@ -77,7 +77,12 @@ class Application extends BaseComponent
             throw new UserException(sprintf("Action '%s' does not exist.", $this->getConfig()->getAction()));
         }
 
-        $this->$actionMethod();
+        $result = $this->$actionMethod();
+
+        print json_encode(
+            $result,
+            JSON_PRETTY_PRINT
+        );
     }
 
     public function getConfigDefinition(): ?ConfigurationInterface
@@ -120,7 +125,7 @@ class Application extends BaseComponent
         }
     }
 
-    private function runAction(): void
+    private function runAction(): array
     {
         $imported = [];
         $outputState = [];
@@ -144,17 +149,14 @@ class Application extends BaseComponent
             $imported = $exportResults;
         }
 
-        print json_encode(
-            [
-                'status' => 'success',
-                'imported' => $imported,
-                'state' => $outputState,
-            ],
-            JSON_PRETTY_PRINT
-        );
+        return [
+            'status' => 'success',
+            'imported' => $imported,
+            'state' => $outputState,
+        ];
     }
 
-    private function testConnectionAction(): void
+    private function testConnectionAction(): array
     {
         try {
             $this->extractor->testConnection();
@@ -162,13 +164,10 @@ class Application extends BaseComponent
             throw new UserException(sprintf("Connection failed: '%s'", $e->getMessage()), 0, $e);
         }
 
-        print json_encode(
-            ['status' => 'success'],
-            JSON_PRETTY_PRINT
-        );
+        return ['status' => 'success'];
     }
 
-    private function getTablesAction(): void
+    private function getTablesAction(): array
     {
         try {
             $output = [];
@@ -178,9 +177,6 @@ class Application extends BaseComponent
             throw new UserException(sprintf("Failed to get tables: '%s'", $e->getMessage()), 0, $e);
         }
 
-        print json_encode(
-            $output,
-            JSON_PRETTY_PRINT
-        );
+        return $output;
     }
 }
