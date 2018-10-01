@@ -89,11 +89,6 @@ class Application extends BaseComponent
         return $this->configDefinition;
     }
 
-    public function getConfigDefinition(): ?ConfigurationInterface
-    {
-        return $this->configDefinition;
-    }
-
     private function validateTableParameters(array $table): void
     {
         if (isset($table['incrementalFetchingColumn'])
