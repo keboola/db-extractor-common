@@ -6,6 +6,6 @@ namespace Keboola\DbExtractor\Configuration;
 
 use Keboola\Component\Config\BaseConfig;
 
-class Config extends BaseConfig
+class BaseExtractorConfig extends BaseConfig
 {
 }

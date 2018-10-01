@@ -6,7 +6,7 @@ namespace Keboola\DbExtractor;
 
 use Keboola\Component\BaseComponent;
 use Keboola\DbExtractor\Configuration\ActionConfigDefinition;
-use Keboola\DbExtractor\Configuration\Config;
+use Keboola\DbExtractor\Configuration\BaseExtractorConfig;
 use Keboola\DbExtractor\Configuration\ConfigDefinition;
 use Keboola\DbExtractor\Configuration\ConfigRowDefinition;
 use Keboola\Component\UserException;
@@ -59,7 +59,7 @@ class Application extends BaseComponent
 
     protected function getConfigClass(): string
     {
-        return Config::class;
+        return BaseExtractorConfig::class;
     }
 
     protected function getConfigDefinitionClass(): string
