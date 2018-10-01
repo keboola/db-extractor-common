@@ -7,7 +7,7 @@ namespace Keboola\DbExtractor\Extractor;
 use Keboola\Component\BaseComponent;
 use Keboola\Component\UserException;
 use Keboola\DbExtractor\Configuration\ActionConfigDefinition;
-use Keboola\DbExtractor\Configuration\Config;
+use Keboola\DbExtractor\Configuration\BaseExtractorConfig;
 use Keboola\DbExtractor\Configuration\ConfigDefinition;
 use Keboola\DbExtractor\Configuration\ConfigRowDefinition;
 use Psr\Log\LoggerInterface;
@@ -90,6 +90,6 @@ class ExtractorAdapter extends BaseComponent
 
     protected function getConfigClass(): string
     {
-        return Config::class;
+        return BaseExtractorConfig::class;
     }
 }
