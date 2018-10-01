@@ -4,26 +4,28 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Extractor;
 
+use Keboola\Component\BaseComponent;
 use Keboola\Component\UserException;
 use Keboola\Csv\CsvWriter;
 use Keboola\Datatype\Definition\GenericStorage;
+use Keboola\DbExtractor\Configuration\ActionConfigDefinition;
+use Keboola\DbExtractor\Configuration\BaseExtractorConfig;
+use Keboola\DbExtractor\Configuration\ConfigDefinition;
+use Keboola\DbExtractor\Configuration\ConfigRowDefinition;
 use Keboola\DbExtractor\Exception\DeadConnectionException;
 use Nette\Utils\Strings;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Config\Definition\Exception\Exception as ConfigException;
 
-abstract class BaseExtractor
+abstract class BaseExtractor extends BaseComponent
 {
     public const DEFAULT_MAX_TRIES = 5;
 
     /** @var string */
-    private $dataDir;
+    private $action;
 
     /** @var bool */
     private $isConfigRow;
-
-    /** @var LoggerInterface */
-    protected $logger;
 
     /** @var array */
     protected $dbParameters;
@@ -31,12 +33,12 @@ abstract class BaseExtractor
     /** @var array */
     protected $state;
 
-    public function __construct(LoggerInterface $logger, array $dbParameters, array $state, bool $isConfigRow = true)
+    public function __construct(LoggerInterface $logger, string $action, array $state, bool $isConfigRow)
     {
-        $this->dataDir = (string) getenv('KBC_DATADIR');
+        $this->action = $action;
         $this->isConfigRow = $isConfigRow;
-        $this->logger = $logger;
-        $this->dbParameters = $dbParameters;
+        parent::__construct($logger);
+
         $this->state = $state;
     }
 
@@ -45,11 +47,6 @@ abstract class BaseExtractor
     abstract public function getTables(array $tables = []): array;
 
     abstract public function testConnection(): void;
-
-    public function getDataDir(): string
-    {
-        return $this->dataDir;
-    }
 
     public function isConfigRow(): bool
     {
@@ -142,11 +139,6 @@ abstract class BaseExtractor
         return new CsvWriter($this->getOutputFilename($outputTable));
     }
 
-    protected function getDbParameters(): array
-    {
-        return $this->dbParameters;
-    }
-
     protected function getOutputFilename(string $outputTableName): string
     {
         $sanitizedTableName = Strings::webalize($outputTableName, '._');
@@ -170,6 +162,22 @@ abstract class BaseExtractor
     protected function quote(string $obj): string
     {
         return "`{$obj}`";
+    }
+
+    protected function getConfigDefinitionClass(): string
+    {
+        if ($this->action !== 'run') {
+            return ActionConfigDefinition::class;
+        } elseif (!$this->isConfigRow()) {
+            return ConfigDefinition::class;
+        } else {
+            return ConfigRowDefinition::class;
+        }
+    }
+
+    protected function getConfigClass(): string
+    {
+        return BaseExtractorConfig::class;
     }
 
     private function getColumnMetadata(array $column): array
@@ -224,7 +232,7 @@ abstract class BaseExtractor
         }
 
         if (isset($table['incrementalFetching']['autoIncrementColumn']) && empty($table['primaryKey'])) {
-            $this->logger->warning(
+            $this->getLogger()->warning(
                 "An import autoIncrement column is being used but output primary key is not set."
             );
         }

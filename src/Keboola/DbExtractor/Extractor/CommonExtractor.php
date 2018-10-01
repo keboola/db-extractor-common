@@ -41,12 +41,12 @@ class CommonExtractor extends BaseExtractor
         if ($this->connection) {
             return $this->connection;
         }
-        return $this->createConnection($this->dbParameters);
+        return $this->createConnection($this->getConfig()->getParameters()['db']);
     }
 
     private function executeQuery(string $query, ?int $maxTries): \PDOStatement
     {
-        $proxy = new RetryProxy($this->logger, $maxTries);
+        $proxy = new RetryProxy($this->getLogger(), $maxTries);
         $stmt = $proxy->call(function () use ($query) {
             try {
                 /** @var \PDOStatement $stmt */
@@ -55,7 +55,7 @@ class CommonExtractor extends BaseExtractor
                 return $stmt;
             } catch (\Throwable $e) {
                 try {
-                    $this->connection = $this->createConnection($this->dbParameters);
+                    $this->connection = $this->createConnection($this->getConfig()->getParameters()['db']);
                 } catch (\Throwable $e) {
                 };
                 throw $e;
@@ -68,7 +68,7 @@ class CommonExtractor extends BaseExtractor
     {
         $outputTable = $table['outputTable'];
 
-        $this->logger->info("Exporting to " . $outputTable);
+        $this->getLogger()->info("Exporting to " . $outputTable);
 
         $isAdvancedQuery = true;
         if (array_key_exists('table', $table) && !array_key_exists('query', $table)) {
@@ -81,7 +81,7 @@ class CommonExtractor extends BaseExtractor
 
         // this will retry on CsvException
         $proxy = new RetryProxy(
-            $this->logger,
+            $this->getLogger(),
             $maxTries,
             RetryProxy::DEFAULT_BACKOFF_INTERVAL,
             [DeadConnectionException::class, \ErrorException::class]
@@ -109,7 +109,7 @@ class CommonExtractor extends BaseExtractor
             $this->createManifest($table);
         } else {
             unlink($this->getOutputFilename($outputTable));
-            $this->logger->warning(
+            $this->getLogger()->warning(
                 sprintf(
                     "Query returned empty result. Nothing was imported to [%s]",
                     $table['outputTable']
@@ -333,8 +333,11 @@ class CommonExtractor extends BaseExtractor
                           AND c.TABLE_SCHEMA != 'mysql'
                           AND c.TABLE_SCHEMA != 'information_schema'";
 
-        if ($this->dbParameters['database']) {
-            $whereClause = sprintf(" WHERE c.TABLE_SCHEMA = %s", $db->quote($this->dbParameters['database']));
+        if ($this->getConfig()->getParameters()['db']['database']) {
+            $whereClause = sprintf(
+                " WHERE c.TABLE_SCHEMA = %s",
+                $db->quote($this->getConfig()->getParameters()['db']['database'])
+            );
         }
 
         if (!empty($tables)) {

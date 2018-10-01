@@ -4,33 +4,16 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Extractor;
 
-use Keboola\Component\BaseComponent;
 use Keboola\Component\UserException;
-use Keboola\DbExtractor\Configuration\ActionConfigDefinition;
-use Keboola\DbExtractor\Configuration\BaseExtractorConfig;
-use Keboola\DbExtractor\Configuration\ConfigDefinition;
-use Keboola\DbExtractor\Configuration\ConfigRowDefinition;
-use Psr\Log\LoggerInterface;
 
-class ExtractorAdapter extends BaseComponent
+class ExtractorAdapter
 {
     /** @var BaseExtractor */
     protected $extractor;
 
-    /** @var string */
-    private $action;
-
-    /** @var array */
-    private $parameters;
-
-    // @todo - $action and $parameters might be accessed from parent class
-    public function __construct(BaseExtractor $extractor, LoggerInterface $logger, string $action)
+    public function __construct(BaseExtractor $extractor)
     {
-        $this->action = $action;
         $this->extractor = $extractor;
-        parent::__construct($logger);
-
-        $this->parameters = $this->getConfig()->getParameters();
     }
 
     public function getTables(): array
@@ -43,11 +26,13 @@ class ExtractorAdapter extends BaseComponent
 
     public function run(): void
     {
+        $action = $this->extractor->getConfig()->getAction();
+        $parameters = $this->extractor->getConfig()->getParameters();
         try {
-            switch ($this->action) {
+            switch ($action) {
                 case 'run':
-                    $this->extractor->validateParameters($this->parameters);
-                    $result = $this->runExtract(); // @todo - save state into state file
+                    $this->extractor->validateParameters($parameters);
+                    $result = $this->runExtract($parameters); // @todo - save state into state file
                     break;
                 case 'testConnection':
                     $result = $this->testConnection();
@@ -56,7 +41,7 @@ class ExtractorAdapter extends BaseComponent
                     $result = $this->getTables();
                     break;
                 default:
-                    throw new UserException(sprintf('Undefined action "%s".', $this->action));
+                    throw new UserException(sprintf('Undefined action "%s".', $action));
             }
         } catch (\Throwable $exception) {
             throw $exception;
@@ -65,9 +50,9 @@ class ExtractorAdapter extends BaseComponent
         print json_encode($result, JSON_PRETTY_PRINT);
     }
 
-    public function runExtract(): array
+    public function runExtract(array $parameters): array
     {
-        return $this->extractor->extract($this->parameters);
+        return $this->extractor->extract($parameters);
     }
 
     public function testConnection(): array
@@ -75,21 +60,5 @@ class ExtractorAdapter extends BaseComponent
         $this->extractor->testConnection();
 
         return ['status' => 'success'];
-    }
-
-    protected function getConfigDefinitionClass(): string
-    {
-        if ($this->action !== 'run') {
-            return ActionConfigDefinition::class;
-        } elseif (!$this->extractor->isConfigRow()) {
-            return ConfigDefinition::class;
-        } else {
-            return ConfigRowDefinition::class;
-        }
-    }
-
-    protected function getConfigClass(): string
-    {
-        return BaseExtractorConfig::class;
     }
 }

@@ -14,15 +14,9 @@ $datadirPath = rtrim((string) getenv('KBC_DATADIR'), '/');
 $config = json_decode((string) file_get_contents($datadirPath . '/config.json'), true);
 $logger = new Logger();
 
-
 try {
-    $commonExtractor = new CommonExtractor(
-        $logger,
-        $config['parameters']['db'],
-        [],
-        !isset($config['parameters']['tables'])
-    );
-    $extractorAdapter = new ExtractorAdapter($commonExtractor, $logger, $config['action']);
+    $commonExtractor = new CommonExtractor($logger, $config['action'], [], !isset($config['parameters']['tables']));
+    $extractorAdapter = new ExtractorAdapter($commonExtractor);
     $extractorAdapter->run();
 
     exit(0);
