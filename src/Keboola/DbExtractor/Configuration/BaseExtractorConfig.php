@@ -8,4 +8,8 @@ use Keboola\Component\Config\BaseConfig;
 
 class BaseExtractorConfig extends BaseConfig
 {
+    public function getDbParameters(): array
+    {
+        return $this->getValue(['parameters', 'db']);
+    }
 }
