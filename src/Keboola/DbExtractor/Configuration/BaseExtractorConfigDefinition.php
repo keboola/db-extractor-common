@@ -10,17 +10,6 @@ use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 
 abstract class BaseExtractorConfigDefinition extends BaseConfigDefinition
 {
-    protected function getRootDefinition(TreeBuilder $treeBuilder): ArrayNodeDefinition
-    {
-        $node = parent::getRootDefinition($treeBuilder);
-
-        $node
-            ->children()
-                ->scalarNode('action')->end();
-
-        return $node;
-    }
-
     protected function getDbNode(): ArrayNodeDefinition
     {
         $builder = new TreeBuilder();
