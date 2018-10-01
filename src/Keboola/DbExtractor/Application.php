@@ -30,7 +30,8 @@ class Application extends BaseComponent
         array $config,
         LoggerInterface $logger,
         array $state = [],
-        ?ConfigurationInterface $customConfigDefinition = null)
+        ?ConfigurationInterface $customConfigDefinition = null
+    )
     {
         if ($customConfigDefinition) {
             $this->configDefinition = $customConfigDefinition;
