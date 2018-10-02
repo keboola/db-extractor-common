@@ -294,6 +294,10 @@ class CommonExtractor extends BaseExtractor
 
     private function createConnection(array $parameters): \PDO
     {
+        if (isset($parameters['ssh']['enabled']) && $parameters['ssh']['enabled']) {
+            $parameters = $this->createSshTunnel($parameters);
+        }
+
         $dsn = sprintf(
             "mysql:host=%s;port=%s;dbname=%s;charset=utf8",
             $parameters['host'],
@@ -303,7 +307,11 @@ class CommonExtractor extends BaseExtractor
         $options = [
             \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
         ];
-        return new \PDO($dsn, $parameters['user'], $parameters['#password'], $options);
+        try {
+            return new \PDO($dsn, $parameters['user'], $parameters['#password'], $options);
+        } catch (\Throwable $exception) {
+            throw new UserException("Error connecting to DB: " . $exception->getMessage(), 0, $exception);
+        }
     }
 
     private function executeQuery(string $query, ?int $maxTries): \PDOStatement

@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Tests;
 
-use Keboola\DbExtractor\Application;
 use Keboola\Component\Logger;
+use Keboola\DbExtractor\Extractor\BaseExtractor;
+use Keboola\DbExtractor\Extractor\CommonExtractor;
 use PHPUnit\Framework\TestCase;
 
 class ExtractorTest extends TestCase
@@ -80,10 +81,14 @@ class ExtractorTest extends TestCase
         return str_replace('"', '', str_replace('\n', "\n", $this->getEnv($driver, 'DB_SSH_KEY_PRIVATE')));
     }
 
-    protected function getApplication(array $config, array $state = []): Application
+    protected function getCommonExtractor(array $config, array $state = []): CommonExtractor
     {
         putenv(sprintf('KBC_DATADIR=%s', $this->dataDir));
-        return new Application($config, new Logger(), $state);
+        $this->prepareConfigInDataDir($config);
+
+        $app = new CommonExtractor(new Logger());
+        $app->setState($state);
+        return $app;
     }
 
     protected function prepareConfigInDataDir(array $config): void
@@ -95,7 +100,7 @@ class ExtractorTest extends TestCase
         );
     }
 
-    protected function runApplication(Application $application): string
+    protected function runApplication(BaseExtractor $application): string
     {
         ob_start();
         $application->run();

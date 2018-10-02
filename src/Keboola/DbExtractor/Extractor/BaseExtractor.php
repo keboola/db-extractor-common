@@ -14,7 +14,11 @@ use Keboola\DbExtractor\Configuration\BaseExtractorConfig;
 use Keboola\DbExtractor\Configuration\ConfigDefinition;
 use Keboola\DbExtractor\Configuration\ConfigRowDefinition;
 use Keboola\DbExtractor\Exception\DeadConnectionException;
+use Keboola\DbExtractor\RetryProxy;
+use Keboola\SSHTunnel\SSH;
+use Keboola\SSHTunnel\SSHException;
 use Nette\Utils\Strings;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Config\Definition\Exception\Exception as ConfigException;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 
@@ -38,7 +42,6 @@ abstract class BaseExtractor extends BaseComponent
     {
         $action = $this->getConfig()->getAction();
         $parameters = $this->getConfig()->getParameters();
-
 
         try {
             switch ($action) {
@@ -64,6 +67,11 @@ abstract class BaseExtractor extends BaseComponent
         }
 
         print json_encode($result, JSON_PRETTY_PRINT);
+    }
+
+    public function setState(array $state = []): void
+    {
+        $this->state = $state;
     }
 
     public function validateParameters(array $parameters): void
@@ -150,6 +158,61 @@ abstract class BaseExtractor extends BaseComponent
             mkdir($outTablesDir, 0777, true);
         }
         return new CsvWriter($this->getOutputFilename($outputTable));
+    }
+
+    protected function createSshTunnel(array $dbConfig): array
+    {
+        $sshConfig = $dbConfig['ssh'];
+        // check params
+        foreach (['keys', 'sshHost'] as $k) {
+            if (empty($sshConfig[$k])) {
+                throw new UserException(sprintf("Parameter '%s' is missing.", $k));
+            }
+        }
+
+        $sshConfig['remoteHost'] = $dbConfig['host'];
+        $sshConfig['remotePort'] = $dbConfig['port'];
+
+        if (empty($sshConfig['user'])) {
+            $sshConfig['user'] = $dbConfig['user'];
+        }
+        if (empty($sshConfig['localPort'])) {
+            $sshConfig['localPort'] = 33006;
+        }
+        if (empty($sshConfig['sshPort'])) {
+            $sshConfig['sshPort'] = 22;
+        }
+        $sshConfig['privateKey'] = isset($sshConfig['keys']['#private'])
+            ?$sshConfig['keys']['#private']
+            :$sshConfig['keys']['private'];
+        $tunnelParams = array_intersect_key(
+            $sshConfig,
+            array_flip(
+                [
+                    'user', 'sshHost', 'sshPort', 'localPort', 'remoteHost', 'remotePort', 'privateKey',
+                ]
+            )
+        );
+        $this->getLogger()->info("Creating SSH tunnel to '" . $tunnelParams['sshHost'] . "'");
+        $proxy = new RetryProxy(
+            $this->getLogger(),
+            RetryProxy::DEFAULT_MAX_TRIES,
+            RetryProxy::DEFAULT_BACKOFF_INTERVAL,
+            ['SSHException', 'Exception']
+        );
+        try {
+            $proxy->call(function () use ($tunnelParams):void {
+                $ssh = new SSH();
+                $ssh->openTunnel($tunnelParams);
+            });
+        } catch (SSHException $e) {
+            throw new UserException($e->getMessage(), 0, $e);
+        }
+
+        $dbConfig['host'] = '127.0.0.1';
+        $dbConfig['port'] = $sshConfig['localPort'];
+
+        return $dbConfig;
     }
 
     protected function getOutputFilename(string $outputTableName): string

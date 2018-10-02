@@ -8,6 +8,7 @@ use Keboola\Csv\CsvReader;
 use Keboola\DbExtractor\Application;
 use Keboola\DbExtractor\Exception\ApplicationException;
 use Keboola\Component\UserException;
+use Keboola\DbExtractor\Extractor\CommonExtractor;
 use Keboola\DbExtractor\Tests\DataLoader;
 use Keboola\DbExtractor\Tests\ExtractorTest;
 use Keboola\Component\Logger;
@@ -33,9 +34,9 @@ class CommonExtractorTest extends ExtractorTest
         $this->initDatabase();
     }
 
-    private function getApp(array $config, array $state = []): Application
+    private function getApp(array $config, array $state = []): CommonExtractor
     {
-        return parent::getApplication($config, $state);
+        return parent::getCommonExtractor($config, $state);
     }
 
     private function initDatabase(): void
@@ -259,12 +260,14 @@ class CommonExtractorTest extends ExtractorTest
         ];
         $this->prepareConfigInDataDir($config);
 
+        $app = $this->getApp($config);
+
         $this->expectException(UserException::class);
         $this->expectExceptionMessage(
             'Unable to create ssh tunnel. Output:  ErrorOutput: ssh:'
             . ' Could not resolve hostname wronghost: Name or service not known'
         );
-        $this->getApp($config);
+        $app->run();
     }
 
     public function testRunWithWrongCredentials(): void
@@ -274,12 +277,14 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['db']['#password'] = 'somecrap';
         $this->prepareConfigInDataDir($config);
 
+        $app = $this->getApp($config);
+
         $this->expectException(UserException::class);
         $this->expectExceptionMessage(
             'Error connecting to DB: SQLSTATE[HY000] [2002] php_network_getaddresses:'
             . ' getaddrinfo failed: Name or service not known'
         );
-        $this->getApp($config);
+        $app->run();
     }
 
     public function testRetries(): void
@@ -360,11 +365,13 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['db']['#password'] = 'bullshit';
         $this->prepareConfigInDataDir($config);
 
+        $app = $this->getApp($config);
+
         $this->expectException(UserException::class);
         $this->expectExceptionMessageRegExp(
             '~Error connecting to DB: SQLSTATE\[HY000\] \[1045\] Access denied for user \'root\'~'
         );
-        $this->getApp($config);
+        $app->run();
     }
 
     public function testGetTablesAction(): void
@@ -651,7 +658,7 @@ class CommonExtractorTest extends ExtractorTest
         $app = $this->getApp($config);
 
         $this->expectException(UserException::class);
-        $this->expectExceptionMessage('Action \'sample\' does not exist.');
+        $this->expectExceptionMessage('Undefined action "sample".');
         $app->run();
     }
 

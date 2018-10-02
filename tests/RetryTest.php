@@ -190,7 +190,7 @@ class RetryTest extends ExtractorTest
         $sourceFileName = $temp->getTmpFolder() . '/large.csv';
         $this->setupLargeTable($sourceFileName);
 
-        $app = $this->getApplication($config);
+        $app = $this->getCommonExtractor($config);
 
         // exec async
         exec(self::KILLER_EXECUTABLE . ' 2 > /dev/null &');
@@ -216,7 +216,7 @@ class RetryTest extends ExtractorTest
         $config['parameters']['tables'][0]['retries'] = 0;
         $this->prepareConfigInDataDir($config);
 
-        $app = $this->getApplication($config);
+        $app = $this->getCommonExtractor($config);
 
         // exec async
         exec(self::KILLER_EXECUTABLE . ' 2 > /dev/null &');
