@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Keboola\DbExtractor\Test;
+namespace Keboola\DbExtractor\Tests;
 
 use Keboola\DbExtractor\Application;
 use Keboola\Component\Logger;
@@ -11,7 +11,7 @@ use PHPUnit\Framework\TestCase;
 class ExtractorTest extends TestCase
 {
     /** @var string */
-    protected $dataDir = __DIR__ . "/../../../../tests/Old/data";
+    protected $dataDir = __DIR__ . "/Old/data";
 
     protected function getConfigDbNode(string $driver): array
     {

@@ -7,7 +7,7 @@ namespace Keboola\DbExtractor\Tests;
 use Keboola\Csv\CsvWriter;
 use Keboola\DbExtractor\Exception\DeadConnectionException;
 use Keboola\Component\UserException;
-use Keboola\DbExtractor\Test\ExtractorTest;
+use Keboola\DbExtractor\Tests\ExtractorTest;
 use Keboola\Temp\Temp;
 use PDO;
 

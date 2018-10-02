@@ -6,7 +6,7 @@ namespace Keboola\DbExtractor\Tests\Functional;
 
 use Keboola\DatadirTests\AbstractDatadirTestCase;
 use Keboola\DatadirTests\DatadirTestSpecification;
-use Keboola\DbExtractor\Test\DataLoader;
+use Keboola\DbExtractor\Tests\DataLoader;
 
 class DatadirTest extends AbstractDatadirTestCase
 {
