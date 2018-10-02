@@ -7,17 +7,12 @@ require_once __DIR__ . '/../../vendor/autoload.php';
 use Keboola\Component\UserException;
 use Keboola\Component\Logger;
 use Keboola\DbExtractor\Extractor\CommonExtractor;
-use Keboola\DbExtractor\Extractor\ExtractorAdapter;
 
-$datadirPath = rtrim((string) getenv('KBC_DATADIR'), '/');
-
-$config = json_decode((string) file_get_contents($datadirPath . '/config.json'), true);
 $logger = new Logger();
 
 try {
-    $commonExtractor = new CommonExtractor($logger, $config['action'], [], !isset($config['parameters']['tables']));
-    $extractorAdapter = new ExtractorAdapter($commonExtractor);
-    $extractorAdapter->run();
+    $commonExtractor = new CommonExtractor($logger);
+    $commonExtractor->run();
 
     exit(0);
 } catch (UserException $e) {

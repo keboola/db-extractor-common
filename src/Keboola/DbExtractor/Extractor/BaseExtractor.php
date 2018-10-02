@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Keboola\DbExtractor\Extractor;
 
 use Keboola\Component\BaseComponent;
+use Keboola\Component\Config\BaseConfig;
 use Keboola\Component\UserException;
 use Keboola\Csv\CsvWriter;
 use Keboola\Datatype\Definition\GenericStorage;
@@ -14,18 +15,12 @@ use Keboola\DbExtractor\Configuration\ConfigDefinition;
 use Keboola\DbExtractor\Configuration\ConfigRowDefinition;
 use Keboola\DbExtractor\Exception\DeadConnectionException;
 use Nette\Utils\Strings;
-use Psr\Log\LoggerInterface;
 use Symfony\Component\Config\Definition\Exception\Exception as ConfigException;
+use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 
 abstract class BaseExtractor extends BaseComponent
 {
     public const DEFAULT_MAX_TRIES = 5;
-
-    /** @var string */
-    private $action;
-
-    /** @var bool */
-    private $isConfigRow;
 
     /** @var array */
     protected $dbParameters;
@@ -33,30 +28,48 @@ abstract class BaseExtractor extends BaseComponent
     /** @var array */
     protected $state;
 
-    public function __construct(LoggerInterface $logger, string $action, array $state, bool $isConfigRow)
-    {
-        $this->action = $action;
-        $this->isConfigRow = $isConfigRow;
-        parent::__construct($logger);
-
-        $this->state = $state;
-    }
-
     abstract public function extract(array $tables): array;
 
     abstract public function getTables(array $tables = []): array;
 
     abstract public function testConnection(): void;
 
-    public function isConfigRow(): bool
+    public function run(): void
     {
-        return $this->isConfigRow;
+        $action = $this->getConfig()->getAction();
+        $parameters = $this->getConfig()->getParameters();
+
+
+        try {
+            switch ($action) {
+                case 'run':
+                    $this->validateParameters($parameters);
+                    $result = $this->extract($parameters); // @todo - save state into state file
+                    break;
+                case 'testConnection':
+                    $this->testConnection();
+                    $result = ['status' => 'success'];
+                    break;
+                case 'getTables':
+                    $result = [
+                        'tables' => $this->getTables(),
+                        'status' => 'success',
+                    ];
+                    break;
+                default:
+                    throw new UserException(sprintf('Undefined action "%s".', $action));
+            }
+        } catch (\Throwable $exception) {
+            throw $exception;
+        }
+
+        print json_encode($result, JSON_PRETTY_PRINT);
     }
 
     public function validateParameters(array $parameters): void
     {
         try {
-            if (!$this->isConfigRow()) {
+            if (isset($parameters['tables'])) {
                 foreach ($parameters['tables'] as $table) {
                     $this->validateTableParameters($table);
                 }
@@ -154,6 +167,28 @@ abstract class BaseExtractor extends BaseComponent
         }
     }
 
+    protected function loadConfig(): void
+    {
+        $configRaw = $this->getRawConfig();
+        $configClass = $this->getConfigClass();
+        $configDefinitionClass = $this->getConfigDefinition(
+            $configRaw['action'],
+            !isset($configRaw['parameters']['tables'])
+        );
+
+        try {
+            /** @var BaseConfig $config */
+            $config = new $configClass(
+                $configRaw,
+                new $configDefinitionClass()
+            );
+            $this->setConfig($config);
+        } catch (InvalidConfigurationException $e) {
+            throw new UserException($e->getMessage(), 0, $e);
+        }
+        $this->getLogger()->debug('Config loaded');
+    }
+
     protected function validateIncrementalFetching(array $table, string $columnName, ?int $limit = null): void
     {
         throw new UserException('Incremental Fetching is not supported by this extractor.');
@@ -164,11 +199,13 @@ abstract class BaseExtractor extends BaseComponent
         return "`{$obj}`";
     }
 
-    protected function getConfigDefinitionClass(): string
+    protected function getConfigDefinition(string $action, bool $isConfigRow): string
     {
-        if ($this->action !== 'run') {
+        if ($this->getCustomConfigDefinition()) {
+            return $this->getCustomConfigDefinition();
+        } elseif ($action !== 'run') {
             return ActionConfigDefinition::class;
-        } elseif (!$this->isConfigRow()) {
+        } elseif (!$isConfigRow) {
             return ConfigDefinition::class;
         } else {
             return ConfigRowDefinition::class;
@@ -178,6 +215,11 @@ abstract class BaseExtractor extends BaseComponent
     protected function getConfigClass(): string
     {
         return BaseExtractorConfig::class;
+    }
+
+    protected function getCustomConfigDefinition(): ?string
+    {
+        return null;
     }
 
     private function getColumnMetadata(array $column): array
