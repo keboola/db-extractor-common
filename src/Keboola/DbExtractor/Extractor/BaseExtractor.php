@@ -13,6 +13,9 @@ use Keboola\DbExtractor\Configuration\ActionConfigDefinition;
 use Keboola\DbExtractor\Configuration\BaseExtractorConfig;
 use Keboola\DbExtractor\Configuration\ConfigDefinition;
 use Keboola\DbExtractor\Configuration\ConfigRowDefinition;
+use Keboola\DbExtractor\Configuration\DatabaseParameters;
+use Keboola\DbExtractor\Configuration\TableDetailParameters;
+use Keboola\DbExtractor\Configuration\TableParameters;
 use Keboola\DbExtractor\Exception\DeadConnectionException;
 use Keboola\DbExtractor\RetryProxy;
 use Keboola\SSHTunnel\SSH;
@@ -34,29 +37,35 @@ abstract class BaseExtractor extends BaseComponent
     /** @var array */
     protected $state;
 
-    abstract public function extract(array $tables): array;
+    abstract public function extract(BaseExtractorConfig $config): array;
 
+    /**
+     * @param TableDetailParameters[] $tables
+     *
+     * @return array
+     */
     abstract public function getTables(array $tables = []): array;
 
     abstract public function testConnection(): void;
 
     public function run(): void
     {
-        $action = $this->getConfig()->getAction();
-        $parameters = $this->getConfig()->getParameters();
+        /** @var BaseExtractorConfig $config */
+        $config = $this->getConfig();
+        $dbParameters = $config->getDbParameters();
+        $action = $config->getAction();
 
-        if (isset($parameters['db']['ssh'])
-            && isset($parameters['db']['ssh']['enabled'])
-            && $parameters['db']['ssh']['enabled']
+        if ($dbParameters->getSshParameters()
+            && $dbParameters->getSshParameters()->getEnabled()
         ) {
-            $parameters['db'] = $this->createSshTunnel($parameters['db']);
+            $this->createSshTunnel($dbParameters);
         }
 
         try {
             switch ($action) {
                 case 'run':
-                    $this->validateParameters($parameters);
-                    $result = $this->extract($parameters); // @todo - save state into state file
+                    $this->validateParameters($config);
+                    $result = $this->extract($config); // @todo - save state into state file
                     break;
                 case 'testConnection':
                     $this->testConnection();
@@ -83,43 +92,43 @@ abstract class BaseExtractor extends BaseComponent
         $this->state = $state;
     }
 
-    public function validateParameters(array $parameters): void
+    public function validateParameters(BaseExtractorConfig $config): void
     {
         try {
-            if (isset($parameters['tables'])) {
-                foreach ($parameters['tables'] as $table) {
+            if (!$config->isConfigRow()) {
+                foreach ($config->getTables() as $table) {
                     $this->validateTableParameters($table);
                 }
             } else {
-                $this->validateTableParameters($parameters);
+                $this->validateTableParameters(TableParameters::fromRaw($config->getParameters()));
             }
         } catch (ConfigException $e) {
             throw new UserException($e->getMessage(), 0, $e);
         }
     }
 
-    protected function createManifest(array $table): void
+    protected function createManifest(TableParameters $table): void
     {
-        $outFilename = $this->getOutputFilename($table['outputTable']) . '.manifest';
+        $outFilename = $this->getOutputFilename($table->getOutputTable()) . '.manifest';
 
         $manifestData = [
-            'destination' => $table['outputTable'],
-            'incremental' => $table['incremental'],
+            'destination' => $table->getOutputTable(),
+            'incremental' => $table->isIncremental(),
         ];
 
-        if (!empty($table['primaryKey'])) {
-            $manifestData['primary_key'] = $table['primaryKey'];
+        if ($table->getPrimaryKey()) {
+            $manifestData['primary_key'] = $table->getPrimaryKey();
         }
 
         $manifestColumns = [];
 
-        if (isset($table['table']) && !is_null($table['table'])) {
-            $tables = $this->getTables([$table['table']]);
+        if ($table->getTableDetail()) {
+            $tables = $this->getTables([$table->getTableDetail()]);
             if (count($tables) > 0) {
                 $tableDetails = $tables[0];
                 $columnMetadata = [];
                 $sanitizedPks = [];
-                $iterColumns = $table['columns'];
+                $iterColumns = $table->getColumns();
                 if (count($iterColumns) === 0) {
                     $iterColumns = array_map(function ($column) {
                         return $column['name'];
@@ -138,7 +147,9 @@ abstract class BaseExtractor extends BaseComponent
                         );
                     }
                     // use sanitized name for primary key if available
-                    if (in_array($column['name'], $table['primaryKey']) && array_key_exists('sanitizedName', $column)) {
+                    if (in_array($column['name'], $table->getPrimaryKey())
+                        && array_key_exists('sanitizedName', $column)
+                    ) {
                         $sanitizedPks[] = $column['sanitizedName'];
                     }
                     $columnName = $column['name'];
@@ -169,39 +180,19 @@ abstract class BaseExtractor extends BaseComponent
         return new CsvWriter($this->getOutputFilename($outputTable));
     }
 
-    protected function createSshTunnel(array $dbConfig): array
+    protected function createSshTunnel(DatabaseParameters $dbConfig): void
     {
-        $sshConfig = $dbConfig['ssh'];
-        // check params
-        foreach (['keys', 'sshHost'] as $k) {
-            if (empty($sshConfig[$k])) {
-                throw new UserException(sprintf("Parameter '%s' is missing.", $k));
-            }
+        $sshConfig = $dbConfig->getSshParameters();
+        $privateKey = $sshConfig->getKeys()['#private'] ?? $sshConfig->getKeys()['private'];
+        $sshConfig->setPrivateKey($privateKey);
+        $sshConfig->setRemoteHost($dbConfig->getHost());
+        $sshConfig->setRemotePort($dbConfig->getPort());
+
+        if (!$sshConfig->getUser()) {
+            $sshConfig->setUser($dbConfig->getUser());
         }
 
-        $sshConfig['remoteHost'] = $dbConfig['host'];
-        $sshConfig['remotePort'] = $dbConfig['port'];
-
-        if (empty($sshConfig['user'])) {
-            $sshConfig['user'] = $dbConfig['user'];
-        }
-        if (empty($sshConfig['localPort'])) {
-            $sshConfig['localPort'] = 33006;
-        }
-        if (empty($sshConfig['sshPort'])) {
-            $sshConfig['sshPort'] = 22;
-        }
-        $sshConfig['privateKey'] = isset($sshConfig['keys']['#private'])
-            ?$sshConfig['keys']['#private']
-            :$sshConfig['keys']['private'];
-        $tunnelParams = array_intersect_key(
-            $sshConfig,
-            array_flip(
-                [
-                    'user', 'sshHost', 'sshPort', 'localPort', 'remoteHost', 'remotePort', 'privateKey',
-                ]
-            )
-        );
+        $tunnelParams = $sshConfig->toArray();
         $this->getLogger()->info("Creating SSH tunnel to '" . $tunnelParams['sshHost'] . "'");
         $proxy = new RetryProxy(
             $this->getLogger(),
@@ -217,11 +208,6 @@ abstract class BaseExtractor extends BaseComponent
         } catch (SSHException $e) {
             throw new UserException($e->getMessage(), 0, $e);
         }
-
-        $dbConfig['host'] = '127.0.0.1';
-        $dbConfig['port'] = $sshConfig['localPort'];
-
-        return $dbConfig;
     }
 
     protected function getOutputFilename(string $outputTableName): string
@@ -261,8 +247,11 @@ abstract class BaseExtractor extends BaseComponent
         $this->getLogger()->debug('Config loaded');
     }
 
-    protected function validateIncrementalFetching(array $table, string $columnName, ?int $limit = null): void
-    {
+    protected function validateIncrementalFetching(
+        TableDetailParameters $table,
+        string $columnName,
+        ?int $limit = null
+    ): void {
         throw new UserException('Incremental Fetching is not supported by this extractor.');
     }
 
@@ -333,20 +322,14 @@ abstract class BaseExtractor extends BaseComponent
         return $metadata;
     }
 
-    private function validateTableParameters(array $table): void
+    private function validateTableParameters(TableParameters $table): void
     {
-        if (isset($table['incrementalFetchingColumn'])
-            && $table['incrementalFetchingColumn'] !== "") {
+        if ($table->getIncrementalFetchingColumn()
+            && $table->getIncrementalFetchingColumn() !== "") {
             $this->validateIncrementalFetching(
-                $table['table'],
-                $table['incrementalFetchingColumn'],
-                $table['incrementalFetchingLimit']?? null
-            );
-        }
-
-        if (isset($table['incrementalFetching']['autoIncrementColumn']) && empty($table['primaryKey'])) {
-            $this->getLogger()->warning(
-                "An import autoIncrement column is being used but output primary key is not set."
+                $table->getTableDetail(),
+                $table->getIncrementalFetchingColumn(),
+                $table->getIncrementalFetchingLimit()
             );
         }
     }

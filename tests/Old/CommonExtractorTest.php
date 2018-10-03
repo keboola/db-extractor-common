@@ -351,7 +351,7 @@ class CommonExtractorTest extends ExtractorTest
         $this->expectException(UserException::class);
         $this->expectExceptionMessage(
             '[dummy]: DB query failed: SQLSTATE[70100]: <<Unknown error>>:'
-            . ' 1317 Query execution was interrupted Tried 5 times.'
+            . ' 1317 Query execution was interrupted'
         );
         $app->run();
     }

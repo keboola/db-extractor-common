@@ -363,7 +363,7 @@ class DatadirTest extends AbstractDatadirTestCase
             1,
             null,
             '[table1]: DB query failed: SQLSTATE[42S02]:'
-            . ' Base table or view not found: 1146 Table \'invaliddb.table1\' doesn\'t exist Tried 5 times.' . PHP_EOL
+            . ' Base table or view not found: 1146 Table \'invaliddb.table1\' doesn\'t exist' . PHP_EOL
         );
     }
 
@@ -398,7 +398,7 @@ class DatadirTest extends AbstractDatadirTestCase
             1,
             null,
             '[table1]: DB query failed: SQLSTATE[42S02]: Base table or view not found:'
-            . ' 1146 Table \'testdb.invalidTable\' doesn\'t exist Tried 5 times.' . PHP_EOL
+            . ' 1146 Table \'testdb.invalidTable\' doesn\'t exist' . PHP_EOL
         );
     }
 
@@ -882,7 +882,7 @@ class DatadirTest extends AbstractDatadirTestCase
             1,
             null,
             '[table1]: DB query failed: SQLSTATE[42S02]:'
-            . ' Base table or view not found: 1146 Table \'invaliddb.table1\' doesn\'t exist Tried 5 times.' . PHP_EOL
+            . ' Base table or view not found: 1146 Table \'invaliddb.table1\' doesn\'t exist' . PHP_EOL
         );
     }
 
@@ -912,7 +912,7 @@ class DatadirTest extends AbstractDatadirTestCase
             1,
             null,
             '[table1]: DB query failed: SQLSTATE[42S02]: Base table or view not found:'
-            . ' 1146 Table \'testdb.invalidTable\' doesn\'t exist Tried 5 times.' . PHP_EOL
+            . ' 1146 Table \'testdb.invalidTable\' doesn\'t exist' . PHP_EOL
         );
     }
 

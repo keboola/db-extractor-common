@@ -8,8 +8,39 @@ use Keboola\Component\Config\BaseConfig;
 
 class BaseExtractorConfig extends BaseConfig
 {
-    public function getDbParameters(): array
+    public function getDbParameters(): DatabaseParameters
     {
-        return $this->getValue(['parameters', 'db']);
+        return DatabaseParameters::fromRaw($this->getValue(['parameters', 'db']));
+    }
+
+    /**
+     * @return TableParameters[]
+     */
+    public function getTables(): array
+    {
+        $tableParameters = [];
+        foreach ($this->getValue(['parameters', 'tables']) as $table) {
+            $tableParameters[] = TableParameters::fromRaw($table);
+        }
+        return $tableParameters;
+    }
+
+    /**
+     * @return TableParameters[]
+     */
+    public function getEnabledTables(): array
+    {
+        $tables = [];
+        foreach ($this->getTables() as $table) {
+            if ($table->isEnabled()) {
+                $tables[] = $table;
+            }
+        }
+        return $tables;
+    }
+
+    public function isConfigRow(): bool
+    {
+        return !isset($this->getParameters()['tables']);
     }
 }

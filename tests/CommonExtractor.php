@@ -7,6 +7,10 @@ namespace Keboola\DbExtractor\Tests;
 use Keboola\Component\UserException;
 use Keboola\Csv\CsvWriter;
 use Keboola\Csv\Exception as CsvException;
+use Keboola\DbExtractor\Configuration\BaseExtractorConfig;
+use Keboola\DbExtractor\Configuration\DatabaseParameters;
+use Keboola\DbExtractor\Configuration\TableDetailParameters;
+use Keboola\DbExtractor\Configuration\TableParameters;
 use Keboola\DbExtractor\Exception\ApplicationException;
 use Keboola\DbExtractor\Exception\DeadConnectionException;
 use Keboola\DbExtractor\Extractor\BaseExtractor;
@@ -23,23 +27,18 @@ class CommonExtractor extends BaseExtractor
     /** @var array */
     private $incrementalFetching;
 
-    public function extract(array $parameters): array
+    public function extract(BaseExtractorConfig $config): array
     {
         $imported = [];
         $outputState = [];
-        if (isset($parameters['tables'])) {
-            $tables = array_filter(
-                $parameters['tables'],
-                function ($table) {
-                    return ($table['enabled']);
-                }
-            );
-            foreach ($tables as $table) {
+        if (!$config->isConfigRow()) {
+            foreach ($config->getEnabledTables() as $table) {
                 $exportResults = $this->extractTable($table);
                 $imported[] = $exportResults;
             }
         } else {
-            $exportResults = $this->extractTable($parameters);
+            $tableParameters = TableParameters::fromRaw($config->getParameters());
+            $exportResults = $this->extractTable($tableParameters);
             if (isset($exportResults['state'])) {
                 $outputState = $exportResults['state'];
                 unset($exportResults['state']);
@@ -54,9 +53,14 @@ class CommonExtractor extends BaseExtractor
         ];
     }
 
+    /**
+     * @inheritdoc
+     */
     public function getTables(array $tables = []): array
     {
         $db = $this->getConnection();
+        /** @var BaseExtractorConfig $config */
+        $config = $this->getConfig();
 
         $sql = "SELECT * FROM INFORMATION_SCHEMA.TABLES as c";
 
@@ -64,10 +68,10 @@ class CommonExtractor extends BaseExtractor
                           AND c.TABLE_SCHEMA != 'mysql'
                           AND c.TABLE_SCHEMA != 'information_schema'";
 
-        if ($this->getConfig()->getParameters()['db']['database']) {
+        if ($config->getDbParameters()->getDatabase()) {
             $whereClause = sprintf(
                 " WHERE c.TABLE_SCHEMA = %s",
-                $db->quote($this->getConfig()->getParameters()['db']['database'])
+                $db->quote($config->getDbParameters()->getDatabase())
             );
         }
 
@@ -78,7 +82,7 @@ class CommonExtractor extends BaseExtractor
                     ',',
                     array_map(
                         function ($table) use ($db) {
-                            return $db->quote($table['tableName']);
+                            return $db->quote($table->getTableName());
                         },
                         $tables
                     )
@@ -87,7 +91,7 @@ class CommonExtractor extends BaseExtractor
                     ',',
                     array_map(
                         function ($table) use ($db) {
-                            return $db->quote($table['schema']);
+                            return $db->quote($table->getSchema());
                         },
                         $tables
                     )
@@ -202,16 +206,19 @@ class CommonExtractor extends BaseExtractor
         }
     }
 
-    public function validateIncrementalFetching(array $table, string $columnName, ?int $limit = null): void
-    {
+    public function validateIncrementalFetching(
+        TableDetailParameters $table,
+        string $columnName,
+        ?int $limit = null
+    ): void {
         $db = $this->getConnection();
         /** @var \PDOStatement $res */
         $res = $db->query(
             sprintf(
                 'SELECT * FROM INFORMATION_SCHEMA.COLUMNS as cols 
                             WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND COLUMN_NAME = %s',
-                $db->quote($table['schema']),
-                $db->quote($table['tableName']),
+                $db->quote($table->getSchema()),
+                $db->quote($table->getTableName()),
                 $db->quote($columnName)
             )
         );
@@ -293,19 +300,27 @@ class CommonExtractor extends BaseExtractor
         return $output;
     }
 
-    private function createConnection(array $parameters): \PDO
+    private function createConnection(DatabaseParameters $parameters): \PDO
     {
-        $dsn = sprintf(
-            "mysql:host=%s;port=%s;dbname=%s;charset=utf8",
-            $parameters['host'],
-            $parameters['port'],
-            $parameters['database']
-        );
+        if ($parameters->getPort()) {
+            $dsn = sprintf(
+                "mysql:host=%s;port=%s;dbname=%s;charset=utf8",
+                $parameters->getHost(),
+                $parameters->getPort(),
+                $parameters->getDatabase()
+            );
+        } else {
+            $dsn = sprintf(
+                "mysql:host=%s;dbname=%s;charset=utf8",
+                $parameters->getHost(),
+                $parameters->getDatabase()
+            );
+        }
         $options = [
             \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
         ];
         try {
-            return new \PDO($dsn, $parameters['user'], $parameters['#password'], $options);
+            return new \PDO($dsn, $parameters->getUser(), $parameters->getPassword(), $options);
         } catch (\Throwable $exception) {
             throw new UserException("Error connecting to DB: " . $exception->getMessage(), 0, $exception);
         }
@@ -322,7 +337,9 @@ class CommonExtractor extends BaseExtractor
                 return $stmt;
             } catch (\Throwable $e) {
                 try {
-                    $this->connection = $this->createConnection($this->getConfig()->getParameters()['db']);
+                    /** @var BaseExtractorConfig $config */
+                    $config = $this->getConfig();
+                    $this->connection = $this->createConnection($config->getDbParameters());
                 } catch (\Throwable $e) {
                 };
                 throw $e;
@@ -331,20 +348,20 @@ class CommonExtractor extends BaseExtractor
         return $stmt;
     }
 
-    private function extractTable(array $table): array
+    private function extractTable(TableParameters $table): array
     {
-        $outputTable = $table['outputTable'];
+        $outputTable = $table->getOutputTable();
 
         $this->getLogger()->info("Exporting to " . $outputTable);
 
         $isAdvancedQuery = true;
-        if (array_key_exists('table', $table) && !array_key_exists('query', $table)) {
+        if ($table->getTableDetail() && !$table->getQuery()) {
             $isAdvancedQuery = false;
-            $query = $this->simpleQuery($table['table'], $table['columns']);
+            $query = $this->simpleQuery($table->getTableDetail(), $table->getColumns());
         } else {
-            $query = $table['query'];
+            $query = $table->getQuery();
         }
-        $maxTries = isset($table['retries']) ? (int) $table['retries'] : self::DEFAULT_MAX_TRIES;
+        $maxTries = $table->getRetries() ?? self::DEFAULT_MAX_TRIES;
 
         // this will retry on CsvException
         $proxy = new RetryProxy(
@@ -379,7 +396,7 @@ class CommonExtractor extends BaseExtractor
             $this->getLogger()->warning(
                 sprintf(
                     "Query returned empty result. Nothing was imported to [%s]",
-                    $table['outputTable']
+                    $table->getOutputTable()
                 )
             );
         }
@@ -400,14 +417,16 @@ class CommonExtractor extends BaseExtractor
         if ($this->connection) {
             return $this->connection;
         }
-        return $this->createConnection($this->getConfig()->getParameters()['db']);
+        /** @var BaseExtractorConfig $config */
+        $config = $this->getConfig();
+        return $this->createConnection($config->getDbParameters());
     }
 
-    private function handleDbError(\Throwable $e, ?array $table = null, ?int $counter = null): UserException
+    private function handleDbError(\Throwable $e, ?TableParameters $table = null, ?int $counter = null): UserException
     {
         $message = "";
         if ($table) {
-            $message = sprintf("[%s]: ", $table['outputTable']);
+            $message = sprintf("[%s]: ", $table->getOutputTable());
         }
         $message .= sprintf('DB query failed: %s', $e->getMessage());
         if ($counter) {
@@ -416,7 +435,7 @@ class CommonExtractor extends BaseExtractor
         return new UserException($message, 0, $e);
     }
 
-    private function simpleQuery(array $table, array $columns = array()): string
+    private function simpleQuery(TableDetailParameters $table, array $columns = array()): string
     {
         if (count($columns) > 0) {
             $columnQuery = implode(
@@ -435,8 +454,8 @@ class CommonExtractor extends BaseExtractor
         $query = sprintf(
             "SELECT %s FROM %s.%s",
             $columnQuery,
-            $this->quote($table['schema']),
-            $this->quote($table['tableName'])
+            $this->quote($table->getSchema()),
+            $this->quote($table->getTableName())
         );
 
         $incrementalAddon = null;
