@@ -6,7 +6,7 @@ namespace Keboola\DbExtractor\Tests;
 
 use Keboola\Csv\CsvWriter;
 use Keboola\DbExtractor\Exception\DeadConnectionException;
-use Keboola\DbExtractor\Exception\UserException;
+use Keboola\Component\UserException;
 use Keboola\DbExtractor\Test\ExtractorTest;
 use Keboola\Temp\Temp;
 use PDO;
@@ -183,6 +183,7 @@ class RetryTest extends ExtractorTest
     public function testRunMainRetry(): void
     {
         $config = $this->getRetryConfig();
+        $this->prepareConfigInDataDir($config);
 
         $temp = new Temp();
         $temp->initRunFolder();
@@ -194,7 +195,8 @@ class RetryTest extends ExtractorTest
         // exec async
         exec(self::KILLER_EXECUTABLE . ' 2 > /dev/null &');
 
-        $result = $app->run();
+        $stdout = $this->runApplication($app);
+        $result = json_decode($stdout, true);
 
         $outputCsvFile = $this->dataDir . '/out/tables/' . $result['imported'][0]['outputTable'] . '.csv';
 
@@ -212,6 +214,7 @@ class RetryTest extends ExtractorTest
     {
         $config = $this->getRetryConfig();
         $config['parameters']['tables'][0]['retries'] = 0;
+        $this->prepareConfigInDataDir($config);
 
         $app = $this->getApplication($config);
 

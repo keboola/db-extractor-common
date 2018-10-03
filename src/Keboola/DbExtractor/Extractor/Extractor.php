@@ -9,7 +9,7 @@ use Keboola\Csv\Exception as CsvException;
 use Keboola\Datatype\Definition\GenericStorage;
 use Keboola\DbExtractor\Exception\ApplicationException;
 use Keboola\DbExtractor\Exception\DeadConnectionException;
-use Keboola\DbExtractor\Exception\UserException;
+use Keboola\Component\UserException;
 use Keboola\Component\Logger;
 use Keboola\DbExtractor\RetryProxy;
 use Keboola\SSHTunnel\SSH;
@@ -46,7 +46,7 @@ abstract class Extractor
 
     public function __construct(array $parameters, array $state, Logger $logger)
     {
-        $this->dataDir = $parameters['data_dir'];
+        $this->dataDir = (string) getenv('KBC_DATADIR');
         $this->state = $state;
         $this->logger = $logger;
 
@@ -194,7 +194,7 @@ abstract class Extractor
             $this->createManifest($table);
         } else {
             unlink($this->getOutputFilename($outputTable));
-            $this->logger->warn(
+            $this->logger->warning(
                 sprintf(
                     "Query returned empty result. Nothing was imported to [%s]",
                     $table['outputTable']

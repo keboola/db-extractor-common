@@ -5,12 +5,12 @@
       "host": "localhost",
       "database": "test",
       "user": "travis",
-      "password": "",
+      "#password": "",
       "port": 3306
     },
     "id": 0,
     "name": "escaping",
-    "outputTable": "in.c-main.simple-csv-err",
+    "outputTable": "in.c-main.simple",
     "table": {
       "schema": "testdb",
       "tableName": "simple"

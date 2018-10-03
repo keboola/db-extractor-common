@@ -4,73 +4,89 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor;
 
-use Keboola\Component\Logger;
+use Keboola\Component\BaseComponent;
 use Keboola\DbExtractor\Configuration\ActionConfigDefinition;
+use Keboola\DbExtractor\Configuration\BaseExtractorConfig;
 use Keboola\DbExtractor\Configuration\ConfigDefinition;
 use Keboola\DbExtractor\Configuration\ConfigRowDefinition;
-use Keboola\DbExtractor\Exception\UserException;
+use Keboola\Component\UserException;
 use Keboola\DbExtractor\Extractor\Extractor;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 use Symfony\Component\Config\Definition\Exception\Exception as ConfigException;
-use Symfony\Component\Config\Definition\Processor;
-use ErrorException;
 
-class Application
+class Application extends BaseComponent
 {
-    /** @var string */
-    private $action;
-
-    /** @var array */
-    private $parameters;
-
-    /** @var array */
-    private $state;
-
-    /** @var Logger */
-    private $logger;
-
     /** @var Extractor */
     private $extractor;
 
     /** @var ConfigurationInterface */
     private $configDefinition;
 
-    public function __construct(array $config, Logger $logger, array $state = [])
+    /** @var string */
+    private $configDefinitionClassName;
+
+    public function __construct(
+        array $config,
+        LoggerInterface $logger,
+        array $state = [],
+        ?ConfigurationInterface $customConfigDefinition = null
+    ) {
+        if ($customConfigDefinition) {
+            $this->configDefinition = $customConfigDefinition;
+        }
+
+        $this->setConfigDefinitionClassNameByConfig($config);
+
+        parent::__construct($logger);
+
+        $extractorFactory = new ExtractorFactory($this->getConfig()->getParameters(), $state);
+        $this->extractor = $extractorFactory->create($this->getLogger());
+    }
+
+    private function setConfigDefinitionClassNameByConfig(array $config): void
     {
-        static::setEnvironment();
-
-        $this->action = $config['action'];
-        $this->parameters = $config['parameters'];
-        $this->state = $state;
-        $this->logger = $logger;
-
-        $extractorFactory = new ExtractorFactory($this->parameters, $this->state);
-        $this->extractor = $extractorFactory->create($this->logger);
-
-        if ($this->action !== 'run') {
-            $this->configDefinition = new ActionConfigDefinition();
-        } elseif (isset($this->parameters['tables'])) {
-            $this->configDefinition = new ConfigDefinition();
+        if ($this->getConfigDefinition()) {
+            $this->configDefinitionClassName = get_class($this->getConfigDefinition());
+        } elseif ($config['action'] !== 'run') {
+            $this->configDefinitionClassName = ActionConfigDefinition::class;
+        } elseif (isset($config['parameters']['tables'])) {
+            $this->configDefinitionClassName = ConfigDefinition::class;
         } else {
-            $this->configDefinition = new ConfigRowDefinition();
+            $this->configDefinitionClassName = ConfigRowDefinition::class;
         }
     }
 
-    public function run(): array
+    protected function getConfigClass(): string
     {
-        $this->parameters = $this->validateParameters($this->parameters);
+        return BaseExtractorConfig::class;
+    }
 
-        $actionMethod = $this->action . 'Action';
+    protected function getConfigDefinitionClass(): string
+    {
+        return $this->configDefinitionClassName;
+    }
+
+    public function run(): void
+    {
+        $this->validateParameters($this->getConfig()->getParameters());
+
+        $actionMethod = $this->getConfig()->getAction() . 'Action';
         if (!method_exists($this, $actionMethod)) {
-            throw new UserException(sprintf("Action '%s' does not exist.", $this->action));
+            throw new UserException(sprintf("Action '%s' does not exist.", $this->getConfig()->getAction()));
         }
 
-        return $this->$actionMethod();
+        $result = $this->$actionMethod();
+
+        print json_encode(
+            $result,
+            JSON_PRETTY_PRINT
+        );
     }
 
-    public function setConfigDefinition(ConfigurationInterface $definition): void
+    public function getConfigDefinition(): ?ConfigurationInterface
     {
-        $this->configDefinition = $definition;
+        return $this->configDefinition;
     }
 
     private function validateTableParameters(array $table): void
@@ -85,30 +101,24 @@ class Application
         }
 
         if (isset($table['incrementalFetching']['autoIncrementColumn']) && empty($table['primaryKey'])) {
-            $this->logger->warn("An import autoIncrement column is being used but output primary key is not set.");
+            $this->getLogger()->warning(
+                "An import autoIncrement column is being used but output primary key is not set."
+            );
         }
     }
 
-    private function validateParameters(array $parameters): array
+    private function validateParameters(array $parameters): void
     {
         try {
-            $processor = new Processor();
-            $processedParameters = $processor->processConfiguration(
-                $this->configDefinition,
-                [$parameters]
-            );
-
-            if ($this->action === 'run') {
-                if (isset($processedParameters['tables'])) {
-                    foreach ($processedParameters['tables'] as $table) {
+            if ($this->getConfig()->getAction() === 'run') {
+                if (isset($parameters['tables'])) {
+                    foreach ($parameters['tables'] as $table) {
                         $this->validateTableParameters($table);
                     }
                 } else {
-                    $this->validateTableParameters($processedParameters);
+                    $this->validateTableParameters($parameters);
                 }
             }
-
-            return $processedParameters;
         } catch (ConfigException $e) {
             throw new UserException($e->getMessage(), 0, $e);
         }
@@ -118,9 +128,9 @@ class Application
     {
         $imported = [];
         $outputState = [];
-        if (isset($this->parameters['tables'])) {
+        if (isset($this->getConfig()->getParameters()['tables'])) {
             $tables = array_filter(
-                $this->parameters['tables'],
+                $this->getConfig()->getParameters()['tables'],
                 function ($table) {
                     return ($table['enabled']);
                 }
@@ -130,7 +140,7 @@ class Application
                 $imported[] = $exportResults;
             }
         } else {
-            $exportResults = $this->extractor->export($this->parameters);
+            $exportResults = $this->extractor->export($this->getConfig()->getParameters());
             if (isset($exportResults['state'])) {
                 $outputState = $exportResults['state'];
                 unset($exportResults['state']);
@@ -153,9 +163,7 @@ class Application
             throw new UserException(sprintf("Connection failed: '%s'", $e->getMessage()), 0, $e);
         }
 
-        return [
-            'status' => 'success',
-        ];
+        return ['status' => 'success'];
     }
 
     private function getTablesAction(): array
@@ -167,19 +175,7 @@ class Application
         } catch (\Throwable $e) {
             throw new UserException(sprintf("Failed to get tables: '%s'", $e->getMessage()), 0, $e);
         }
-        return $output;
-    }
 
-    public static function setEnvironment(): void
-    {
-        error_reporting(E_ALL);
-        set_error_handler(function ($errno, $errstr, $errfile, $errline, array $errcontext): bool {
-            if (!(error_reporting() & $errno)) {
-                // respect error_reporting() level
-                // libraries used in custom components may emit notices that cannot be fixed
-                return false;
-            }
-            throw new ErrorException($errstr, 0, $errno, $errfile, $errline);
-        });
+        return $output;
     }
 }

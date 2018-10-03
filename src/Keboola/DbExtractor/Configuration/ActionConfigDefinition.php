@@ -5,24 +5,17 @@ declare(strict_types=1);
 namespace Keboola\DbExtractor\Configuration;
 
 use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
-use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 
 class ActionConfigDefinition extends BaseExtractorConfigDefinition
 {
-    public function getConfigTreeBuilder(): TreeBuilder
+    public function getParametersDefinition(): ArrayNodeDefinition
     {
-        $treeBuilder = new TreeBuilder();
-        /** @var ArrayNodeDefinition */
-        $rootNode = $treeBuilder->root('parameters');
+        $rootNode = parent::getParametersDefinition();
 
         // @formatter:off
         $rootNode
-            ->ignoreExtraKeys()
+            ->ignoreExtraKeys(false)
             ->children()
-                ->scalarNode('data_dir')
-                    ->isRequired()
-                    ->cannotBeEmpty()
-                ->end()
                 ->scalarNode('extractor_class')
                     ->isRequired()
                     ->cannotBeEmpty()
@@ -31,6 +24,6 @@ class ActionConfigDefinition extends BaseExtractorConfigDefinition
             ->end();
         // @formatter:on
 
-        return $treeBuilder;
+        return $rootNode;
     }
 }
