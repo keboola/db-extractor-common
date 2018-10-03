@@ -5,7 +5,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../vendor/autoload.php';
 
 use Keboola\DbExtractor\Application;
-use Keboola\DbExtractor\Exception\UserException;
+use Keboola\Component\UserException;
 use Keboola\Component\Logger;
 
 $datadirPath = rtrim((string) getenv('KBC_DATADIR'), '/');
@@ -16,7 +16,7 @@ $logger = new Logger();
 
 try {
     $app = new Application($config, $logger);
-    echo json_encode($app->run(), JSON_PRETTY_PRINT);
+    $app->run();
     exit(0);
 } catch (UserException $e) {
     $logger->error($e->getMessage());

@@ -27,10 +27,9 @@ class ExtractorTest extends TestCase
     protected function getConfig(string $driver): array
     {
         $config = json_decode(
-            (string) file_get_contents($this->dataDir . '/' .$driver . '/config.json'),
+            (string) file_get_contents($this->dataDir . '/' .$driver . '/exampleConfig.json'),
             true
         );
-        $config['parameters']['data_dir'] = $this->dataDir;
         $config['parameters']['db'] = $this->getConfigDbNode($driver);
         $config['parameters']['extractor_class'] = ucfirst($driver);
         
@@ -40,11 +39,10 @@ class ExtractorTest extends TestCase
     protected function getConfigRow(string $driver): array
     {
         $config = json_decode(
-            (string) file_get_contents($this->dataDir . '/' .$driver . '/configRow.json'),
+            (string) file_get_contents($this->dataDir . '/' .$driver . '/exampleConfigRow.json'),
             true
         );
 
-        $config['parameters']['data_dir'] = $this->dataDir;
         $config['parameters']['db'] = $this->getConfigDbNode($driver);
         $config['parameters']['extractor_class'] = ucfirst($driver);
 
@@ -54,11 +52,10 @@ class ExtractorTest extends TestCase
     protected function getConfigRowForCsvErr(string $driver): array
     {
         $config = json_decode(
-            (string) file_get_contents($this->dataDir . '/' .$driver . '/configRowCsvErr.json'),
+            (string) file_get_contents($this->dataDir . '/' .$driver . '/exampleConfigRowCsvErr.json'),
             true
         );
 
-        $config['parameters']['data_dir'] = $this->dataDir;
         $config['parameters']['db'] = $this->getConfigDbNode($driver);
         $config['parameters']['extractor_class'] = ucfirst($driver);
 
@@ -85,6 +82,25 @@ class ExtractorTest extends TestCase
 
     protected function getApplication(array $config, array $state = []): Application
     {
+        putenv(sprintf('KBC_DATADIR=%s', $this->dataDir));
         return new Application($config, new Logger(), $state);
+    }
+
+    protected function prepareConfigInDataDir(array $config): void
+    {
+        $configFilePath = $this->dataDir . DIRECTORY_SEPARATOR . 'config.json';
+        file_put_contents(
+            $configFilePath,
+            json_encode($config, JSON_PRETTY_PRINT)
+        );
+    }
+
+    protected function runApplication(Application $application): string
+    {
+        ob_start();
+        $application->run();
+        $result = ob_get_contents();
+        ob_end_clean();
+        return (string) $result;
     }
 }

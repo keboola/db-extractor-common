@@ -385,7 +385,9 @@ class RetryTest extends ExtractorTest
         // execute asynchronously the script to reboot the server
         exec(self::SERVER_KILLER_EXECUTABLE . ' 2 > /dev/null &');
 
-        $result = $app->run();
+        $stdout = $this->runApplication($app);
+        $result = json_decode($stdout, true);
+
         $outputCsvFile = $this->dataDir . '/out/tables/' . $result['imported'][0]['outputTable'] . '.csv';
 
         self::assertEquals('success', $result['status']);
