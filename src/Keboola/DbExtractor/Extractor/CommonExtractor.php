@@ -294,10 +294,6 @@ class CommonExtractor extends BaseExtractor
 
     private function createConnection(array $parameters): \PDO
     {
-        if (isset($parameters['ssh']['enabled']) && $parameters['ssh']['enabled']) {
-            $parameters = $this->createSshTunnel($parameters);
-        }
-
         $dsn = sprintf(
             "mysql:host=%s;port=%s;dbname=%s;charset=utf8",
             $parameters['host'],

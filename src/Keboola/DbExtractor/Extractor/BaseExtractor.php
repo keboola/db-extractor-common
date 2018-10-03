@@ -43,6 +43,13 @@ abstract class BaseExtractor extends BaseComponent
         $action = $this->getConfig()->getAction();
         $parameters = $this->getConfig()->getParameters();
 
+        if (isset($parameters['db']['ssh'])
+            && isset($parameters['db']['ssh']['enabled'])
+            && $parameters['db']['ssh']['enabled']
+        ) {
+            $parameters['db'] = $this->createSshTunnel($parameters['db']);
+        }
+
         try {
             switch ($action) {
                 case 'run':
