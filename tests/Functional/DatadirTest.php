@@ -234,7 +234,7 @@ class DatadirTest extends AbstractDatadirTestCase
             $configuration,
             1,
             null,
-            'Action \'funkyAction\' does not exist.' . PHP_EOL
+            'Undefined action "funkyAction".' . PHP_EOL
         );
     }
 

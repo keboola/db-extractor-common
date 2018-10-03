@@ -1104,7 +1104,7 @@ class CommonExtractorTest extends ExtractorTest
         $logger = new Logger();
         $logger->pushHandler($handler);
         putenv(sprintf('KBC_DATADIR=%s', $this->dataDir));
-        $app = new Application($config, $logger, []);
+        $app = new CommonExtractor($logger);
         try {
             $app->run();
             self::fail('Must raise exception');

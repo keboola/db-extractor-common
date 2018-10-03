@@ -44,10 +44,8 @@
   "scripts": {
     "old-tests": "./wait-for-it.sh mysql:3306 -t 30 -- ./vendor/bin/phpunit tests/Old",
     "tests-datadir": "./wait-for-it.sh mysql:3306 -t 30 -- ./vendor/bin/phpunit tests/Functional",
-    "tests-datadir-adapter": "./wait-for-it.sh mysql:3306 -t 30 -- ./vendor/bin/phpunit tests/FunctionalAdapter",
     "tests-unit": "./vendor/bin/phpunit tests/Unit",
     "tests": [
-      "@tests-datadir-adapter",
       "@tests-datadir",
       "@old-tests"
     ],
