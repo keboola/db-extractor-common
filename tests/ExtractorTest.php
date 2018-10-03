@@ -6,7 +6,6 @@ namespace Keboola\DbExtractor\Tests;
 
 use Keboola\Component\Logger;
 use Keboola\DbExtractor\Extractor\BaseExtractor;
-use Keboola\DbExtractor\Extractor\CommonExtractor;
 use PHPUnit\Framework\TestCase;
 
 class ExtractorTest extends TestCase

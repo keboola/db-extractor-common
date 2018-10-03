@@ -2,13 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Keboola\DbExtractor\Extractor;
+namespace Keboola\DbExtractor\Tests;
 
 use Keboola\Component\UserException;
 use Keboola\Csv\CsvWriter;
 use Keboola\Csv\Exception as CsvException;
 use Keboola\DbExtractor\Exception\ApplicationException;
 use Keboola\DbExtractor\Exception\DeadConnectionException;
+use Keboola\DbExtractor\Extractor\BaseExtractor;
 use Keboola\DbExtractor\RetryProxy;
 
 class CommonExtractor extends BaseExtractor

@@ -5,10 +5,9 @@ declare(strict_types=1);
 namespace Keboola\DbExtractor\Tests\Old;
 
 use Keboola\Csv\CsvReader;
-use Keboola\DbExtractor\Application;
 use Keboola\DbExtractor\Exception\ApplicationException;
 use Keboola\Component\UserException;
-use Keboola\DbExtractor\Extractor\CommonExtractor;
+use Keboola\DbExtractor\Tests\CommonExtractor;
 use Keboola\DbExtractor\Tests\DataLoader;
 use Keboola\DbExtractor\Tests\ExtractorTest;
 use Keboola\Component\Logger;
