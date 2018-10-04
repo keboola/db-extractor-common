@@ -260,9 +260,7 @@ abstract class BaseExtractor extends BaseComponent
 
     protected function getConfigDefinition(string $action, bool $isConfigRow): string
     {
-        if ($this->getCustomConfigDefinitionClassName()) {
-            return $this->getCustomConfigDefinitionClassName();
-        } elseif ($action !== 'run') {
+        if ($action !== 'run') {
             return ActionConfigDefinition::class;
         } elseif (!$isConfigRow) {
             return ConfigDefinition::class;
@@ -274,11 +272,6 @@ abstract class BaseExtractor extends BaseComponent
     protected function getConfigClass(): string
     {
         return BaseExtractorConfig::class;
-    }
-
-    protected function getCustomConfigDefinitionClassName(): ?string
-    {
-        return null;
     }
 
     private function getColumnMetadata(array $column): array
