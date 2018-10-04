@@ -44,8 +44,13 @@ The extractor class must be child of [\Keboola\DbExtractor\Extractor\BaseExtract
 - `getTables(array $tables = []): array`
 - `testConnection(): void`
 
-If you want to implement incremental fetching, you must override: 
+If you want to implement incremental fetching, you must override:
+
 - `validateIncrementalFetching(array $table, string $columnName, ?int $limit = null): void`
+
+Also you can define custom Config Definition class. Which must implements `\Symfony\Component\Config\Definition\ConfigurationInterface`:
+
+- `getCustomConfigDefinitionClassName(): ?string`
 
 Then you can pass the extractor class as a first constructor's argument to [\Keboola\DbExtractor\Extractor\ExtractorAdapter](https://github.com/keboola/db-extractor-common/blob/david-adapter/src/Keboola/DbExtractor/Extractor/ExtractorAdapter.php)
 
