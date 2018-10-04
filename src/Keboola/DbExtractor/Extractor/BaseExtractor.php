@@ -21,7 +21,6 @@ use Keboola\DbExtractor\RetryProxy;
 use Keboola\SSHTunnel\SSH;
 use Keboola\SSHTunnel\SSHException;
 use Nette\Utils\Strings;
-use Psr\Log\LoggerInterface;
 use Symfony\Component\Config\Definition\Exception\Exception as ConfigException;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 
