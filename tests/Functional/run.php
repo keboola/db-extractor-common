@@ -6,7 +6,7 @@ require_once __DIR__ . '/../../vendor/autoload.php';
 
 use Keboola\Component\UserException;
 use Keboola\Component\Logger;
-use Keboola\DbExtractor\Tests\CommonExtractor;
+use Keboola\DbExtractorCommon\Tests\CommonExtractor;
 
 $logger = new Logger();
 

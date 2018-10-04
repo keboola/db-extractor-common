@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace Keboola\DbExtractor\Tests;
+namespace Keboola\DbExtractorCommon\Tests;
 
 use Keboola\Component\UserException;
 use Keboola\Csv\CsvWriter;
 use Keboola\Csv\Exception as CsvException;
-use Keboola\DbExtractor\Configuration\BaseExtractorConfig;
-use Keboola\DbExtractor\Configuration\DatabaseParameters;
-use Keboola\DbExtractor\Configuration\TableDetailParameters;
-use Keboola\DbExtractor\Configuration\TableParameters;
-use Keboola\DbExtractor\Exception\ApplicationException;
-use Keboola\DbExtractor\Exception\DeadConnectionException;
-use Keboola\DbExtractor\Extractor\BaseExtractor;
-use Keboola\DbExtractor\RetryProxy;
+use Keboola\DbExtractorCommon\Configuration\BaseExtractorConfig;
+use Keboola\DbExtractorCommon\Configuration\DatabaseParameters;
+use Keboola\DbExtractorCommon\Configuration\TableDetailParameters;
+use Keboola\DbExtractorCommon\Configuration\TableParameters;
+use Keboola\DbExtractorCommon\Exception\ApplicationException;
+use Keboola\DbExtractorCommon\Exception\DeadConnectionException;
+use Keboola\DbExtractorCommon\BaseExtractor;
+use Keboola\DbExtractorCommon\RetryProxy;
 
 class CommonExtractor extends BaseExtractor
 {

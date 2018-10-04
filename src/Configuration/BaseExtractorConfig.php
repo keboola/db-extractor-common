@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Keboola\DbExtractor\Configuration;
+namespace Keboola\DbExtractorCommon\Configuration;
 
 use Keboola\Component\Config\BaseConfig;
 

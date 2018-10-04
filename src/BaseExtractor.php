@@ -2,22 +2,21 @@
 
 declare(strict_types=1);
 
-namespace Keboola\DbExtractor\Extractor;
+namespace Keboola\DbExtractorCommon;
 
 use Keboola\Component\BaseComponent;
 use Keboola\Component\Config\BaseConfig;
 use Keboola\Component\UserException;
 use Keboola\Csv\CsvWriter;
 use Keboola\Datatype\Definition\GenericStorage;
-use Keboola\DbExtractor\Configuration\ActionConfigDefinition;
-use Keboola\DbExtractor\Configuration\BaseExtractorConfig;
-use Keboola\DbExtractor\Configuration\ConfigDefinition;
-use Keboola\DbExtractor\Configuration\ConfigRowDefinition;
-use Keboola\DbExtractor\Configuration\DatabaseParameters;
-use Keboola\DbExtractor\Configuration\TableDetailParameters;
-use Keboola\DbExtractor\Configuration\TableParameters;
-use Keboola\DbExtractor\Exception\DeadConnectionException;
-use Keboola\DbExtractor\RetryProxy;
+use Keboola\DbExtractorCommon\Configuration\Definition\ActionConfigDefinition;
+use Keboola\DbExtractorCommon\Configuration\BaseExtractorConfig;
+use Keboola\DbExtractorCommon\Configuration\Definition\ConfigDefinition;
+use Keboola\DbExtractorCommon\Configuration\Definition\ConfigRowDefinition;
+use Keboola\DbExtractorCommon\Configuration\DatabaseParameters;
+use Keboola\DbExtractorCommon\Configuration\TableDetailParameters;
+use Keboola\DbExtractorCommon\Configuration\TableParameters;
+use Keboola\DbExtractorCommon\Exception\DeadConnectionException;
 use Keboola\SSHTunnel\SSH;
 use Keboola\SSHTunnel\SSHException;
 use Nette\Utils\Strings;

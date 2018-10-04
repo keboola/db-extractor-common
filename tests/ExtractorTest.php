@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Keboola\DbExtractor\Tests;
+namespace Keboola\DbExtractorCommon\Tests;
 
 use Keboola\Component\Logger;
-use Keboola\DbExtractor\Extractor\BaseExtractor;
+use Keboola\DbExtractorCommon\BaseExtractor;
 use PHPUnit\Framework\TestCase;
 
 class ExtractorTest extends TestCase

@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Keboola\DbExtractor\Tests\Old;
+namespace Keboola\DbExtractorCommon\Tests\Old;
 
 use Keboola\Csv\CsvReader;
-use Keboola\DbExtractor\Exception\ApplicationException;
+use Keboola\DbExtractorCommon\Exception\ApplicationException;
 use Keboola\Component\UserException;
-use Keboola\DbExtractor\Tests\CommonExtractor;
-use Keboola\DbExtractor\Tests\DataLoader;
-use Keboola\DbExtractor\Tests\ExtractorTest;
+use Keboola\DbExtractorCommon\Tests\CommonExtractor;
+use Keboola\DbExtractorCommon\Tests\DataLoader;
+use Keboola\DbExtractorCommon\Tests\ExtractorTest;
 use Keboola\Component\Logger;
 use Monolog\Handler\TestHandler;
 use Symfony\Component\Filesystem\Filesystem;

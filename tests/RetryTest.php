@@ -2,12 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Keboola\DbExtractor\Tests;
+namespace Keboola\DbExtractorCommon\Tests;
 
 use Keboola\Csv\CsvWriter;
-use Keboola\DbExtractor\Exception\DeadConnectionException;
+use Keboola\DbExtractorCommon\Exception\DeadConnectionException;
 use Keboola\Component\UserException;
-use Keboola\DbExtractor\Tests\ExtractorTest;
 use Keboola\Temp\Temp;
 use PDO;
 

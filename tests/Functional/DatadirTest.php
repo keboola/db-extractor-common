@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Keboola\DbExtractor\Tests\Functional;
+namespace Keboola\DbExtractorCommon\Tests\Functional;
 
 use Keboola\DatadirTests\AbstractDatadirTestCase;
 use Keboola\DatadirTests\DatadirTestSpecification;
-use Keboola\DbExtractor\Tests\DataLoader;
+use Keboola\DbExtractorCommon\Tests\DataLoader;
 
 class DatadirTest extends AbstractDatadirTestCase
 {

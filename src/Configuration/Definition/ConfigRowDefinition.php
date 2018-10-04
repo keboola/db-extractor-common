@@ -2,8 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Keboola\DbExtractor\Configuration;
+namespace Keboola\DbExtractorCommon\Configuration\Definition;
 
+use Keboola\DbExtractorCommon\Configuration\ConfigDefinitionValidationHelper;
 use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
 
 class ConfigRowDefinition extends BaseExtractorConfigDefinition
