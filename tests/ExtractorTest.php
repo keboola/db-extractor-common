@@ -31,7 +31,6 @@ class ExtractorTest extends TestCase
             true
         );
         $config['parameters']['db'] = $this->getConfigDbNode($driver);
-        $config['parameters']['extractor_class'] = ucfirst($driver);
         
         return $config;
     }
@@ -44,7 +43,6 @@ class ExtractorTest extends TestCase
         );
 
         $config['parameters']['db'] = $this->getConfigDbNode($driver);
-        $config['parameters']['extractor_class'] = ucfirst($driver);
 
         return $config;
     }
@@ -57,7 +55,6 @@ class ExtractorTest extends TestCase
         );
 
         $config['parameters']['db'] = $this->getConfigDbNode($driver);
-        $config['parameters']['extractor_class'] = ucfirst($driver);
 
         return $config;
     }

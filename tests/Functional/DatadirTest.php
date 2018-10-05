@@ -54,8 +54,7 @@ class DatadirTest extends AbstractDatadirTestCase
     private function getConfig(string $testDirectory): array
     {
         $configuration = json_decode((string) file_get_contents($testDirectory . '/config.json'), true);
-        $configuration['parameters']['extractor_class'] = 'Common';
-        return$configuration;
+        return $configuration;
     }
 
     private function getCredentials(): array

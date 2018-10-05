@@ -997,8 +997,6 @@ class CommonExtractorTest extends ExtractorTest
             'action' => 'testConnection',
             'parameters' => [
                 'db' => $this->getConfigDbNode(self::DRIVER),
-                'data_dir' => $this->dataDir,
-                'extractor_class' => ucfirst(self::DRIVER),
             ],
         ];
         $this->prepareConfigInDataDir($config);

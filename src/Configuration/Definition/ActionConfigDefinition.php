@@ -16,10 +16,6 @@ class ActionConfigDefinition extends BaseExtractorConfigDefinition
         $rootNode
             ->ignoreExtraKeys(false)
             ->children()
-                ->scalarNode('extractor_class')
-                    ->isRequired()
-                    ->cannotBeEmpty()
-                ->end()
                 ->append($this->getDbNode())
             ->end();
         // @formatter:on

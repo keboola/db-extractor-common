@@ -16,10 +16,6 @@ class ConfigDefinition extends BaseExtractorConfigDefinition
         $rootNode
             ->ignoreExtraKeys(false)
             ->children()
-                ->scalarNode('extractor_class')
-                    ->isRequired()
-                    ->cannotBeEmpty()
-                ->end()
                 ->append($this->getDbNode())
                 ->append($this->getTablesNode())
             ->end();

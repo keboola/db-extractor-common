@@ -17,10 +17,6 @@ class ConfigRowDefinition extends BaseExtractorConfigDefinition
         $rootNode
             ->ignoreExtraKeys(false)
             ->children()
-                ->scalarNode('extractor_class')
-                    ->isRequired()
-                    ->cannotBeEmpty()
-                ->end()
                 ->append($this->getDbNode())
                 ->integerNode('id')->end()
                 ->scalarNode('name')->end()
