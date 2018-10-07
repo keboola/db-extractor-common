@@ -14,6 +14,7 @@ use Keboola\DbExtractorCommon\Configuration\BaseExtractorConfig;
 use Keboola\DbExtractorCommon\Configuration\Definition\ConfigDefinition;
 use Keboola\DbExtractorCommon\Configuration\Definition\ConfigRowDefinition;
 use Keboola\DbExtractorCommon\Configuration\DatabaseParameters;
+use Keboola\DbExtractorCommon\Configuration\SshParameters;
 use Keboola\DbExtractorCommon\Configuration\TableDetailParameters;
 use Keboola\DbExtractorCommon\Configuration\TableParameters;
 use Keboola\DbExtractorCommon\Exception\DeadConnectionException;
@@ -51,12 +52,13 @@ abstract class BaseExtractor extends BaseComponent
         /** @var BaseExtractorConfig $config */
         $config = $this->getConfig();
         $dbParameters = $config->getDbParameters();
+        $sshParameters = $config->getSshParameters();
         $action = $config->getAction();
 
-        if ($dbParameters->getSshParameters()
-            && $dbParameters->getSshParameters()->getEnabled()
+        if ($sshParameters
+            && $sshParameters->getEnabled()
         ) {
-            $this->createSshTunnel($dbParameters);
+            $this->createSshTunnel($sshParameters, $dbParameters);
         }
 
         try {
@@ -178,19 +180,18 @@ abstract class BaseExtractor extends BaseComponent
         return new CsvWriter($this->getOutputFilename($outputTable));
     }
 
-    protected function createSshTunnel(DatabaseParameters $dbConfig): void
+    protected function createSshTunnel(SshParameters $sshParameters, DatabaseParameters $dbConfig): void
     {
-        $sshConfig = $dbConfig->getSshParameters();
-        $privateKey = $sshConfig->getKeys()['#private'] ?? $sshConfig->getKeys()['private'];
-        $sshConfig->setPrivateKey($privateKey);
-        $sshConfig->setRemoteHost($dbConfig->getHost());
-        $sshConfig->setRemotePort($dbConfig->getPort());
+        $privateKey = $sshParameters->getKeys()['#private'] ?? $sshParameters->getKeys()['private'];
+        $sshParameters->setPrivateKey($privateKey);
+        $sshParameters->setRemoteHost($dbConfig->getHost());
+        $sshParameters->setRemotePort($dbConfig->getPort());
 
-        if (!$sshConfig->getUser()) {
-            $sshConfig->setUser($dbConfig->getUser());
+        if (!$sshParameters->getUser()) {
+            $sshParameters->setUser($dbConfig->getUser());
         }
 
-        $tunnelParams = $sshConfig->toArray();
+        $tunnelParams = $sshParameters->toArray();
         $this->getLogger()->info("Creating SSH tunnel to '" . $tunnelParams['sshHost'] . "'");
         $proxy = new RetryProxy(
             $this->getLogger(),

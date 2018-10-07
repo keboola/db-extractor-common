@@ -13,6 +13,16 @@ class BaseExtractorConfig extends BaseConfig
         return DatabaseParameters::fromRaw($this->getValue(['parameters', 'db']));
     }
 
+    public function getSshParameters(): ?SshParameters
+    {
+        $dbParameters = $this->getValue(['parameters', 'db']);
+
+        if (isset($dbParameters['ssh'])) {
+            return SshParameters::fromRaw($dbParameters['ssh']);
+        }
+        return null;
+    }
+
     /**
      * @return TableParameters[]
      */

@@ -21,19 +21,13 @@ class DatabaseParameters
     /** @var string */
     private $password;
 
-    /** @var SshParameters|null */
-    private $sshParameters;
-
     public function __construct(array $databaseParameters)
     {
         $this->host = $databaseParameters['host'];
         $this->port = $databaseParameters['port'] ?? null;
-        $this->database = $databaseParameters['database'];
+        $this->database = $databaseParameters['database'] ?? null;
         $this->user = $databaseParameters['user'];
         $this->password = $databaseParameters['#password'];
-        $this->sshParameters = isset($databaseParameters['ssh'])
-            ? SshParameters::fromRaw($databaseParameters['ssh'])
-            : null;
     }
 
     public function getHost(): string
@@ -46,7 +40,7 @@ class DatabaseParameters
         return (int) $this->port;
     }
 
-    public function getDatabase(): string
+    public function getDatabase(): ?string
     {
         return $this->database;
     }
@@ -59,11 +53,6 @@ class DatabaseParameters
     public function getPassword(): string
     {
         return $this->password;
-    }
-
-    public function getSshParameters(): ?SshParameters
-    {
-        return $this->sshParameters;
     }
 
     public static function fromRaw(array $databaseParameters): DatabaseParameters
