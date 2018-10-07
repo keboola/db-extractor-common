@@ -33,11 +33,7 @@
   },
   "autoload": {
     "psr-4": {
-      "Keboola\\DbExtractorCommon\\": "src/"
-    }
-  },
-  "autoload-dev": {
-    "psr-4": {
+      "Keboola\\DbExtractorCommon\\": "src/",
       "Keboola\\DbExtractorCommon\\Tests\\": "tests/"
     }
   },
