@@ -43,6 +43,7 @@ class ConfigRowDefinition extends BaseExtractorConfigDefinition
                 ->integerNode('retries')
                     ->min(0)
                 ->end()
+                ->booleanNode('advancedMode')->end()
             ->end();
 
         $rootNode->validate()

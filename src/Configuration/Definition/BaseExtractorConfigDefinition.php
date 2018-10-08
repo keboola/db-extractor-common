@@ -143,6 +143,7 @@ abstract class BaseExtractorConfigDefinition extends BaseConfigDefinition
                     ->integerNode('retries')
                         ->min(0)
                     ->end()
+                    ->booleanNode('advancedMode')->end()
                 ->end()
             ->end();
 
