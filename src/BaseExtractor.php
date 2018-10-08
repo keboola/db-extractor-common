@@ -23,6 +23,8 @@ use Keboola\SSHTunnel\SSHException;
 use Nette\Utils\Strings;
 use Symfony\Component\Config\Definition\Exception\Exception as ConfigException;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
+use Symfony\Component\Serializer\Encoder\JsonEncode;
+use Symfony\Component\Serializer\Encoder\JsonEncoder;
 
 abstract class BaseExtractor extends BaseComponent
 {
@@ -65,7 +67,16 @@ abstract class BaseExtractor extends BaseComponent
             switch ($action) {
                 case 'run':
                     $this->validateParameters($config);
-                    $result = $this->extract($config); // @todo - save state into state file
+                    $result = $this->extract($config);
+                    if (!empty($result['state'])) {
+                        // write state
+                        $outputStateFile = $this->getDataDir() . '/out/state.json';
+                        $jsonEncode = new JsonEncode();
+                        file_put_contents(
+                            $outputStateFile,
+                            $jsonEncode->encode($result['state'], JsonEncoder::FORMAT)
+                        );
+                    }
                     break;
                 case 'testConnection':
                     $this->testConnection();
