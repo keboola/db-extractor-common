@@ -60,7 +60,6 @@ abstract class BaseExtractorConfigDefinition extends BaseConfigDefinition
                     ->end()
                 ->end()
                 ->scalarNode('sshHost')
-                    ->isRequired()
                     ->cannotBeEmpty()
                 ->end()
                 ->scalarNode('sshPort')
