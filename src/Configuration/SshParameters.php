@@ -12,7 +12,7 @@ class SshParameters
     /** @var array|null */
     private $keys;
 
-    /** @var string */
+    /** @var string|null */
     private $sshHost;
 
     /** @var int */
@@ -37,7 +37,7 @@ class SshParameters
     {
         $this->enabled = $sshParameters['enabled'] ?? null;
         $this->keys = $sshParameters['keys'] ?? null;
-        $this->sshHost = $sshParameters['sshHost'];
+        $this->sshHost = $sshParameters['sshHost'] ?? null;
         $this->sshPort = $sshParameters['sshPort'] ? (int) $sshParameters['sshPort'] : 22;
         $this->remoteHost = $sshParameters['remoteHost'] ?? null;
         $this->remotePort = $sshParameters['remotePort'] ?? null;
@@ -55,7 +55,7 @@ class SshParameters
         return $this->keys;
     }
 
-    public function getSshHost(): string
+    public function getSshHost(): ?string
     {
         return $this->sshHost;
     }
