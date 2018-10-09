@@ -53,7 +53,6 @@ abstract class BaseExtractorConfigDefinition extends BaseConfigDefinition
             ->children()
                 ->booleanNode('enabled')->end()
                 ->arrayNode('keys')
-                    ->isRequired()
                     ->children()
                         ->scalarNode('private')->end()
                         ->scalarNode('#private')->end()
