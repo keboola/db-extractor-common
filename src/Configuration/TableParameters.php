@@ -36,18 +36,28 @@ class TableParameters
     /** @var int|null */
     private $retries;
 
-    public function __construct(array $table)
-    {
-        $this->query = $table['query'] ?? null;
-        $this->columns = $table['columns'] ?? null;
-        $this->outputTable = $table['outputTable'];
-        $this->tableDetail = isset($table['table']) ? TableDetailParameters::fromRaw($table['table']) : null;
-        $this->incremental = $table['incremental'] ?? false;
-        $this->incrementalFetchingColumn = $table['incrementalFetchingColumn'] ?? null;
-        $this->incrementalFetchingLimit = $table['incrementalFetchingLimit'] ?? null;
-        $this->enabled = $table['enabled'] ?? true;
-        $this->primaryKey = $table['primaryKey'] ?? null;
-        $this->retries = $table['retries'] ?? null;
+    public function __construct(
+        ?string $query = null,
+        ?array $columns = null,
+        ?string $outputTable = null,
+        ?TableDetailParameters $tableDetailParameters = null,
+        ?bool $incremental = false,
+        ?string $incrementalFetchingColumn = null,
+        ?int $incrementalFetchingLimit = null,
+        ?bool $enabled = true,
+        ?array $primaryKey = null,
+        ?int $retries = null
+    ) {
+        $this->query = $query;
+        $this->columns = $columns;
+        $this->outputTable = $outputTable;
+        $this->tableDetail = $tableDetailParameters;
+        $this->incremental = $incremental;
+        $this->incrementalFetchingColumn = $incrementalFetchingColumn;
+        $this->incrementalFetchingLimit = $incrementalFetchingLimit;
+        $this->enabled = $enabled;
+        $this->primaryKey = $primaryKey;
+        $this->retries = $retries;
     }
 
     public function getQuery(): ?string
@@ -103,6 +113,17 @@ class TableParameters
 
     public static function fromRaw(array $table): TableParameters
     {
-        return new TableParameters($table);
+        return new TableParameters(
+            $table['query'] ?? null,
+            $table['columns'] ?? null,
+            $table['outputTable'] ?? null,
+            isset($table['table']) ? TableDetailParameters::fromRaw($table['table']) : null,
+            $table['incremental'] ?? null,
+            $table['incrementalFetchingColumn'] ?? null,
+            isset($table['incrementalFetchingLimit']) ? (int) $table['incrementalFetchingLimit'] : null,
+            $table['enabled'] ?? null,
+            $table['primaryKey'] ?? null,
+            $table['retries'] ?? null
+        );
     }
 }

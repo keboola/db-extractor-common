@@ -12,10 +12,10 @@ class TableDetailParameters
     /** @var string */
     private $tableName;
 
-    public function __construct(array $tableDetail)
+    public function __construct(string $schema, string $tableName)
     {
-        $this->schema = $tableDetail['schema'];
-        $this->tableName = $tableDetail['tableName'];
+        $this->schema = $schema;
+        $this->tableName = $tableName;
     }
 
     public function getSchema(): string
@@ -30,6 +30,9 @@ class TableDetailParameters
 
     public static function fromRaw(array $tableDetail): TableDetailParameters
     {
-        return new TableDetailParameters($tableDetail);
+        return new TableDetailParameters(
+            $tableDetail['schema'],
+            $tableDetail['tableName']
+        );
     }
 }

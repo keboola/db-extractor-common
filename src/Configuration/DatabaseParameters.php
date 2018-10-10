@@ -21,13 +21,18 @@ class DatabaseParameters
     /** @var string */
     private $password;
 
-    public function __construct(array $databaseParameters)
-    {
-        $this->host = $databaseParameters['host'];
-        $this->port = $databaseParameters['port'] ?? null;
-        $this->database = $databaseParameters['database'] ?? null;
-        $this->user = $databaseParameters['user'];
-        $this->password = $databaseParameters['#password'];
+    public function __construct(
+        string $host,
+        string $user,
+        string $password,
+        ?string $database = null,
+        ?int $port = null
+    ) {
+        $this->host = $host;
+        $this->port = $port;
+        $this->database = $database;
+        $this->user = $user;
+        $this->password = $password;
     }
 
     public function getHost(): string
@@ -57,6 +62,12 @@ class DatabaseParameters
 
     public static function fromRaw(array $databaseParameters): DatabaseParameters
     {
-        return new DatabaseParameters($databaseParameters);
+        return new DatabaseParameters(
+            $databaseParameters['host'],
+            $databaseParameters['user'],
+            $databaseParameters['#password'],
+            $databaseParameters['database'] ?? null,
+            isset($databaseParameters['port']) ? (int) $databaseParameters['port'] : null
+        );
     }
 }
