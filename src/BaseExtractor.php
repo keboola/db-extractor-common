@@ -6,6 +6,7 @@ namespace Keboola\DbExtractorCommon;
 
 use Keboola\Component\BaseComponent;
 use Keboola\Component\Config\BaseConfig;
+use Keboola\Component\Logger;
 use Keboola\Component\UserException;
 use Keboola\Csv\CsvWriter;
 use Keboola\Datatype\Definition\GenericStorage;
@@ -20,6 +21,7 @@ use Keboola\DbExtractorCommon\Configuration\TableParameters;
 use Keboola\DbExtractorCommon\Exception\DeadConnectionException;
 use Keboola\SSHTunnel\SSH;
 use Keboola\SSHTunnel\SSHException;
+use Monolog\Handler\NullHandler;
 use Nette\Utils\Strings;
 use Symfony\Component\Config\Definition\Exception\Exception as ConfigException;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
@@ -37,6 +39,15 @@ abstract class BaseExtractor extends BaseComponent
 
     /** @var array */
     protected $state;
+
+    public function __construct(Logger $logger)
+    {
+        parent::__construct($logger);
+
+        if ($this->getConfig()->getAction() !== 'run') {
+            $logger->setHandlers([new NullHandler(Logger::INFO)]);
+        }
+    }
 
     abstract public function extract(BaseExtractorConfig $config): array;
 
