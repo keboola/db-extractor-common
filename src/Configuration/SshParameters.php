@@ -6,7 +6,7 @@ namespace Keboola\DbExtractorCommon\Configuration;
 
 class SshParameters
 {
-    /** @var bool|null */
+    /** @var bool */
     private $enabled;
 
     /** @var array|null */
@@ -34,7 +34,7 @@ class SshParameters
     private $privateKey;
 
     public function __construct(
-        ?bool $enabled = false,
+        bool $enabled,
         ?array $keys = null,
         ?string $sshHost = null,
         ?int $sshPort = 22,
@@ -134,7 +134,7 @@ class SshParameters
     public static function fromRaw(array $sshParameters): SshParameters
     {
         return new SshParameters(
-            $sshParameters['enabled'] ?? null,
+            $sshParameters['enabled'] ?? false,
             $sshParameters['keys'] ?? null,
             $sshParameters['sshHost'] ?? null,
             isset($sshParameters['sshPort']) ? (int) $sshParameters['sshPort'] : null,

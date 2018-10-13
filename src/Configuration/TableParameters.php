@@ -41,10 +41,10 @@ class TableParameters
         ?array $columns = null,
         ?string $outputTable = null,
         ?TableDetailParameters $tableDetailParameters = null,
-        ?bool $incremental = false,
+        bool $incremental = false,
         ?string $incrementalFetchingColumn = null,
         ?int $incrementalFetchingLimit = null,
-        ?bool $enabled = true,
+        bool $enabled = true,
         ?array $primaryKey = null,
         ?int $retries = null
     ) {
@@ -118,10 +118,10 @@ class TableParameters
             $table['columns'] ?? null,
             $table['outputTable'] ?? null,
             isset($table['table']) ? TableDetailParameters::fromRaw($table['table']) : null,
-            $table['incremental'] ?? null,
+            $table['incremental'] ?? false,
             $table['incrementalFetchingColumn'] ?? null,
             isset($table['incrementalFetchingLimit']) ? (int) $table['incrementalFetchingLimit'] : null,
-            $table['enabled'] ?? null,
+            $table['enabled'] ?? true,
             $table['primaryKey'] ?? null,
             $table['retries'] ?? null
         );
