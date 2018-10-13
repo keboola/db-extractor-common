@@ -60,6 +60,16 @@ class DatabaseParameters
         return $this->password;
     }
 
+    public function setHost(string $host): void
+    {
+        $this->host = $host;
+    }
+
+    public function setPort(int $port): void
+    {
+        $this->port = $port;
+    }
+
     public static function fromRaw(array $databaseParameters): DatabaseParameters
     {
         return new DatabaseParameters(

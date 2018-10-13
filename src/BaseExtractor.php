@@ -60,7 +60,8 @@ abstract class BaseExtractor extends BaseComponent
         if ($sshParameters
             && $sshParameters->getEnabled()
         ) {
-            $this->createSshTunnel($sshParameters, $dbParameters);
+            $dbParameters = $this->createSshTunnel($sshParameters, $dbParameters);
+            $config->setDbParameters($dbParameters);
         }
 
         try {
@@ -191,7 +192,7 @@ abstract class BaseExtractor extends BaseComponent
         return new CsvWriter($this->getOutputFilename($outputTable));
     }
 
-    protected function createSshTunnel(SshParameters $sshParameters, DatabaseParameters $dbConfig): void
+    protected function createSshTunnel(SshParameters $sshParameters, DatabaseParameters $dbConfig): DatabaseParameters
     {
         $privateKey = $sshParameters->getKeys()['#private'] ?? $sshParameters->getKeys()['private'];
         $sshParameters->setPrivateKey($privateKey);
@@ -218,6 +219,10 @@ abstract class BaseExtractor extends BaseComponent
         } catch (SSHException $e) {
             throw new UserException($e->getMessage(), 0, $e);
         }
+
+        $dbConfig->setHost('127.0.0.1');
+        $dbConfig->setPort($sshParameters->getLocalPort());
+        return $dbConfig;
     }
 
     protected function getOutputFilename(string $outputTableName): string

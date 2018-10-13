@@ -8,8 +8,15 @@ use Keboola\Component\Config\BaseConfig;
 
 class BaseExtractorConfig extends BaseConfig
 {
+    /** @var DatabaseParameters|null */
+    private $databaseParameters;
+
     public function getDbParameters(): DatabaseParameters
     {
+        if ($this->databaseParameters) {
+            return $this->databaseParameters;
+        }
+
         return DatabaseParameters::fromRaw($this->getValue(['parameters', 'db']));
     }
 
@@ -52,5 +59,10 @@ class BaseExtractorConfig extends BaseConfig
     public function isConfigRow(): bool
     {
         return !isset($this->getParameters()['tables']);
+    }
+
+    public function setDbParameters(DatabaseParameters $databaseParameters): void
+    {
+        $this->databaseParameters = $databaseParameters;
     }
 }
