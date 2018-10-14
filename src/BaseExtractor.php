@@ -117,12 +117,12 @@ abstract class BaseExtractor extends BaseComponent
     public function validateParameters(BaseExtractorConfig $config): void
     {
         try {
-            if (!$config->isConfigRow()) {
+            if ($config->isConfigRow()) {
+                $this->validateTableParameters(TableParameters::fromRaw($config->getParameters()));
+            } else {
                 foreach ($config->getTables() as $table) {
                     $this->validateTableParameters($table);
                 }
-            } else {
-                $this->validateTableParameters(TableParameters::fromRaw($config->getParameters()));
             }
         } catch (ConfigException $e) {
             throw new UserException($e->getMessage(), 0, $e);
@@ -289,10 +289,10 @@ abstract class BaseExtractor extends BaseComponent
     {
         if ($action !== 'run') {
             return ActionConfigDefinition::class;
-        } elseif (!$isConfigRow) {
-            return ConfigDefinition::class;
-        } else {
+        } elseif ($isConfigRow) {
             return ConfigRowDefinition::class;
+        } else {
+            return ConfigDefinition::class;
         }
     }
 

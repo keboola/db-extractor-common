@@ -31,12 +31,7 @@ class CommonExtractor extends BaseExtractor
     {
         $imported = [];
         $outputState = [];
-        if (!$config->isConfigRow()) {
-            foreach ($config->getEnabledTables() as $table) {
-                $exportResults = $this->extractTable($table);
-                $imported[] = $exportResults;
-            }
-        } else {
+        if ($config->isConfigRow()) {
             $tableParameters = TableParameters::fromRaw($config->getParameters());
             $exportResults = $this->extractTable($tableParameters);
             if (isset($exportResults['state'])) {
@@ -44,6 +39,11 @@ class CommonExtractor extends BaseExtractor
                 unset($exportResults['state']);
             }
             $imported = $exportResults;
+        } else {
+            foreach ($config->getEnabledTables() as $table) {
+                $exportResults = $this->extractTable($table);
+                $imported[] = $exportResults;
+            }
         }
 
         return [
