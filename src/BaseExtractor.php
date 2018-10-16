@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Keboola\DbExtractorCommon;
 
 use Keboola\Component\BaseComponent;
-use Keboola\Component\Config\BaseConfig;
 use Keboola\Component\Logger;
 use Keboola\Component\UserException;
 use Keboola\Csv\CsvWriter;
@@ -24,7 +23,6 @@ use Keboola\SSHTunnel\SSHException;
 use Monolog\Handler\NullHandler;
 use Nette\Utils\Strings;
 use Symfony\Component\Config\Definition\Exception\Exception as ConfigException;
-use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\Serializer\Encoder\JsonEncode;
 use Symfony\Component\Serializer\Encoder\JsonEncoder;
 
@@ -235,6 +233,21 @@ abstract class BaseExtractor extends BaseComponent
         return $dbConfig;
     }
 
+    protected function getConfigDefinitionClass(): string
+    {
+        $configRaw = $this->getRawConfig();
+        $action = $configRaw['action'];
+        $isConfigRow = !isset($configRaw['parameters']['tables']);
+
+        if ($action !== 'run') {
+            return ActionConfigDefinition::class;
+        } elseif ($isConfigRow) {
+            return ConfigRowDefinition::class;
+        } else {
+            return ConfigDefinition::class;
+        }
+    }
+
     protected function getOutputFilename(string $outputTableName): string
     {
         $sanitizedTableName = Strings::webalize($outputTableName, '._');
@@ -250,28 +263,6 @@ abstract class BaseExtractor extends BaseComponent
         }
     }
 
-    protected function loadConfig(): void
-    {
-        $configRaw = $this->getRawConfig();
-        $configClass = $this->getConfigClass();
-        $configDefinitionClass = $this->getConfigDefinition(
-            $configRaw['action'],
-            !isset($configRaw['parameters']['tables'])
-        );
-
-        try {
-            /** @var BaseConfig $config */
-            $config = new $configClass(
-                $configRaw,
-                new $configDefinitionClass()
-            );
-            $this->setConfig($config);
-        } catch (InvalidConfigurationException $e) {
-            throw new UserException($e->getMessage(), 0, $e);
-        }
-        $this->getLogger()->debug('Config loaded');
-    }
-
     protected function validateIncrementalFetching(
         TableDetailParameters $table,
         string $columnName,
@@ -283,17 +274,6 @@ abstract class BaseExtractor extends BaseComponent
     protected function quote(string $obj): string
     {
         return "`{$obj}`";
-    }
-
-    protected function getConfigDefinition(string $action, bool $isConfigRow): string
-    {
-        if ($action !== 'run') {
-            return ActionConfigDefinition::class;
-        } elseif ($isConfigRow) {
-            return ConfigRowDefinition::class;
-        } else {
-            return ConfigDefinition::class;
-        }
     }
 
     protected function getConfigClass(): string
