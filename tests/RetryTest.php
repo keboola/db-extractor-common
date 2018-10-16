@@ -41,8 +41,8 @@ class RetryTest extends ExtractorTest
             'user' => getenv('TEST_RDS_USERNAME'),
             '#password' => getenv('TEST_RDS_PASSWORD'),
             'host' => getenv('TEST_RDS_HOST'),
-            'database' => 'odin4test',
-            'port' => '3306',
+            'database' => getenv('TEST_RDS_DATABASE'),
+            'port' => getenv('TEST_RDS_PORT'),
         ];
         $dsn = sprintf(
             "mysql:host=%s;port=%s;dbname=%s;charset=utf8",
@@ -60,11 +60,14 @@ class RetryTest extends ExtractorTest
     private function setupLargeTable(string $sourceFileName): void
     {
         $res = $this->pdo->query(
-            "SELECT * 
-            FROM information_schema.tables
-            WHERE table_schema = 'odin4test' 
-                AND table_name = 'sales'
-            LIMIT 1;"
+            sprintf(
+                "SELECT * 
+                FROM information_schema.tables
+                WHERE table_schema = '%s' 
+                    AND table_name = 'sales'
+                LIMIT 1;",
+                $this->getEnv('TEST_RDS_DATABASE')
+            )
         );
         $tableExists = $res->rowCount() > 0;
 
@@ -79,7 +82,7 @@ class RetryTest extends ExtractorTest
 
             $createTableSql = sprintf(
                 "CREATE TABLE %s.%s (%s) DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;",
-                'odin4test',
+                getenv('TEST_RDS_DATABASE'),
                 'sales',
                 implode(
                     ', ',
@@ -90,15 +93,19 @@ class RetryTest extends ExtractorTest
             );
             $this->pdo->exec($createTableSql);
             $fileName = (string) $csv;
-            $query = "
-                LOAD DATA LOCAL INFILE '{$fileName}'
-                INTO TABLE `odin4test`.`sales`
-                CHARACTER SET utf8
-                FIELDS TERMINATED BY ','
-                OPTIONALLY ENCLOSED BY '\"'
-                ESCAPED BY ''
-                IGNORE 1 LINES
-            ";
+            $query = sprintf(
+                "
+                    LOAD DATA LOCAL INFILE '%s'
+                    INTO TABLE `%s`.`sales`
+                    CHARACTER SET utf8
+                    FIELDS TERMINATED BY ','
+                    OPTIONALLY ENCLOSED BY '\"'
+                    ESCAPED BY ''
+                    IGNORE 1 LINES
+                ",
+                $fileName,
+                getenv('TEST_RDS_DATABASE')
+            );
             $this->pdo->exec($query);
         }
     }
