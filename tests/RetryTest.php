@@ -66,7 +66,7 @@ class RetryTest extends ExtractorTest
                 WHERE table_schema = '%s' 
                     AND table_name = 'sales'
                 LIMIT 1;",
-                $this->getEnv('TEST_RDS_DATABASE')
+                getenv('TEST_RDS_DATABASE')
             )
         );
         $tableExists = $res->rowCount() > 0;
