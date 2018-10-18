@@ -30,15 +30,13 @@ composer.json
     }
 
 ### Version 10
-_Version 10 changes a way of creating an instance of extractors. Old usage is still available but it is marked as deprecated and will be remove in next major version._
-
 Create entrypoint script the `run.php` like this one in DataDir Tests:
 https://github.com/keboola/db-extractor-common/blob/david-adapter/tests/FunctionalAdapter/run.php
 
 The `$config` is loaded from `config.json` file. You have to set ENV variable `KBC_DATADIR` with path to your data folder (running component inside KBC provide it automatically). 
-_We strongly recommend using [configuration rows schema](https://github.com/keboola/db-extractor-common/blob/david-adapter/tests/Old/data/common/exampleConfigRow.json)_
+_We strongly recommend using [configuration rows schema](https://github.com/keboola/db-extractor-common/tree/master/tests/Old/data/common/exampleConfigRow.json)_
 
-The extractor class must be child of [\Keboola\DbExtractorCommon\BaseExtractor](https://github.com/keboola/db-extractor-common/blob/david-adapter/src/Keboola/DbExtractor/Extractor/BaseExtractor.php) and implement all abstract methods:
+The extractor class must be child of [\Keboola\DbExtractorCommon\BaseExtractor](https://github.com/keboola/db-extractor-common/tree/master/src/Keboola/DbExtractor/Extractor/BaseExtractor.php) and implement all abstract methods:
  
 - `extract(array $tables): array`
 - `getTables(array $tables = []): array`
@@ -50,6 +48,6 @@ If you want to implement incremental fetching, you must override:
 
 Also you can define custom Config Definition class:
 
-- `getConfigDefinition(string $action, bool $isConfigRow): string`
+- `getConfigDefinitionClass(): string`
 
 Please check the existing implementations above for help getting started.
