@@ -195,10 +195,6 @@ abstract class BaseExtractor extends BaseComponent
 
     protected function createOutputCsv(string $outputTable): CsvWriter
     {
-        $outTablesDir = $this->getDataDir() . '/out/tables';
-        if (!is_dir($outTablesDir)) {
-            mkdir($outTablesDir, 0777, true);
-        }
         return new CsvWriter($this->getOutputFilePath($outputTable));
     }
 
