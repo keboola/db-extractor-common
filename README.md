@@ -31,7 +31,7 @@ composer.json
 
 ### Version 10
 Create entrypoint script the `run.php` like this one in DataDir Tests:
-https://github.com/keboola/db-extractor-common/blob/david-adapter/tests/FunctionalAdapter/run.php
+https://github.com/keboola/db-extractor-common/tree/master/tests/FunctionalAdapter/run.php
 
 The `$config` is loaded from `config.json` file. You have to set ENV variable `KBC_DATADIR` with path to your data folder (running component inside KBC provide it automatically). 
 _We strongly recommend using [configuration rows schema](https://github.com/keboola/db-extractor-common/tree/master/tests/Old/data/common/exampleConfigRow.json)_
