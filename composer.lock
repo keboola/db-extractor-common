@@ -148,19 +148,20 @@
         },
         {
             "name": "keboola/php-component",
-            "version": "4.3.0",
+            "version": "4.4.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/keboola/php-component.git",
-                "reference": "ccf0a216c0184d27b4f1db4d7d8042177ef6842a"
+                "reference": "e5fec6a96e337d0f74cc2f8e6115987a0dc77e10"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/keboola/php-component/zipball/ccf0a216c0184d27b4f1db4d7d8042177ef6842a",
-                "reference": "ccf0a216c0184d27b4f1db4d7d8042177ef6842a",
+                "url": "https://api.github.com/repos/keboola/php-component/zipball/e5fec6a96e337d0f74cc2f8e6115987a0dc77e10",
+                "reference": "e5fec6a96e337d0f74cc2f8e6115987a0dc77e10",
                 "shasum": ""
             },
             "require": {
+                "ext-json": "*",
                 "monolog/monolog": "^1.23",
                 "php": "^7.1",
                 "symfony/config": "^4.0",
@@ -198,7 +199,7 @@
                 "docker",
                 "keboola"
             ],
-            "time": "2018-10-02T15:21:16+00:00"
+            "time": "2018-10-18T15:09:36+00:00"
         },
         {
             "name": "keboola/php-datatypes",
