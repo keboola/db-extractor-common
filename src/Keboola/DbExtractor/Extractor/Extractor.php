@@ -24,6 +24,8 @@ abstract class Extractor
 {
     public const DEFAULT_MAX_TRIES = 5;
 
+    public const DATATYPE_KEYS = ['type', 'length', 'nullable', 'default', 'format'];
+
     /** @var PDO|mixed */
     protected $db;
 
@@ -388,15 +390,14 @@ abstract class Extractor
         return file_put_contents($outFilename, json_encode($manifestData));
     }
 
-    private function getColumnMetadata(array $column): array
+    public static function getColumnMetadata(array $column): array
     {
-        $datatypeKeys = ['type', 'length', 'nullable', 'default', 'format'];
         $datatype = new GenericStorage(
             $column['type'],
-            array_intersect_key($column, array_flip($datatypeKeys))
+            array_intersect_key($column, array_flip(self::DATATYPE_KEYS))
         );
         $columnMetadata = $datatype->toMetadata();
-        $nonDatatypeKeys = array_diff_key($column, array_flip($datatypeKeys));
+        $nonDatatypeKeys = array_diff_key($column, array_flip(self::DATATYPE_KEYS));
         foreach ($nonDatatypeKeys as $key => $value) {
             if ($key === 'name') {
                 $columnMetadata[] = [
@@ -413,7 +414,7 @@ abstract class Extractor
         return $columnMetadata;
     }
 
-    private function getTableLevelMetadata(array $tableDetails): array
+    public static function getTableLevelMetadata(array $tableDetails): array
     {
         $metadata = [];
         foreach ($tableDetails as $key => $value) {
