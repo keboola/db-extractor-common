@@ -6,6 +6,7 @@ namespace Keboola\DbExtractorCommon;
 
 use Keboola\Component\BaseComponent;
 use Keboola\Component\Logger;
+use Keboola\Component\Manifest\ManifestManager\Options\OutTableManifestOptions;
 use Keboola\Component\UserException;
 use Keboola\Csv\CsvWriter;
 use Keboola\Datatype\Definition\GenericStorage;
@@ -129,15 +130,12 @@ abstract class BaseExtractor extends BaseComponent
 
     protected function createManifest(TableParameters $table): void
     {
-        $outFilename = $this->getOutputFilename($table->getOutputTable()) . '.manifest';
-
-        $manifestData = [
-            'destination' => $table->getOutputTable(),
-            'incremental' => $table->isIncremental(),
-        ];
+        $tableManifestOptions = new OutTableManifestOptions();
+        $tableManifestOptions->setDestination($table->getOutputTable());
+        $tableManifestOptions->setIncremental($table->isIncremental());
 
         if ($table->getPrimaryKey()) {
-            $manifestData['primary_key'] = $table->getPrimaryKey();
+            $tableManifestOptions->setPrimaryKeyColumns($table->getPrimaryKey());
         }
 
         $manifestColumns = [];
@@ -179,16 +177,20 @@ abstract class BaseExtractor extends BaseComponent
                     $columnMetadata[$columnName] = $this->getColumnMetadata($column);
                     $manifestColumns[] = $columnName;
                 }
-                $manifestData['metadata'] = $this->getTableLevelMetadata($tableDetails);
+                $tableManifestOptions->setMetadata($this->getTableLevelMetadata($tableDetails));
+                $tableManifestOptions->setColumnMetadata($columnMetadata);
+                $tableManifestOptions->setColumns($manifestColumns);
 
-                $manifestData['column_metadata'] = $columnMetadata;
-                $manifestData['columns'] = $manifestColumns;
                 if (!empty($sanitizedPks)) {
-                    $manifestData['primary_key'] = $sanitizedPks;
+                    $tableManifestOptions->setPrimaryKeyColumns($sanitizedPks);
                 }
             }
         }
-        file_put_contents($outFilename, json_encode($manifestData));
+
+        $this->getManifestManager()->writeTableManifest(
+            $this->getOutputFileName($table->getOutputTable()),
+            $tableManifestOptions
+        );
     }
 
     protected function createOutputCsv(string $outputTable): CsvWriter
@@ -197,7 +199,7 @@ abstract class BaseExtractor extends BaseComponent
         if (!is_dir($outTablesDir)) {
             mkdir($outTablesDir, 0777, true);
         }
-        return new CsvWriter($this->getOutputFilename($outputTable));
+        return new CsvWriter($this->getOutputFilePath($outputTable));
     }
 
     protected function createSshTunnel(SshParameters $sshParameters, DatabaseParameters $dbConfig): DatabaseParameters
@@ -248,10 +250,15 @@ abstract class BaseExtractor extends BaseComponent
         }
     }
 
-    protected function getOutputFilename(string $outputTableName): string
+    protected function getOutputFileName(string $outputTableName): string
     {
         $sanitizedTableName = Strings::webalize($outputTableName, '._');
-        return $this->getDataDir() . '/out/tables/' . $sanitizedTableName . '.csv';
+        return $sanitizedTableName . '.csv';
+    }
+
+    protected function getOutputFilePath(string $outputTableName): string
+    {
+        return $this->getDataDir() . '/out/tables/' . $this->getOutputFileName($outputTableName);
     }
 
     protected function isAlive(): void

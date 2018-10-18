@@ -392,7 +392,7 @@ class CommonExtractor extends BaseExtractor
         if ($result['rows'] > 0) {
             $this->createManifest($table);
         } else {
-            unlink($this->getOutputFilename($outputTable));
+            unlink($this->getOutputFilePath($outputTable));
             $this->getLogger()->warning(
                 sprintf(
                     "Query returned empty result. Nothing was imported to [%s]",
