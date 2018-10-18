@@ -81,9 +81,11 @@ class ExtractorTest extends TestCase
     {
         putenv(sprintf('KBC_DATADIR=%s', $this->dataDir));
         $this->prepareConfigInDataDir($config);
+        if (!empty($state)) {
+            $this->prepareInputStateInDataDir($state);
+        }
 
         $app = new CommonExtractor(new Logger());
-        $app->setState($state);
         return $app;
     }
 
@@ -93,6 +95,15 @@ class ExtractorTest extends TestCase
         file_put_contents(
             $configFilePath,
             json_encode($config, JSON_PRETTY_PRINT)
+        );
+    }
+
+    protected function prepareInputStateInDataDir(array $state): void
+    {
+        $inputStateFilePath = $this->dataDir . DIRECTORY_SEPARATOR . 'in/state.json';
+        file_put_contents(
+            $inputStateFilePath,
+            json_encode($state, JSON_PRETTY_PRINT)
         );
     }
 

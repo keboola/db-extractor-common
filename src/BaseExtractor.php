@@ -24,8 +24,6 @@ use Keboola\SSHTunnel\SSHException;
 use Monolog\Handler\NullHandler;
 use Nette\Utils\Strings;
 use Symfony\Component\Config\Definition\Exception\Exception as ConfigException;
-use Symfony\Component\Serializer\Encoder\JsonEncode;
-use Symfony\Component\Serializer\Encoder\JsonEncoder;
 
 abstract class BaseExtractor extends BaseComponent
 {
@@ -35,9 +33,6 @@ abstract class BaseExtractor extends BaseComponent
 
     /** @var array */
     protected $dbParameters;
-
-    /** @var array */
-    protected $state;
 
     public function __construct(Logger $logger)
     {
@@ -79,13 +74,7 @@ abstract class BaseExtractor extends BaseComponent
                     $this->validateParameters($config);
                     $result = $this->extract($config);
                     if (!empty($result['state'])) {
-                        // write state
-                        $outputStateFile = $this->getDataDir() . '/out/state.json';
-                        $jsonEncode = new JsonEncode();
-                        file_put_contents(
-                            $outputStateFile,
-                            $jsonEncode->encode($result['state'], JsonEncoder::FORMAT)
-                        );
+                        $this->writeOutputStateToFile($result['state']);
                     }
                     break;
                 case 'testConnection':
@@ -106,11 +95,6 @@ abstract class BaseExtractor extends BaseComponent
         }
 
         print json_encode($result, JSON_PRETTY_PRINT);
-    }
-
-    public function setState(array $state = []): void
-    {
-        $this->state = $state;
     }
 
     public function validateParameters(BaseExtractorConfig $config): void

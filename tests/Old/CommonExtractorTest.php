@@ -29,6 +29,7 @@ class CommonExtractorTest extends ExtractorTest
 
     public function setUp(): void
     {
+        $this->cleanInputDirectory();
         $this->cleanOutputDirectory();
         $this->initDatabase();
     }
@@ -96,6 +97,14 @@ class CommonExtractorTest extends ExtractorTest
         $dataLoader->load($simpleFile, 'simple', 0);
         // let other methods use the db connection
         $this->db = $dataLoader->getPdo();
+    }
+
+    private function cleanInputDirectory(): void
+    {
+        $inputStateFile = $this->dataDir . '/in/state.json';
+        if (file_exists($inputStateFile)) {
+            unlink($inputStateFile);
+        }
     }
 
     private function cleanOutputDirectory(): void

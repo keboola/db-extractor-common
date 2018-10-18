@@ -293,8 +293,8 @@ class CommonExtractor extends BaseExtractor
             return $output;
         }
         // no rows found.  If incremental fetching is turned on, we need to preserve the last state
-        if ($this->incrementalFetching['column'] && isset($this->state['lastFetchedRow'])) {
-            $output = $this->state;
+        if ($this->incrementalFetching['column'] && isset($this->getInputState()['lastFetchedRow'])) {
+            $output = $this->getInputState();
         }
         $output['rows'] = 0;
         return $output;
@@ -459,18 +459,18 @@ class CommonExtractor extends BaseExtractor
         );
 
         $incrementalAddon = null;
-        if ($this->incrementalFetching && isset($this->state['lastFetchedRow'])) {
+        if ($this->incrementalFetching && isset($this->getInputState()['lastFetchedRow'])) {
             if ($this->incrementalFetching['type'] === self::TYPE_AUTO_INCREMENT) {
                 $incrementalAddon = sprintf(
                     ' %s > %d',
                     $this->quote($this->incrementalFetching['column']),
-                    (int) $this->state['lastFetchedRow']
+                    (int) $this->getInputState()['lastFetchedRow']
                 );
             } else if ($this->incrementalFetching['type'] === self::TYPE_AUTO_INCREMENT) {
                 $incrementalAddon = sprintf(
                     " %s > '%s'",
                     $this->quote($this->incrementalFetching['column']),
-                    $this->state['lastFetchedRow']
+                    $this->getInputState()['lastFetchedRow']
                 );
             } else {
                 throw new ApplicationException(
