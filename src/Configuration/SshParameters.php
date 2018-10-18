@@ -53,7 +53,7 @@ class SshParameters
         $this->user = $user;
     }
 
-    public function getEnabled(): bool
+    public function isEnabled(): bool
     {
         return $this->enabled;
     }
