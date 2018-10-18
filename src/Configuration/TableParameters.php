@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractorCommon\Configuration;
 
+use Keboola\DbExtractorCommon\BaseExtractor;
+
 class TableParameters
 {
     /** @var string|null */
@@ -33,7 +35,7 @@ class TableParameters
     /** @var array|null */
     private $primaryKey;
 
-    /** @var int|null */
+    /** @var int */
     private $retries;
 
     public function __construct(
@@ -46,7 +48,7 @@ class TableParameters
         ?int $incrementalFetchingLimit = null,
         bool $enabled = true,
         ?array $primaryKey = null,
-        ?int $retries = null
+        int $retries = BaseExtractor::DEFAULT_MAX_TRIES
     ) {
         $this->query = $query;
         $this->columns = $columns;
@@ -105,9 +107,9 @@ class TableParameters
         return $this->primaryKey;
     }
 
-    public function getRetries(): ?int
+    public function getRetries(): int
     {
-        return (int) $this->retries;
+        return $this->retries;
     }
 
 
@@ -123,7 +125,7 @@ class TableParameters
             isset($table['incrementalFetchingLimit']) ? (int) $table['incrementalFetchingLimit'] : null,
             $table['enabled'] ?? true,
             $table['primaryKey'] ?? null,
-            $table['retries'] ?? null
+            $table['retries']
         );
     }
 }
