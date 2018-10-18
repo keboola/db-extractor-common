@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractorCommon\Tests;
 
+use Keboola\Component\JsonFileHelper;
 use Keboola\Component\Logger;
 use Keboola\DbExtractorCommon\BaseExtractor;
 use PHPUnit\Framework\TestCase;
@@ -92,19 +93,13 @@ class ExtractorTest extends TestCase
     protected function prepareConfigInDataDir(array $config): void
     {
         $configFilePath = $this->dataDir . DIRECTORY_SEPARATOR . 'config.json';
-        file_put_contents(
-            $configFilePath,
-            json_encode($config, JSON_PRETTY_PRINT)
-        );
+        JsonFileHelper::write($configFilePath, $config);
     }
 
     protected function prepareInputStateInDataDir(array $state): void
     {
         $inputStateFilePath = $this->dataDir . DIRECTORY_SEPARATOR . 'in/state.json';
-        file_put_contents(
-            $inputStateFilePath,
-            json_encode($state, JSON_PRETTY_PRINT)
-        );
+        JsonFileHelper::write($inputStateFilePath, $state);
     }
 
     protected function runApplication(BaseExtractor $application): string

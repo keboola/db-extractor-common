@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractorCommon\Tests\Functional;
 
+use Keboola\Component\JsonFileHelper;
 use Keboola\DatadirTests\AbstractDatadirTestCase;
 use Keboola\DatadirTests\DatadirTestSpecification;
 use Keboola\DbExtractorCommon\Tests\DataLoader;
@@ -95,10 +96,11 @@ class DatadirTest extends AbstractDatadirTestCase
         );
         $tempDatadir = $this->getTempDatadir($specification);
 
-        file_put_contents(
+        JsonFileHelper::write(
             $tempDatadir->getTmpFolder() . '/config.json',
-            json_encode($configuration, JSON_PRETTY_PRINT)
+            $configuration
         );
+
         $process = $this->runScript($tempDatadir->getTmpFolder());
         $this->assertMatchesSpecification($specification, $process, $tempDatadir->getTmpFolder());
     }
