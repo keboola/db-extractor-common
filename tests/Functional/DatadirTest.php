@@ -6,7 +6,6 @@ namespace Keboola\DbExtractorCommon\Tests\Functional;
 
 use Keboola\Component\JsonHelper;
 use Keboola\DatadirTests\AbstractDatadirTestCase;
-use Keboola\DatadirTests\DatadirTestSpecification;
 use Keboola\DbExtractorCommon\Tests\DataLoader;
 
 class DatadirTest extends AbstractDatadirTestCase
@@ -80,31 +79,6 @@ class DatadirTest extends AbstractDatadirTestCase
         );
     }
 
-    private function runCommonTest(
-        string $testDirectory,
-        array $configuration,
-        int $expectedReturnCode,
-        ?string $expectedStdout,
-        ?string $expectedStderr
-    ): void {
-        $specification = new DatadirTestSpecification(
-            $testDirectory . '/source/data',
-            $expectedReturnCode,
-            $expectedStdout,
-            $expectedStderr,
-            $testDirectory . '/expected/data/out'
-        );
-        $tempDatadir = $this->getTempDatadir($specification);
-
-        JsonHelper::writeFile(
-            $tempDatadir->getTmpFolder() . '/config.json',
-            $configuration
-        );
-
-        $process = $this->runScript($tempDatadir->getTmpFolder());
-        $this->assertMatchesSpecification($specification, $process, $tempDatadir->getTmpFolder());
-    }
-
     public function testActionTestConnection(): void
     {
         $testDirectory = __DIR__ . '/empty-data';
@@ -119,7 +93,7 @@ class DatadirTest extends AbstractDatadirTestCase
 
         $this->createDatabase($credentials['database']);
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             0,
@@ -208,7 +182,7 @@ class DatadirTest extends AbstractDatadirTestCase
         $this->createTable($database, 'table1');
         $this->createTable($database, 'table2');
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             0,
@@ -230,7 +204,7 @@ class DatadirTest extends AbstractDatadirTestCase
         $database = $credentials['database'];
         $this->createDatabase($database);
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             1,
@@ -264,7 +238,7 @@ class DatadirTest extends AbstractDatadirTestCase
         $this->createDatabase($database);
         $this->createTable($database, 'table1');
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             1,
@@ -294,7 +268,7 @@ class DatadirTest extends AbstractDatadirTestCase
         $this->createDatabase($database);
         $this->createTable($database, 'table1');
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             1,
@@ -324,7 +298,7 @@ class DatadirTest extends AbstractDatadirTestCase
         $this->createDatabase($database);
         $this->createTable($database, 'table1');
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             1,
@@ -358,7 +332,7 @@ class DatadirTest extends AbstractDatadirTestCase
         $this->createDatabase($database);
         $this->createTable($database, $table);
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             1,
@@ -393,7 +367,7 @@ class DatadirTest extends AbstractDatadirTestCase
         $this->createDatabase($database);
         $this->createTable($database, $table);
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             1,
@@ -439,7 +413,7 @@ class DatadirTest extends AbstractDatadirTestCase
         $this->createDatabase($database);
         $this->createTable($database, $table);
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             0,
@@ -482,7 +456,7 @@ class DatadirTest extends AbstractDatadirTestCase
             'r2'
         ));
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             0,
@@ -525,7 +499,7 @@ class DatadirTest extends AbstractDatadirTestCase
             'r2'
         ));
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             0,
@@ -551,7 +525,7 @@ class DatadirTest extends AbstractDatadirTestCase
             ],
         ];
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             1,
@@ -579,7 +553,7 @@ class DatadirTest extends AbstractDatadirTestCase
             ],
         ];
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             1,
@@ -607,7 +581,7 @@ class DatadirTest extends AbstractDatadirTestCase
             ],
         ];
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             1,
@@ -661,7 +635,7 @@ class DatadirTest extends AbstractDatadirTestCase
             'r2'
         ));
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             0,
@@ -725,7 +699,7 @@ class DatadirTest extends AbstractDatadirTestCase
             'r2'
         ));
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             0,
@@ -768,7 +742,7 @@ class DatadirTest extends AbstractDatadirTestCase
             'r2'
         ));
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             0,
@@ -798,7 +772,7 @@ class DatadirTest extends AbstractDatadirTestCase
         $this->createDatabase($database);
         $this->createTable($database, 'table1');
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             1,
@@ -823,7 +797,7 @@ class DatadirTest extends AbstractDatadirTestCase
         $this->createDatabase($database);
         $this->createTable($database, 'table1');
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             1,
@@ -848,7 +822,7 @@ class DatadirTest extends AbstractDatadirTestCase
         $this->createDatabase($database);
         $this->createTable($database, 'table1');
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             1,
@@ -877,7 +851,7 @@ class DatadirTest extends AbstractDatadirTestCase
         $this->createDatabase($database);
         $this->createTable($database, $table);
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             1,
@@ -907,7 +881,7 @@ class DatadirTest extends AbstractDatadirTestCase
         $this->createDatabase($database);
         $this->createTable($database, $table);
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             1,
@@ -946,7 +920,7 @@ class DatadirTest extends AbstractDatadirTestCase
         $this->createDatabase($database);
         $this->createTable($database, $table);
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             0,
@@ -991,7 +965,7 @@ class DatadirTest extends AbstractDatadirTestCase
             'r2'
         ));
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             0,
@@ -1039,7 +1013,7 @@ class DatadirTest extends AbstractDatadirTestCase
             'r2'
         ));
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             0,
@@ -1060,7 +1034,7 @@ class DatadirTest extends AbstractDatadirTestCase
         $configuration['parameters']['outputTable'] = 'table1';
         $configuration['parameters']['table'] = [];
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             1,
@@ -1083,7 +1057,7 @@ class DatadirTest extends AbstractDatadirTestCase
             'tableName' => 'table',
         ];
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             1,
@@ -1106,7 +1080,7 @@ class DatadirTest extends AbstractDatadirTestCase
             'schema' => 'database',
         ];
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             1,
@@ -1154,7 +1128,7 @@ class DatadirTest extends AbstractDatadirTestCase
             'r2'
         ));
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             0,
@@ -1205,7 +1179,7 @@ class DatadirTest extends AbstractDatadirTestCase
             'r2'
         ));
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             0,
@@ -1236,7 +1210,7 @@ class DatadirTest extends AbstractDatadirTestCase
         $this->createDatabase($database);
         $this->createTable($database, $table);
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             1,
@@ -1267,7 +1241,7 @@ class DatadirTest extends AbstractDatadirTestCase
         $this->createDatabase($database);
         $this->createTable($database, $table);
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             1,
@@ -1323,7 +1297,7 @@ class DatadirTest extends AbstractDatadirTestCase
             'r2'
         ));
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             0,
