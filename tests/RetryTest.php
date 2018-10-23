@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractorCommon\Tests;
 
+use Keboola\Component\JsonHelper;
 use Keboola\Csv\CsvWriter;
 use Keboola\DbExtractorCommon\Exception\DeadConnectionException;
 use Keboola\Component\UserException;
@@ -195,7 +196,7 @@ class RetryTest extends ExtractorTest
         exec(self::KILLER_EXECUTABLE . ' 2 > /dev/null &');
 
         $stdout = $this->runApplication($app);
-        $result = json_decode($stdout, true);
+        $result = JsonHelper::decode($stdout);
 
         $outputCsvFile = $this->dataDir . '/out/tables/' . $result['imported'][0]['outputTable'] . '.csv';
 

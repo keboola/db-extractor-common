@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractorCommon\Tests\Old;
 
+use Keboola\Component\JsonHelper;
 use Keboola\Csv\CsvReader;
 use Keboola\DbExtractorCommon\Exception\ApplicationException;
 use Keboola\Component\UserException;
@@ -131,18 +132,17 @@ class CommonExtractorTest extends ExtractorTest
 
         $app = $this->getApp($config);
         $stdout = $this->runApplication($app);
-        $result = json_decode($stdout, true);
+        $result = JsonHelper::decode($stdout);
 
         $this->assertExtractedData($this->dataDir . '/escaping.csv', $result['imported'][0]['outputTable']);
         $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][1]['outputTable']);
 
-        $manifest = json_decode(
-            (string) file_get_contents(sprintf(
+        $manifest = JsonHelper::readFile(
+            sprintf(
                 "%s/out/tables/%s.csv.manifest",
                 $this->dataDir,
                 $result['imported'][1]['outputTable']
-            )),
-            true
+            )
         );
         $this->assertEquals(["weird_I_d", 'S_oPaulo'], $manifest['columns']);
         $this->assertEquals(["weird_I_d"], $manifest['primary_key']);
@@ -155,28 +155,28 @@ class CommonExtractorTest extends ExtractorTest
 
         $app = $this->getApp($config);
         $stdout = $this->runApplication($app);
-        $result = json_decode($stdout, true);
+        $result = JsonHelper::decode($stdout);
 
         $this->assertExtractedData($this->dataDir . '/escaping.csv', $result['imported'][0]['outputTable']);
-        $manifest = json_decode(
-            (string) file_get_contents(sprintf(
+
+        $manifest = JsonHelper::readFile(
+            sprintf(
                 "%s/out/tables/%s.csv.manifest",
                 $this->dataDir,
                 $result['imported'][0]['outputTable']
-            )),
-            true
+            )
         );
         $this->assertArrayNotHasKey('columns', $manifest);
         $this->assertArrayNotHasKey('primary_key', $manifest);
         
         $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][1]['outputTable']);
-        $manifest = json_decode(
-            (string) file_get_contents(sprintf(
+
+        $manifest = JsonHelper::readFile(
+            sprintf(
                 "%s/out/tables/%s.csv.manifest",
                 $this->dataDir,
                 $result['imported'][1]['outputTable']
-            )),
-            true
+            )
         );
         $this->assertEquals(["weird_I_d", 'S_oPaulo'], $manifest['columns']);
         $this->assertEquals(["weird_I_d"], $manifest['primary_key']);
@@ -189,19 +189,19 @@ class CommonExtractorTest extends ExtractorTest
 
         $app = $this->getApp($config);
         $stdout = $this->runApplication($app);
-        $result = json_decode($stdout, true);
+        $result = JsonHelper::decode($stdout);
 
         $this->assertEquals('success', $result['status']);
         $this->assertEquals('in.c-main.simple', $result['imported']['outputTable']);
         $this->assertEquals(2, $result['imported']['rows']);
         $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported']['outputTable']);
-        $manifest = json_decode(
-            (string) file_get_contents(sprintf(
+
+        $manifest = JsonHelper::readFile(
+            sprintf(
                 "%s/out/tables/%s.csv.manifest",
                 $this->dataDir,
                 $result['imported']['outputTable']
-            )),
-            true
+            )
         );
         $this->assertEquals(["weird_I_d", 'S_oPaulo'], $manifest['columns']);
         $this->assertEquals(["weird_I_d"], $manifest['primary_key']);
@@ -222,7 +222,7 @@ class CommonExtractorTest extends ExtractorTest
 
         $app = $this->getApp($config);
         $stdout = $this->runApplication($app);
-        $result = json_decode($stdout, true);
+        $result = JsonHelper::decode($stdout);
 
         $this->assertExtractedData($this->dataDir . '/escaping.csv', $result['imported'][0]['outputTable']);
         $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][1]['outputTable']);
@@ -246,7 +246,7 @@ class CommonExtractorTest extends ExtractorTest
 
         $app = $this->getApp($config);
         $stdout = $this->runApplication($app);
-        $result = json_decode($stdout, true);
+        $result = JsonHelper::decode($stdout);
 
         $this->assertExtractedData($this->dataDir . '/escaping.csv', $result['imported'][0]['outputTable']);
         $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][1]['outputTable']);
@@ -323,7 +323,7 @@ class CommonExtractorTest extends ExtractorTest
 
         $app = $this->getApp($config);
         $stdout = $this->runApplication($app);
-        $result = json_decode($stdout, true);
+        $result = JsonHelper::decode($stdout);
 
         $this->assertEquals('success', $result['status']);
         $this->assertFileNotExists($outputCsvFile);
@@ -339,7 +339,7 @@ class CommonExtractorTest extends ExtractorTest
 
         $app = $this->getApp($config);
         $stdout = $this->runApplication($app);
-        $result = json_decode($stdout, true);
+        $result = JsonHelper::decode($stdout);
 
         $this->assertEquals('success', $result['status']);
     }
@@ -390,7 +390,7 @@ class CommonExtractorTest extends ExtractorTest
 
         $app = $this->getApp($config);
         $stdout = $this->runApplication($app);
-        $result = json_decode($stdout, true);
+        $result = JsonHelper::decode($stdout);
 
         $this->assertArrayHasKey('status', $result);
         $this->assertArrayHasKey('tables', $result);
@@ -512,16 +512,13 @@ class CommonExtractorTest extends ExtractorTest
 
         $app = $this->getApp($config);
         $stdout = $this->runApplication($app);
-        $result = json_decode($stdout, true);
+        $result = JsonHelper::decode($stdout);
 
         $manifestFile = $this->dataDir . '/out/tables/in.c-main.simple.csv.manifest';
 
         $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][0]['outputTable']);
 
-        $outputManifest = json_decode(
-            (string) file_get_contents($manifestFile),
-            true
-        );
+        $outputManifest = JsonHelper::readFile($manifestFile);
 
         $this->assertArrayHasKey('destination', $outputManifest);
         $this->assertArrayHasKey('incremental', $outputManifest);
@@ -678,17 +675,17 @@ class CommonExtractorTest extends ExtractorTest
 
         $app = $this->getApp($config);
         $stdout = $this->runApplication($app);
-        $result = json_decode($stdout, true);
+        $result = JsonHelper::decode($stdout);
 
         $outputTableName = $result['imported'][0]['outputTable'];
         $this->assertExtractedData($this->dataDir . '/simple.csv', $outputTableName);
-        $manifest = json_decode(
-            (string) file_get_contents(sprintf(
+
+        $manifest = JsonHelper::readFile(
+            sprintf(
                 "%s/out/tables/%s.csv.manifest",
                 $this->dataDir,
                 $outputTableName
-            )),
-            true
+            )
         );
         $this->assertEquals(["weird_I_d", 'S_oPaulo'], $manifest['columns']);
         $this->assertEquals(["weird_I_d"], $manifest['primary_key']);
@@ -731,7 +728,7 @@ class CommonExtractorTest extends ExtractorTest
 
         $app = $this->getApp($config);
         $stdout = $this->runApplication($app);
-        $result = json_decode($stdout, true);
+        $result = JsonHelper::decode($stdout);
 
         $this->assertEquals('success', $result['status']);
         $this->assertFileExists($this->dataDir . '/out/tables/in.c-main.something-weird.csv');
@@ -748,7 +745,7 @@ class CommonExtractorTest extends ExtractorTest
 
         $app = $this->getApp($config);
         $stdout = $this->runApplication($app);
-        $result = json_decode($stdout, true);
+        $result = JsonHelper::decode($stdout);
 
         $this->assertEquals('success', $result['status']);
         $this->assertEquals(
@@ -769,7 +766,7 @@ class CommonExtractorTest extends ExtractorTest
         // the next fetch should be empty
         $app = $this->getApp($config, $result['state']);
         $stdout = $this->runApplication($app);
-        $emptyResult = json_decode($stdout, true);
+        $emptyResult = JsonHelper::decode($stdout);
 
         $this->assertEquals(0, $emptyResult['imported']['rows']);
 
@@ -779,7 +776,7 @@ class CommonExtractorTest extends ExtractorTest
 
         $app = $this->getApp($config, $result['state']);
         $stdout = $this->runApplication($app);
-        $newResult = json_decode($stdout, true);
+        $newResult = JsonHelper::decode($stdout);
 
         //check that output state contains expected information
         $this->assertArrayHasKey('state', $newResult);
@@ -800,7 +797,7 @@ class CommonExtractorTest extends ExtractorTest
 
         $app = $this->getApp($config);
         $stdout = $this->runApplication($app);
-        $result = json_decode($stdout, true);
+        $result = JsonHelper::decode($stdout);
 
         $this->assertEquals('success', $result['status']);
         $this->assertEquals(
@@ -821,7 +818,7 @@ class CommonExtractorTest extends ExtractorTest
 
         $app = $this->getApp($config, $result['state']);
         $stdout = $this->runApplication($app);
-        $emptyResult = json_decode($stdout, true);
+        $emptyResult = JsonHelper::decode($stdout);
 
         $this->assertEquals(0, $emptyResult['imported']['rows']);
 
@@ -831,7 +828,7 @@ class CommonExtractorTest extends ExtractorTest
 
         $app = $this->getApp($config, $result['state']);
         $stdout = $this->runApplication($app);
-        $newResult = json_decode($stdout, true);
+        $newResult = JsonHelper::decode($stdout);
 
 
         //check that output state contains expected information
@@ -851,7 +848,7 @@ class CommonExtractorTest extends ExtractorTest
 
         $app = $this->getApp($config);
         $stdout = $this->runApplication($app);
-        $result = json_decode($stdout, true);
+        $result = JsonHelper::decode($stdout);
 
         $this->assertEquals('success', $result['status']);
         $this->assertEquals(
@@ -872,7 +869,7 @@ class CommonExtractorTest extends ExtractorTest
         // the next fetch should contain the second row
         $app = $this->getApp($config, $result['state']);
         $stdout = $this->runApplication($app);
-        $result = json_decode($stdout, true);
+        $result = JsonHelper::decode($stdout);
 
         $this->assertEquals(
             [
@@ -898,7 +895,7 @@ class CommonExtractorTest extends ExtractorTest
 
         $app = $this->getApp($config);
         $stdout = $this->runApplication($app);
-        $result = json_decode($stdout, true);
+        $result = JsonHelper::decode($stdout);
 
         $this->assertEquals(
             [
@@ -976,15 +973,12 @@ class CommonExtractorTest extends ExtractorTest
 
         $app = $this->getApp($config);
         $stdout = $this->runApplication($app);
-        $result = json_decode($stdout, true);
+        $result = JsonHelper::decode($stdout);
 
         $this->assertEquals('success', $result['status']);
         $outputManifestFile = $this->dataDir . '/out/tables/in.c-main.columnscheck.csv.manifest';
 
-        $outputManifest = json_decode(
-            (string) file_get_contents($outputManifestFile),
-            true
-        );
+        $outputManifest = JsonHelper::readFile($outputManifestFile);
 
         // check that the manifest has the correct column ordering
         $this->assertEquals($config['parameters']['columns'], $outputManifest['columns']);
@@ -1012,7 +1006,7 @@ class CommonExtractorTest extends ExtractorTest
 
         $app = $this->getApp($config);
         $stdout = $this->runApplication($app);
-        $result = json_decode($stdout, true);
+        $result = JsonHelper::decode($stdout);
 
         $this->assertCount(1, $result);
         $this->assertArrayHasKey('status', $result);
@@ -1030,7 +1024,7 @@ class CommonExtractorTest extends ExtractorTest
 
         $app = $this->getApp($config);
         $stdout = $this->runApplication($app);
-        $result = json_decode($stdout, true);
+        $result = JsonHelper::decode($stdout);
 
         $this->assertArrayHasKey('status', $result);
         $this->assertEquals('success', $result['status']);

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Keboola\DbExtractorCommon;
 
 use Keboola\Component\BaseComponent;
+use Keboola\Component\JsonHelper;
 use Keboola\Component\Logger;
 use Keboola\Component\Manifest\ManifestManager\Options\OutTableManifestOptions;
 use Keboola\Component\UserException;
@@ -94,7 +95,7 @@ abstract class BaseExtractor extends BaseComponent
             throw $exception;
         }
 
-        print json_encode($result, JSON_PRETTY_PRINT);
+        print JsonHelper::encode($result);
     }
 
     public function validateParameters(BaseExtractorConfig $config): void

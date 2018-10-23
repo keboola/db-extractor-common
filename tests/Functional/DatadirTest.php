@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractorCommon\Tests\Functional;
 
-use Keboola\Component\JsonFileHelper;
+use Keboola\Component\JsonHelper;
 use Keboola\DatadirTests\AbstractDatadirTestCase;
 use Keboola\DatadirTests\DatadirTestSpecification;
 use Keboola\DbExtractorCommon\Tests\DataLoader;
@@ -54,7 +54,7 @@ class DatadirTest extends AbstractDatadirTestCase
 
     private function getConfig(string $testDirectory): array
     {
-        $configuration = json_decode((string) file_get_contents($testDirectory . '/config.json'), true);
+        $configuration = JsonHelper::readFile($testDirectory . '/config.json');
         return $configuration;
     }
 
@@ -96,7 +96,7 @@ class DatadirTest extends AbstractDatadirTestCase
         );
         $tempDatadir = $this->getTempDatadir($specification);
 
-        JsonFileHelper::write(
+        JsonHelper::writeFile(
             $tempDatadir->getTmpFolder() . '/config.json',
             $configuration
         );
@@ -115,7 +115,7 @@ class DatadirTest extends AbstractDatadirTestCase
         $configuration['action'] = 'testConnection';
         $configuration['parameters']['db'] = $credentials;
 
-        $expectedStdout = json_encode(['status' => 'success'], JSON_PRETTY_PRINT);
+        $expectedStdout = JsonHelper::encode(['status' => 'success']);
 
         $this->createDatabase($credentials['database']);
 
@@ -201,7 +201,7 @@ class DatadirTest extends AbstractDatadirTestCase
             ],
             'status' => 'success',
         ];
-        $expectedStdout = json_encode($response, JSON_PRETTY_PRINT);
+        $expectedStdout = JsonHelper::encode($response);
 
         $database = $credentials['database'];
         $this->createDatabase($database);
@@ -443,7 +443,7 @@ class DatadirTest extends AbstractDatadirTestCase
             $testDirectory,
             $configuration,
             0,
-            'Exporting to table1' . PHP_EOL . json_encode($response, JSON_PRETTY_PRINT),
+            'Exporting to table1' . PHP_EOL . JsonHelper::encode($response),
             null
         );
     }
@@ -486,7 +486,7 @@ class DatadirTest extends AbstractDatadirTestCase
             $testDirectory,
             $configuration,
             0,
-            'Exporting to table1' . PHP_EOL . json_encode($response, JSON_PRETTY_PRINT),
+            'Exporting to table1' . PHP_EOL . JsonHelper::encode($response),
             null
         );
     }
@@ -529,7 +529,7 @@ class DatadirTest extends AbstractDatadirTestCase
             $testDirectory,
             $configuration,
             0,
-            'Exporting to table1' . PHP_EOL . json_encode($response, JSON_PRETTY_PRINT),
+            'Exporting to table1' . PHP_EOL . JsonHelper::encode($response),
             null
         );
     }
@@ -665,7 +665,7 @@ class DatadirTest extends AbstractDatadirTestCase
             $testDirectory,
             $configuration,
             0,
-            'Exporting to table1' . PHP_EOL . json_encode($response, JSON_PRETTY_PRINT),
+            'Exporting to table1' . PHP_EOL . JsonHelper::encode($response),
             null
         );
     }
@@ -729,7 +729,7 @@ class DatadirTest extends AbstractDatadirTestCase
             $testDirectory,
             $configuration,
             0,
-            'Exporting to table1' . PHP_EOL . json_encode($response, JSON_PRETTY_PRINT),
+            'Exporting to table1' . PHP_EOL . JsonHelper::encode($response),
             null
         );
     }
@@ -772,7 +772,7 @@ class DatadirTest extends AbstractDatadirTestCase
             $testDirectory,
             $configuration,
             0,
-            'Exporting to table1' . PHP_EOL . json_encode($response, JSON_PRETTY_PRINT),
+            'Exporting to table1' . PHP_EOL . JsonHelper::encode($response),
             null
         );
     }
@@ -950,7 +950,7 @@ class DatadirTest extends AbstractDatadirTestCase
             $testDirectory,
             $configuration,
             0,
-            'Exporting to table1' . PHP_EOL . json_encode($response, JSON_PRETTY_PRINT),
+            'Exporting to table1' . PHP_EOL . JsonHelper::encode($response),
             null
         );
     }
@@ -995,7 +995,7 @@ class DatadirTest extends AbstractDatadirTestCase
             $testDirectory,
             $configuration,
             0,
-            'Exporting to table1' . PHP_EOL . json_encode($response, JSON_PRETTY_PRINT),
+            'Exporting to table1' . PHP_EOL . JsonHelper::encode($response),
             null
         );
     }
@@ -1043,7 +1043,7 @@ class DatadirTest extends AbstractDatadirTestCase
             $testDirectory,
             $configuration,
             0,
-            'Exporting to table1' . PHP_EOL . json_encode($response, JSON_PRETTY_PRINT),
+            'Exporting to table1' . PHP_EOL . JsonHelper::encode($response),
             null
         );
     }
@@ -1158,7 +1158,7 @@ class DatadirTest extends AbstractDatadirTestCase
             $testDirectory,
             $configuration,
             0,
-            'Exporting to table1' . PHP_EOL . json_encode($response, JSON_PRETTY_PRINT),
+            'Exporting to table1' . PHP_EOL . JsonHelper::encode($response),
             null
         );
     }
@@ -1209,7 +1209,7 @@ class DatadirTest extends AbstractDatadirTestCase
             $testDirectory,
             $configuration,
             0,
-            'Exporting to table1' . PHP_EOL . json_encode($response, JSON_PRETTY_PRINT),
+            'Exporting to table1' . PHP_EOL . JsonHelper::encode($response),
             null
         );
     }
@@ -1327,7 +1327,7 @@ class DatadirTest extends AbstractDatadirTestCase
             $testDirectory,
             $configuration,
             0,
-            'Exporting to table1' . PHP_EOL . json_encode($response, JSON_PRETTY_PRINT),
+            'Exporting to table1' . PHP_EOL . JsonHelper::encode($response),
             null
         );
     }

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractorCommon\Tests;
 
-use Keboola\Component\JsonFileHelper;
+use Keboola\Component\JsonHelper;
 use Keboola\Component\Logger;
 use Keboola\DbExtractorCommon\BaseExtractor;
 use PHPUnit\Framework\TestCase;
@@ -27,10 +27,7 @@ class ExtractorTest extends TestCase
 
     protected function getConfig(string $driver): array
     {
-        $config = json_decode(
-            (string) file_get_contents($this->dataDir . '/' .$driver . '/exampleConfig.json'),
-            true
-        );
+        $config = JsonHelper::readFile($this->dataDir . '/' .$driver . '/exampleConfig.json');
         $config['parameters']['db'] = $this->getConfigDbNode($driver);
         
         return $config;
@@ -38,11 +35,7 @@ class ExtractorTest extends TestCase
 
     protected function getConfigRow(string $driver): array
     {
-        $config = json_decode(
-            (string) file_get_contents($this->dataDir . '/' .$driver . '/exampleConfigRow.json'),
-            true
-        );
-
+        $config = JsonHelper::readFile($this->dataDir . '/' .$driver . '/exampleConfigRow.json');
         $config['parameters']['db'] = $this->getConfigDbNode($driver);
 
         return $config;
@@ -50,11 +43,7 @@ class ExtractorTest extends TestCase
 
     protected function getConfigRowForCsvErr(string $driver): array
     {
-        $config = json_decode(
-            (string) file_get_contents($this->dataDir . '/' .$driver . '/exampleConfigRowCsvErr.json'),
-            true
-        );
-
+        $config = JsonHelper::readFile($this->dataDir . '/' .$driver . '/exampleConfigRowCsvErr.json');
         $config['parameters']['db'] = $this->getConfigDbNode($driver);
 
         return $config;
@@ -93,13 +82,13 @@ class ExtractorTest extends TestCase
     protected function prepareConfigInDataDir(array $config): void
     {
         $configFilePath = $this->dataDir . DIRECTORY_SEPARATOR . 'config.json';
-        JsonFileHelper::write($configFilePath, $config);
+        JsonHelper::writeFile($configFilePath, $config);
     }
 
     protected function prepareInputStateInDataDir(array $state): void
     {
         $inputStateFilePath = $this->dataDir . DIRECTORY_SEPARATOR . 'in/state.json';
-        JsonFileHelper::write($inputStateFilePath, $state);
+        JsonHelper::writeFile($inputStateFilePath, $state);
     }
 
     protected function runApplication(BaseExtractor $application): string

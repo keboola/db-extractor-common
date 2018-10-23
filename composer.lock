@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "content-hash": "cdcafc40f442f4911d1b3024261c7b0b",
+    "content-hash": "315a225316e74d774d8dd25e4cac4053",
     "packages": [
         {
             "name": "doctrine/instantiator",
@@ -148,16 +148,16 @@
         },
         {
             "name": "keboola/php-component",
-            "version": "4.4.1",
+            "version": "5.0.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/keboola/php-component.git",
-                "reference": "e5fec6a96e337d0f74cc2f8e6115987a0dc77e10"
+                "reference": "264a7a5b7ebab3724ccb7d7202bc1344b58d3543"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/keboola/php-component/zipball/e5fec6a96e337d0f74cc2f8e6115987a0dc77e10",
-                "reference": "e5fec6a96e337d0f74cc2f8e6115987a0dc77e10",
+                "url": "https://api.github.com/repos/keboola/php-component/zipball/264a7a5b7ebab3724ccb7d7202bc1344b58d3543",
+                "reference": "264a7a5b7ebab3724ccb7d7202bc1344b58d3543",
                 "shasum": ""
             },
             "require": {
@@ -199,7 +199,7 @@
                 "docker",
                 "keboola"
             ],
-            "time": "2018-10-18T15:09:36+00:00"
+            "time": "2018-10-23T14:20:29+00:00"
         },
         {
             "name": "keboola/php-datatypes",
