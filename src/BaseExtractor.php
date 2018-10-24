@@ -310,8 +310,7 @@ abstract class BaseExtractor extends BaseComponent
 
     private function validateTableParameters(TableParameters $table): void
     {
-        if ($table->getIncrementalFetchingColumn()
-            && $table->getIncrementalFetchingColumn() !== "") {
+        if ($table->getIncrementalFetchingColumn()) {
             $this->validateIncrementalFetching(
                 $table->getTableDetail(),
                 $table->getIncrementalFetchingColumn(),
