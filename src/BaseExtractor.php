@@ -52,7 +52,7 @@ abstract class BaseExtractor extends BaseComponent
      */
     abstract public function getTables(array $tables = []): array;
 
-    abstract public function testConnection(): void;
+    abstract protected function testConnection(): void;
 
     public function run(): void
     {
@@ -79,7 +79,7 @@ abstract class BaseExtractor extends BaseComponent
                     }
                     break;
                 case 'testConnection':
-                    $this->testConnection();
+                    $this->checkConnectionIsAlive();
                     $result = ['status' => 'success'];
                     break;
                 case 'getTables':
@@ -242,7 +242,7 @@ abstract class BaseExtractor extends BaseComponent
         return $this->getDataDir() . '/out/tables/' . $this->getOutputFileName($outputTableName);
     }
 
-    protected function isAlive(): void
+    protected function checkConnectionIsAlive(): void
     {
         try {
             $this->testConnection();

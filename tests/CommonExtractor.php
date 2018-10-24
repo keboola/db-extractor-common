@@ -193,19 +193,6 @@ class CommonExtractor extends BaseExtractor
         return array_values($tableDefs);
     }
 
-    public function testConnection(): void
-    {
-        try {
-            $connection = $this->getConnection();
-
-            /** @var \PDOStatement $stmt */
-            $stmt = $connection->query('SELECT 1');
-            $stmt->execute();
-        } catch (\Throwable $exception) {
-            throw new UserException($exception->getMessage());
-        }
-    }
-
     public function validateIncrementalFetching(
         TableDetailParameters $table,
         string $columnName,
@@ -252,6 +239,15 @@ class CommonExtractor extends BaseExtractor
         if ($limit) {
             $this->incrementalFetching['limit'] = $limit;
         }
+    }
+
+    protected function testConnection(): void
+    {
+        $connection = $this->getConnection();
+
+        /** @var \PDOStatement $stmt */
+        $stmt = $connection->query('SELECT 1');
+        $stmt->execute();
     }
 
     protected function quote(string $obj): string
@@ -381,7 +377,7 @@ class CommonExtractor extends BaseExtractor
                 $stmt = $this->executeQuery($query, $maxTries);
                 $csvWriter = $this->createOutputCsv($outputTable);
                 $result = $this->writeToCsv($stmt, $csvWriter, $isAdvancedQuery);
-                $this->isAlive();
+                $this->checkConnectionIsAlive();
                 return $result;
             });
         } catch (CsvException $e) {
