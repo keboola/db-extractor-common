@@ -254,6 +254,11 @@ class CommonExtractor extends BaseExtractor
         }
     }
 
+    protected function quote(string $obj): string
+    {
+        return "`{$obj}`";
+    }
+
     private function writeToCsv(\PDOStatement $stmt, CsvWriter $csvWriter, bool $includeHeader = true): array
     {
         $output = [];

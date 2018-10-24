@@ -261,7 +261,7 @@ abstract class BaseExtractor extends BaseComponent
 
     protected function quote(string $obj): string
     {
-        return "`{$obj}`";
+        return "\"{$obj}\"";
     }
 
     protected function getConfigClass(): string
