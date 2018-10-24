@@ -36,7 +36,7 @@ https://github.com/keboola/db-extractor-common/tree/master/tests/FunctionalAdapt
 The `$config` is loaded from `config.json` file. You have to set ENV variable `KBC_DATADIR` with path to your data folder (running component inside KBC provide it automatically). 
 _We strongly recommend using [configuration rows schema](https://github.com/keboola/db-extractor-common/tree/master/tests/Old/data/common/exampleConfigRow.json)_
 
-The extractor class must be child of [\Keboola\DbExtractorCommon\BaseExtractor](https://github.com/keboola/db-extractor-common/tree/master/src/Keboola/DbExtractor/Extractor/BaseExtractor.php) and implement all abstract methods:
+The extractor class must be child of [\Keboola\DbExtractorCommon\BaseExtractor](https://github.com/keboola/db-extractor-common/tree/master/src/BaseExtractor.php) and implement all abstract methods:
  
 - `extract(array $tables): array`
 - `getTables(array $tables = []): array`
