@@ -31,8 +31,9 @@ class CommonExtractor extends BaseExtractor
     {
         $imported = [];
         $outputState = [];
-        if ($config->isConfigRow()) {
-            $tableParameters = TableParameters::fromRaw($config->getParameters());
+
+        $tableParameters = $config->getConfigRowTableParameters();
+        if ($tableParameters) {
             $exportResults = $this->extractTable($tableParameters);
             if (isset($exportResults['state'])) {
                 $outputState = $exportResults['state'];

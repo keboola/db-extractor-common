@@ -30,6 +30,14 @@ class BaseExtractorConfig extends BaseConfig
         return SshParameters::fromRaw($ssh);
     }
 
+    public function getConfigRowTableParameters(): ?TableParameters
+    {
+        if (!$this->isConfigRow()) {
+            return null;
+        }
+        return TableParameters::fromRaw($this->getParameters());
+    }
+
     /**
      * @return TableParameters[]
      */
