@@ -36,7 +36,7 @@ class RetryProxy implements RetryProxyInterface
         ?int $backoffInterval = null,
         ?array $expectedExceptions = null,
         ?RetryPolicyInterface $retryPolicy = null,
-        ?BackoffPolicyInterface $backoffPolicy = null
+        ?BackOffPolicyInterface $backoffPolicy = null
     ) {
         if ($retryPolicy === null) {
             $retryPolicy = new SimpleRetryPolicy(
