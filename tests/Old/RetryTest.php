@@ -2,12 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Keboola\DbExtractorCommon\Tests;
+namespace Keboola\DbExtractorCommon\Tests\Old;
 
 use Keboola\Component\JsonHelper;
 use Keboola\Csv\CsvWriter;
 use Keboola\DbExtractorCommon\Exception\DeadConnectionException;
 use Keboola\Component\UserException;
+use Keboola\DbExtractorCommon\Tests\ExtractorTest;
 use Keboola\Temp\Temp;
 use PDO;
 
@@ -15,7 +16,7 @@ class RetryTest extends ExtractorTest
 {
     private const ROW_COUNT = 1000000;
 
-    private const KILLER_EXECUTABLE =  'php ' . __DIR__ . '/killerRabbit.php';
+    private const KILLER_EXECUTABLE =  'php ' . __DIR__ . '/../killerRabbit.php';
 
     /** @var  array */
     private $dbParams;

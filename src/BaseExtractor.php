@@ -159,7 +159,7 @@ abstract class BaseExtractor extends BaseComponent
                     if (array_key_exists('sanitizedName', $column)) {
                         $columnName = $column['sanitizedName'];
                     }
-                    $columnMetadata[$columnName] = $this->getColumnMetadata($column);
+                    $columnMetadata[$columnName] = self::getColumnMetadata($column);
                     $manifestColumns[] = $columnName;
                 }
                 $tableManifestOptions->setMetadata($this->getTableLevelMetadata($tableDetails));
@@ -269,7 +269,7 @@ abstract class BaseExtractor extends BaseComponent
         return BaseExtractorConfig::class;
     }
 
-    private function getColumnMetadata(array $column): array
+    public static function getColumnMetadata(array $column): array
     {
         $datatype = new GenericStorage(
             $column['type'],
@@ -293,7 +293,7 @@ abstract class BaseExtractor extends BaseComponent
         return $columnMetadata;
     }
 
-    private function getTableLevelMetadata(array $tableDetails): array
+    public static function getTableLevelMetadata(array $tableDetails): array
     {
         $metadata = [];
         foreach ($tableDetails as $key => $value) {

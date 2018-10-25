@@ -324,7 +324,7 @@ class CommonExtractor extends BaseExtractor
         try {
             return new \PDO($dsn, $parameters->getUser(), $parameters->getPassword(), $options);
         } catch (\Throwable $exception) {
-            throw new UserException("Error connecting to DB: " . $exception->getMessage(), 0, $exception);
+            throw new DeadConnectionException("Error connecting to DB: " . $exception->getMessage(), 0, $exception);
         }
     }
 
