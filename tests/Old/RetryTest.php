@@ -227,7 +227,7 @@ class RetryTest extends ExtractorTest
             $this->fail("Should have failed on Dead Connection");
         } catch (UserException $ue) {
             $this->assertTrue($ue->getPrevious() instanceof DeadConnectionException);
-            $this->assertContains('Dead connection', $ue->getMessage());
+            $this->assertContains('Error connecting to DB', $ue->getMessage());
         }
     }
 }
