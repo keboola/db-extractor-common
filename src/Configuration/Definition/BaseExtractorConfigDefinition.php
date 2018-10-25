@@ -168,7 +168,7 @@ abstract class BaseExtractorConfigDefinition extends BaseConfigDefinition
         $node->validate()
             ->ifTrue(function ($v) {
                 foreach ($v as $table) {
-                    return ConfigDefinitionValidationHelper::isIncrementalFetchingSetForAdvancedQuery($table);
+                    return isset($table['query']) && $table['incremental'];
                 }
             })
             ->thenInvalid(ConfigDefinitionValidationHelper::MESSAGE_CUSTOM_QUERY_CANNOT_BE_FETCHED_INCREMENTALLY)
