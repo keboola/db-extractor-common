@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Keboola\DbExtractorCommon\Configuration\Definition;
 
 use Keboola\Component\Config\BaseConfigDefinition;
-use Keboola\DbExtractorCommon\BaseExtractor;
 use Keboola\DbExtractorCommon\Configuration\ConfigDefinitionValidationHelper;
 use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
@@ -167,7 +166,6 @@ abstract class BaseExtractorConfigDefinition extends BaseConfigDefinition
                     ->end()
                     ->integerNode('retries')
                         ->min(0)
-                        ->defaultValue(BaseExtractor::DEFAULT_MAX_TRIES)
                     ->end()
                     ->booleanNode('advancedMode')->end()
                 ->end()

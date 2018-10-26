@@ -356,13 +356,12 @@ class CommonExtractor extends BaseExtractor
 
         $this->getLogger()->info("Exporting to " . $outputTable);
 
-        $isAdvancedQuery = $table->getTableDetail() === null ? true : false;
-        if (!$isAdvancedQuery) {
+        if (!$table->isAdvancedQuery()) {
             $query = $this->simpleQuery($table->getTableDetail(), $table->getColumns());
         } else {
             $query = $table->getQuery();
         }
-        $maxTries = $table->getRetries() ?? self::DEFAULT_MAX_TRIES;
+        $maxTries = $table->getRetries();
 
         // this will retry on CsvException
         $proxy = new RetryProxy(
@@ -372,11 +371,11 @@ class CommonExtractor extends BaseExtractor
             [DeadConnectionException::class, \ErrorException::class]
         );
         try {
-            $result = $proxy->call(function () use ($query, $maxTries, $outputTable, $isAdvancedQuery) {
+            $result = $proxy->call(function () use ($query, $maxTries, $outputTable, $table) {
                 /** @var \PDOStatement $stmt */
                 $stmt = $this->executeQuery($query, $maxTries);
                 $csvWriter = $this->createOutputCsv($outputTable);
-                $result = $this->writeToCsv($stmt, $csvWriter, $isAdvancedQuery);
+                $result = $this->writeToCsv($stmt, $csvWriter, $table->isAdvancedQuery());
                 $this->checkConnectionIsAlive();
                 return $result;
             });

@@ -28,8 +28,6 @@ use Symfony\Component\Config\Definition\Exception\Exception as ConfigException;
 
 abstract class BaseExtractor extends BaseComponent
 {
-    public const DEFAULT_MAX_TRIES = 5;
-
     public const DATATYPE_KEYS = ['type', 'length', 'nullable', 'default', 'format'];
 
     /** @var array */

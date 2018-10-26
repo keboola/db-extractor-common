@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractorCommon\Configuration;
 
-use Keboola\DbExtractorCommon\BaseExtractor;
-
 class TableParameters
 {
+    public const DEFAULT_MAX_TRIES = 5;
+
     /** @var string|null */
     private $query;
 
@@ -48,7 +48,7 @@ class TableParameters
         ?int $incrementalFetchingLimit = null,
         bool $enabled = true,
         ?array $primaryKey = null,
-        int $retries = BaseExtractor::DEFAULT_MAX_TRIES
+        ?int $retries = null
     ) {
         $this->query = $query;
         $this->columns = $columns;
@@ -82,6 +82,11 @@ class TableParameters
         return $this->tableDetail;
     }
 
+    public function isAdvancedQuery(): bool
+    {
+        return $this->getTableDetail() === null;
+    }
+
     public function isIncremental(): bool
     {
         return $this->incremental;
@@ -109,7 +114,7 @@ class TableParameters
 
     public function getRetries(): int
     {
-        return $this->retries;
+        return $this->retries ?? self::DEFAULT_MAX_TRIES;
     }
 
 
@@ -125,7 +130,7 @@ class TableParameters
             isset($table['incrementalFetchingLimit']) ? (int) $table['incrementalFetchingLimit'] : null,
             $table['enabled'] ?? true,
             $table['primaryKey'] ?? null,
-            $table['retries']
+            $table['retries'] ?? null
         );
     }
 }
