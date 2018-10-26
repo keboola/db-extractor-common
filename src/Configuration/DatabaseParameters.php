@@ -40,9 +40,12 @@ class DatabaseParameters
         return $this->host;
     }
 
-    public function getPort(): ?int
+    public function getPort(?int $default = null): ?int
     {
-        return (int) $this->port;
+        if ($this->port) {
+            return $this->port;
+        }
+        return $default;
     }
 
     public function getDatabase(): ?string
