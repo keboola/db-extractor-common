@@ -356,9 +356,8 @@ class CommonExtractor extends BaseExtractor
 
         $this->getLogger()->info("Exporting to " . $outputTable);
 
-        $isAdvancedQuery = true;
-        if ($table->getTableDetail() && !$table->getQuery()) {
-            $isAdvancedQuery = false;
+        $isAdvancedQuery = $table->getTableDetail() === null ? true : false;
+        if (!$isAdvancedQuery) {
             $query = $this->simpleQuery($table->getTableDetail(), $table->getColumns());
         } else {
             $query = $table->getQuery();
