@@ -310,8 +310,10 @@ class DatadirTest extends AbstractDatadirTestCase
     public function testExportTableByOldConfigOnNonExistingDatabase(): void
     {
         $testDirectory = __DIR__ . '/empty-data';
+        $invalidDatabaseName = 'invalid_db';
 
         $credentials = $this->getCredentials();
+        $credentials['database'] = $invalidDatabaseName;
 
         $configuration = $this->getConfig($testDirectory);
         $configuration['parameters']['db'] = $credentials;
@@ -320,25 +322,20 @@ class DatadirTest extends AbstractDatadirTestCase
                 'id' => 1,
                 'name' => 'table1',
                 'table' => [
-                    'schema' => 'invaliddb',
+                    'schema' => $invalidDatabaseName,
                     'tableName' => 'table1',
                 ],
                 'outputTable' => 'table1',
             ],
         ];
 
-        $database = $credentials['database'];
-        $table = 'table1';
-        $this->createDatabase($database);
-        $this->createTable($database, $table);
-
         $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             1,
             null,
-            '[table1]: DB query failed: SQLSTATE[42S02]:'
-            . ' Base table or view not found: 1146 Table \'invaliddb.table1\' doesn\'t exist Tried 5 times.' . PHP_EOL
+            '[table1]: DB query failed: Error connecting to DB: '
+            . 'SQLSTATE[HY000] [1049] Unknown database \'invalid_db\' Tried 5 times.' . PHP_EOL
         );
     }
 
@@ -751,6 +748,35 @@ class DatadirTest extends AbstractDatadirTestCase
         );
     }
 
+    public function testExportTableByOldConfigWithDifferentDatabaseAndShemaThrowsError(): void
+    {
+        $testDirectory = __DIR__ . '/empty-data';
+
+        $credentials = $this->getCredentials();
+        $configuration = $this->getConfig($testDirectory);
+        $configuration['parameters']['db'] = $credentials;
+        $configuration['parameters']['tables'] = [
+            [
+                'id' => 1,
+                'name' => 'table_1',
+                'outputTable' => 'out.table',
+                'table' => [
+                    'schema' => 'mismatch',
+                    'tableName' => 'table_name',
+                ],
+            ],
+        ];
+
+        $this->runTestWithCustomConfiguration(
+            $testDirectory,
+            $configuration,
+            1,
+            null,
+            'Invalid configuration for path "root.parameters":'
+            . ' Table schema and database mismatch.' . PHP_EOL
+        );
+    }
+
     /* CONFIG ROWS */
     public function testExportTableByConfigRowsWithDefinedQueryAndTables(): void
     {
@@ -834,30 +860,27 @@ class DatadirTest extends AbstractDatadirTestCase
     public function testExportTableByConfigRowsOnNonExistingDatabase(): void
     {
         $testDirectory = __DIR__ . '/empty-data';
+        $invalidDatabaseName = 'invalid_db';
 
         $credentials = $this->getCredentials();
+        $credentials['database'] = $invalidDatabaseName;
 
         $configuration = $this->getConfig($testDirectory);
         $configuration['parameters']['db'] = $credentials;
         $configuration['parameters']['name'] = 'table1';
         $configuration['parameters']['outputTable'] = 'table1';
         $configuration['parameters']['table'] = [
-            'schema' => 'invaliddb',
+            'schema' => $invalidDatabaseName,
             'tableName' => 'table1',
         ];
-
-        $database = $credentials['database'];
-        $table = 'table1';
-        $this->createDatabase($database);
-        $this->createTable($database, $table);
 
         $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             1,
             null,
-            '[table1]: DB query failed: SQLSTATE[42S02]:'
-            . ' Base table or view not found: 1146 Table \'invaliddb.table1\' doesn\'t exist Tried 5 times.' . PHP_EOL
+            '[table1]: DB query failed: Error connecting to DB:'
+            . ' SQLSTATE[HY000] [1049] Unknown database \'invalid_db\' Tried 5 times.' . PHP_EOL
         );
     }
 
@@ -1303,6 +1326,29 @@ class DatadirTest extends AbstractDatadirTestCase
             0,
             'Exporting to table1' . PHP_EOL . JsonHelper::encode($response),
             null
+        );
+    }
+
+    public function testExportTableByConfigRowsWithDifferentDatabaseAndShemaThrowsError(): void
+    {
+        $testDirectory = __DIR__ . '/empty-data';
+
+        $credentials = $this->getCredentials();
+        $configuration = $this->getConfig($testDirectory);
+        $configuration['parameters']['db'] = $credentials;
+        $configuration['parameters']['outputTable'] = 'out.table';
+        $configuration['parameters']['table'] = [
+            'schema' => 'mismatch',
+            'tableName' => 'table_name',
+        ];
+
+        $this->runTestWithCustomConfiguration(
+            $testDirectory,
+            $configuration,
+            1,
+            null,
+            'Invalid configuration for path "root.parameters":'
+            . ' Table schema and database mismatch.' . PHP_EOL
         );
     }
 }

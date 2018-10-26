@@ -12,6 +12,32 @@ use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 
 abstract class BaseExtractorConfigDefinition extends BaseConfigDefinition
 {
+    protected function getParametersDefinition(): ArrayNodeDefinition
+    {
+        $parametersNode = parent::getParametersDefinition();
+        $parametersNode->validate()
+            ->ifTrue(function ($v) {
+                $databaseName = $v['db']['database'] ?? null;
+                if (isset($v['tables'])) {
+                    foreach ($v['tables'] as $tableParameters) {
+                        return ConfigDefinitionValidationHelper::isDatabaseAndTableSchemaEqual(
+                            $tableParameters,
+                            $databaseName
+                        );
+                    }
+                } else {
+                    return ConfigDefinitionValidationHelper::isDatabaseAndTableSchemaEqual(
+                        $v,
+                        $databaseName
+                    );
+                }
+                return false;
+            })
+            ->thenInvalid(ConfigDefinitionValidationHelper::MESSAGE_DATABASE_AND_TABLE_SCHEMA_ARE_DIFFERENT)
+            ->end();
+        return $parametersNode;
+    }
+
     protected function getDbNode(): ArrayNodeDefinition
     {
         $builder = new TreeBuilder();
