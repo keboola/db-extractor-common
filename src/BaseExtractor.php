@@ -257,9 +257,18 @@ abstract class BaseExtractor extends BaseComponent
         throw new UserException('Incremental Fetching is not supported by this extractor.');
     }
 
-    protected function quote(string $obj): string
+    protected function quoteIdentifier(string $obj): string
     {
         return "\"{$obj}\"";
+    }
+
+    protected function quoteIdentifiers(array $identifiers): array
+    {
+        $quotedIdentifiers = [];
+        foreach ($identifiers as $identifier) {
+            $quotedIdentifiers[] = $this->quoteIdentifier($identifier);
+        }
+        return $quotedIdentifiers;
     }
 
     protected function getConfigClass(): string

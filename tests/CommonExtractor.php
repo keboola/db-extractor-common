@@ -251,7 +251,7 @@ class CommonExtractor extends BaseExtractor
         $stmt->execute();
     }
 
-    protected function quote(string $obj): string
+    protected function quoteIdentifier(string $obj): string
     {
         return "`{$obj}`";
     }
@@ -438,15 +438,7 @@ class CommonExtractor extends BaseExtractor
     private function simpleQuery(TableDetailParameters $table, array $columns = array()): string
     {
         if (count($columns) > 0) {
-            $columnQuery = implode(
-                ', ',
-                array_map(
-                    function ($column) {
-                        return $this->quote($column);
-                    },
-                    $columns
-                )
-            );
+            $columnQuery = implode(', ', $this->quoteIdentifiers($columns));
         } else {
             $columnQuery = '*';
         }
@@ -454,8 +446,8 @@ class CommonExtractor extends BaseExtractor
         $query = sprintf(
             "SELECT %s FROM %s.%s",
             $columnQuery,
-            $this->quote($table->getSchema()),
-            $this->quote($table->getTableName())
+            $this->quoteIdentifier($table->getSchema()),
+            $this->quoteIdentifier($table->getTableName())
         );
 
         $incrementalAddon = null;
@@ -463,13 +455,13 @@ class CommonExtractor extends BaseExtractor
             if ($this->incrementalFetching['type'] === self::TYPE_AUTO_INCREMENT) {
                 $incrementalAddon = sprintf(
                     ' %s > %d',
-                    $this->quote($this->incrementalFetching['column']),
+                    $this->quoteIdentifier($this->incrementalFetching['column']),
                     (int) $this->getInputState()['lastFetchedRow']
                 );
             } else if ($this->incrementalFetching['type'] === self::TYPE_AUTO_INCREMENT) {
                 $incrementalAddon = sprintf(
                     " %s > '%s'",
-                    $this->quote($this->incrementalFetching['column']),
+                    $this->quoteIdentifier($this->incrementalFetching['column']),
                     $this->getInputState()['lastFetchedRow']
                 );
             } else {
@@ -483,7 +475,7 @@ class CommonExtractor extends BaseExtractor
             $query .= sprintf(
                 " WHERE %s ORDER BY %s",
                 $incrementalAddon,
-                $this->quote($this->incrementalFetching['column'])
+                $this->quoteIdentifier($this->incrementalFetching['column'])
             );
         }
         if (isset($this->incrementalFetching['limit'])) {
