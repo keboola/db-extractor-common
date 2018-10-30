@@ -15,7 +15,6 @@ use Keboola\DbExtractorCommon\Configuration\Definition\ActionConfigDefinition;
 use Keboola\DbExtractorCommon\Configuration\BaseExtractorConfig;
 use Keboola\DbExtractorCommon\Configuration\Definition\ConfigDefinition;
 use Keboola\DbExtractorCommon\Configuration\Definition\ConfigRowDefinition;
-use Keboola\DbExtractorCommon\Configuration\DatabaseParameters;
 use Keboola\DbExtractorCommon\Configuration\SshParameters;
 use Keboola\DbExtractorCommon\Configuration\TableDetailParameters;
 use Keboola\DbExtractorCommon\Configuration\TableParameters;
@@ -29,9 +28,6 @@ use Symfony\Component\Config\Definition\Exception\Exception as ConfigException;
 abstract class BaseExtractor extends BaseComponent
 {
     public const DATATYPE_KEYS = ['type', 'length', 'nullable', 'default', 'format'];
-
-    /** @var array */
-    protected $dbParameters;
 
     public function __construct(Logger $logger)
     {
@@ -56,15 +52,13 @@ abstract class BaseExtractor extends BaseComponent
     {
         /** @var BaseExtractorConfig $config */
         $config = $this->getConfig();
-        $dbParameters = $config->getDbParameters();
         $sshParameters = $config->getSshParameters();
         $action = $config->getAction();
 
         if ($sshParameters
             && $sshParameters->isEnabled()
         ) {
-            $dbParameters = $this->createSshTunnel($sshParameters, $dbParameters);
-            $config->setDbParameters($dbParameters);
+            $this->createSshTunnel($sshParameters);
         }
 
         try {
@@ -181,17 +175,8 @@ abstract class BaseExtractor extends BaseComponent
         return new CsvWriter($this->getOutputFilePath($outputTable));
     }
 
-    protected function createSshTunnel(SshParameters $sshParameters, DatabaseParameters $dbConfig): DatabaseParameters
+    protected function createSshTunnel(SshParameters $sshParameters): void
     {
-        $privateKey = $sshParameters->getKeys()['#private'] ?? $sshParameters->getKeys()['private'];
-        $sshParameters->setPrivateKey($privateKey);
-        $sshParameters->setRemoteHost($dbConfig->getHost());
-        $sshParameters->setRemotePort($dbConfig->getPort());
-
-        if (!$sshParameters->getUser()) {
-            $sshParameters->setUser($dbConfig->getUser());
-        }
-
         $tunnelParams = $sshParameters->toArray();
         $this->getLogger()->info("Creating SSH tunnel to '" . $tunnelParams['sshHost'] . "'");
         $proxy = new RetryProxy(
@@ -208,10 +193,6 @@ abstract class BaseExtractor extends BaseComponent
         } catch (SSHException $e) {
             throw new UserException($e->getMessage(), 0, $e);
         }
-
-        $dbConfig->setHost('127.0.0.1');
-        $dbConfig->setPort($sshParameters->getLocalPort());
-        return $dbConfig;
     }
 
     protected function getConfigDefinitionClass(): string

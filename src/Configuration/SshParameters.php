@@ -34,23 +34,23 @@ class SshParameters
     private $privateKey;
 
     public function __construct(
+        DatabaseParameters $databaseParameters,
         bool $enabled,
         ?array $keys = null,
         ?string $sshHost = null,
         ?int $sshPort = 22,
-        ?string $remoteHost = null,
-        ?int $remotePort = null,
         ?int $localPort = 33006,
         ?string $user = null
     ) {
         $this->enabled = $enabled;
         $this->keys = $keys;
+        $this->privateKey = $this->getKeys()['#private'] ?? $this->getKeys()['private'];
         $this->sshHost = $sshHost;
         $this->sshPort = $sshPort;
-        $this->remoteHost = $remoteHost;
-        $this->remotePort = $remotePort;
+        $this->remoteHost = $databaseParameters->getHost();
+        $this->remotePort = $databaseParameters->getPort();
         $this->localPort = $localPort;
-        $this->user = $user;
+        $this->user = $user ?? $databaseParameters->getUser();
     }
 
     public function isEnabled(): bool
@@ -98,26 +98,6 @@ class SshParameters
         return $this->privateKey;
     }
 
-    public function setRemoteHost(?string $remoteHost): void
-    {
-        $this->remoteHost = $remoteHost;
-    }
-
-    public function setRemotePort(?int $remotePort): void
-    {
-        $this->remotePort = $remotePort;
-    }
-
-    public function setUser(?string $user): void
-    {
-        $this->user = $user;
-    }
-
-    public function setPrivateKey(?string $privateKey): void
-    {
-        $this->privateKey = $privateKey;
-    }
-
     public function toArray(): array
     {
         return [
@@ -131,15 +111,14 @@ class SshParameters
         ];
     }
 
-    public static function fromRaw(array $sshParameters): SshParameters
+    public static function fromRaw(DatabaseParameters $databaseParameters, array $sshParameters): SshParameters
     {
         return new SshParameters(
+            $databaseParameters,
             $sshParameters['enabled'] ?? false,
             $sshParameters['keys'] ?? null,
             $sshParameters['sshHost'] ?? null,
             isset($sshParameters['sshPort']) ? (int) $sshParameters['sshPort'] : null,
-            $sshParameters['remoteHost'] ?? null,
-            isset($sshParameters['remotePort']) ? (int) $sshParameters['remotePort'] : null,
             isset($sshParameters['localPort']) ? (int) $sshParameters['localPort'] : null,
             $sshParameters['user'] ?? null
         );
