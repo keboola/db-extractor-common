@@ -257,13 +257,18 @@ abstract class BaseExtractor extends BaseComponent
         return BaseExtractorConfig::class;
     }
 
-    public static function getColumnMetadata(array $column): array
+    protected static function getDataTypeMetadata(array $column): array
     {
-        $datatype = new GenericStorage(
+        $dataType = new GenericStorage(
             $column['type'],
             array_intersect_key($column, array_flip(self::DATATYPE_KEYS))
         );
-        $columnMetadata = $datatype->toMetadata();
+        return $dataType->toMetadata();
+    }
+
+    public static function getColumnMetadata(array $column): array
+    {
+        $columnMetadata = self::getDataTypeMetadata($column);
         $nonDatatypeKeys = array_diff_key($column, array_flip(self::DATATYPE_KEYS));
         foreach ($nonDatatypeKeys as $key => $value) {
             if ($key === 'name') {
