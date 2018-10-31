@@ -82,23 +82,7 @@ class DatabaseParameters implements DatabaseParametersInterface
         $port = isset($databaseParameters['port']) ? (int) $databaseParameters['port'] : null;
         $database = $databaseParameters['database'] ?? null;
 
-        $sshParameters = null;
-        if (isset($databaseParameters['ssh']) && $databaseParameters['ssh']['enabled']) {
-            $sshParameters = SshParameters::fromRaw(
-                $databaseParameters['ssh'],
-                $host,
-                $port,
-                $databaseParameters['user']
-            );
-            return new DatabaseParameters(
-                '127.0.0.1',
-                $databaseParameters['user'],
-                $databaseParameters['#password'],
-                $database,
-                $sshParameters->getLocalPort(),
-                $sshParameters
-            );
-        } else {
+        if (!self::isSshEnabled($databaseParameters)) {
             return new DatabaseParameters(
                 $host,
                 $databaseParameters['user'],
@@ -107,5 +91,27 @@ class DatabaseParameters implements DatabaseParametersInterface
                 $port
             );
         }
+
+        $sshParameters = SshParameters::fromRaw(
+            $databaseParameters['ssh'],
+            $host,
+            $port,
+            $databaseParameters['user']
+        );
+        return new DatabaseParameters(
+            '127.0.0.1',
+            $databaseParameters['user'],
+            $databaseParameters['#password'],
+            $database,
+            $sshParameters->getLocalPort(),
+            $sshParameters
+        );
+    }
+
+    private static function isSshEnabled(array $databaseParameters): bool
+    {
+        return isset($databaseParameters['ssh'])
+            && isset($databaseParameters['ssh']['enabled'])
+            && $databaseParameters['ssh']['enabled'];
     }
 }
