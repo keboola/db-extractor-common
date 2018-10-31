@@ -6,13 +6,10 @@ namespace Keboola\DbExtractorCommon\Configuration;
 
 class DatabaseParameters implements DatabaseParametersInterface
 {
-    /** @var int */
-    protected $defaultDatabasePort = 3306;
-
     /** @var string */
     private $host;
 
-    /** @var int|null */
+    /** @var int */
     private $port;
 
     /** @var string|null */
@@ -24,16 +21,16 @@ class DatabaseParameters implements DatabaseParametersInterface
     /** @var string */
     private $password;
 
-    /** @var SshParametersInterface */
+    /** @var SshParameters|null */
     private $sshParameters;
 
     public function __construct(
         string $host,
         string $user,
         string $password,
+        int $port,
         ?string $database = null,
-        ?int $port = null,
-        ?SshParametersInterface $sshParameters = null
+        ?SshParameters $sshParameters = null
     ) {
         $this->host = $host;
         $this->port = $port;
@@ -50,10 +47,7 @@ class DatabaseParameters implements DatabaseParametersInterface
 
     public function getPort(): int
     {
-        if ($this->port) {
-            return $this->port;
-        }
-        return $this->defaultDatabasePort;
+        return $this->port;
     }
 
     public function getDatabase(): ?string
@@ -71,7 +65,7 @@ class DatabaseParameters implements DatabaseParametersInterface
         return $this->password;
     }
 
-    public function getSsh(): ?SshParametersInterface
+    public function getSsh(): ?SshParameters
     {
         return $this->sshParameters;
     }
@@ -79,7 +73,7 @@ class DatabaseParameters implements DatabaseParametersInterface
     public static function fromRaw(array $databaseParameters): DatabaseParameters
     {
         $host = $databaseParameters['host'];
-        $port = isset($databaseParameters['port']) ? (int) $databaseParameters['port'] : null;
+        $port = (int) $databaseParameters['port'];
         $database = $databaseParameters['database'] ?? null;
 
         if (!self::isSshEnabled($databaseParameters)) {
@@ -87,8 +81,8 @@ class DatabaseParameters implements DatabaseParametersInterface
                 $host,
                 $databaseParameters['user'],
                 $databaseParameters['#password'],
-                $database,
-                $port
+                $port,
+                $database
             );
         }
 
@@ -102,8 +96,8 @@ class DatabaseParameters implements DatabaseParametersInterface
             '127.0.0.1',
             $databaseParameters['user'],
             $databaseParameters['#password'],
-            $database,
             $sshParameters->getLocalPort(),
+            $database,
             $sshParameters
         );
     }

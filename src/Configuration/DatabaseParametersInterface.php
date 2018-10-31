@@ -16,5 +16,5 @@ interface DatabaseParametersInterface
 
     public function getPassword(): string;
 
-    public function getSsh(): ?SshParametersInterface;
+    public function getSsh(): ?SshParameters;
 }

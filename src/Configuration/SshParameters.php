@@ -4,48 +4,44 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractorCommon\Configuration;
 
-class SshParameters implements SshParametersInterface
+class SshParameters
 {
     /** @var bool */
     private $enabled;
 
-    /** @var array|null */
-    private $keys;
-
-    /** @var string|null */
+    /** @var string */
     private $sshHost;
 
     /** @var int */
     private $sshPort;
 
-    /** @var string|null */
+    /** @var string */
     private $remoteHost;
 
-    /** @var int|null */
+    /** @var int */
     private $remotePort;
 
     /** @var int  */
     private $localPort;
 
-    /** @var string|null */
+    /** @var string */
     private $user;
 
-    /** @var string|null */
+    /** @var string */
     private $privateKey;
 
     public function __construct(
         bool $enabled,
+        string $sshHost,
+        int $sshPort,
+        string $user,
+        string $privateKey,
         string $databaseHost,
-        ?int $databasePort,
-        ?array $keys = null,
-        ?string $sshHost = null,
-        ?int $sshPort = 22,
-        ?int $localPort = 33006,
-        ?string $user = null
+        int $databasePort,
+        int $localPort
     ) {
         $this->enabled = $enabled;
-        $this->keys = $keys;
-        $this->privateKey = $this->getKeys()['#private'] ?? $this->getKeys()['private'];
+        $this->privateKey = $privateKey;
         $this->sshHost = $sshHost;
         $this->sshPort = $sshPort;
         $this->remoteHost = $databaseHost;
@@ -59,12 +55,7 @@ class SshParameters implements SshParametersInterface
         return $this->enabled;
     }
 
-    public function getKeys(): ?array
-    {
-        return $this->keys;
-    }
-
-    public function getSshHost(): ?string
+    public function getSshHost(): string
     {
         return $this->sshHost;
     }
@@ -79,9 +70,9 @@ class SshParameters implements SshParametersInterface
         return $this->remoteHost;
     }
 
-    public function getRemotePort(): ?int
+    public function getRemotePort(): int
     {
-        return (int) $this->remotePort;
+        return $this->remotePort;
     }
 
     public function getLocalPort(): int
@@ -94,7 +85,7 @@ class SshParameters implements SshParametersInterface
         return $this->user;
     }
 
-    public function getPrivateKey(): ?string
+    public function getPrivateKey(): string
     {
         return $this->privateKey;
     }
@@ -115,18 +106,18 @@ class SshParameters implements SshParametersInterface
     public static function fromRaw(
         array $sshParameters,
         string $databaseHost,
-        ?int $databasePort,
+        int $databasePort,
         string $databaseUser
     ): SshParameters {
         return new SshParameters(
-            $sshParameters['enabled'] ?? false,
+            $sshParameters['enabled'],
+            $sshParameters['sshHost'],
+            (int) $sshParameters['sshPort'],
+            $sshParameters['user'] ?? $databaseUser,
+            $sshParameters['keys']['#private'],
             $databaseHost,
             $databasePort,
-            $sshParameters['keys'] ?? null,
-            $sshParameters['sshHost'] ?? null,
-            isset($sshParameters['sshPort']) ? (int) $sshParameters['sshPort'] : null,
-            isset($sshParameters['localPort']) ? (int) $sshParameters['localPort'] : null,
-            $sshParameters['user'] ?? $databaseUser
+            (int) $sshParameters['localPort']
         );
     }
 }

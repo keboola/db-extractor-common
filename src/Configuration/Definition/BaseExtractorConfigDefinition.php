@@ -50,7 +50,9 @@ abstract class BaseExtractorConfigDefinition extends BaseConfigDefinition
             ->children()
                 ->scalarNode('driver')->end()
                 ->scalarNode('host')->end()
-                ->scalarNode('port')->end()
+                ->scalarNode('port')
+                    ->defaultValue($this->getDatabasePortDefaultValue())
+                ->end()
                 ->scalarNode('database')
                     ->cannotBeEmpty()
                 ->end()
@@ -76,12 +78,17 @@ abstract class BaseExtractorConfigDefinition extends BaseConfigDefinition
 
         // @formatter:off
         $node
+            ->addDefaultsIfNotSet()
             ->children()
-                ->booleanNode('enabled')->end()
+                ->booleanNode('enabled')
+                    ->defaultValue(false)
+                ->end()
                 ->arrayNode('keys')
                     ->children()
                         ->scalarNode('private')->end()
-                        ->scalarNode('#private')->end()
+                        ->scalarNode('#private')
+                            ->isRequired()
+                        ->end()
                         ->scalarNode('public')->end()
                     ->end()
                 ->end()
@@ -89,12 +96,12 @@ abstract class BaseExtractorConfigDefinition extends BaseConfigDefinition
                     ->cannotBeEmpty()
                 ->end()
                 ->scalarNode('sshPort')
-                    ->defaultValue(22)
+                    ->defaultValue($this->getSshPortDefaultValue())
                 ->end()
                 ->scalarNode('remoteHost')->end()
                 ->scalarNode('remotePort')->end()
                 ->scalarNode('localPort')
-                    ->defaultValue(33006)
+                    ->defaultValue($this->getSshLocalPortDefaultValue())
                 ->end()
                 ->scalarNode('user')->end();
             //->end();
@@ -200,5 +207,20 @@ abstract class BaseExtractorConfigDefinition extends BaseConfigDefinition
         // @formatter:on
 
         return $node;
+    }
+
+    protected function getSshPortDefaultValue(): int
+    {
+        return 22;
+    }
+
+    protected function getSshLocalPortDefaultValue(): int
+    {
+        return 33006;
+    }
+
+    protected function getDatabasePortDefaultValue(): int
+    {
+        return 3306;
     }
 }
