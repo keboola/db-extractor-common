@@ -10,7 +10,7 @@ interface DatabaseParametersInterface
 
     public function getPort(): int;
 
-    public function getDatabase(): string;
+    public function getDatabase(): ?string;
 
     public function getUser(): string;
 

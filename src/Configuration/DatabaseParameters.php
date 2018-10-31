@@ -15,7 +15,7 @@ class DatabaseParameters implements DatabaseParametersInterface
     /** @var int|null */
     private $port;
 
-    /** @var string */
+    /** @var string|null */
     private $database;
 
     /** @var string */
@@ -31,7 +31,7 @@ class DatabaseParameters implements DatabaseParametersInterface
         string $host,
         string $user,
         string $password,
-        string $database,
+        ?string $database = null,
         ?int $port = null,
         ?SshParametersInterface $sshParameters = null
     ) {
@@ -56,7 +56,7 @@ class DatabaseParameters implements DatabaseParametersInterface
         return $this->defaultDatabasePort;
     }
 
-    public function getDatabase(): string
+    public function getDatabase(): ?string
     {
         return $this->database;
     }
@@ -80,6 +80,7 @@ class DatabaseParameters implements DatabaseParametersInterface
     {
         $host = $databaseParameters['host'];
         $port = isset($databaseParameters['port']) ? (int) $databaseParameters['port'] : null;
+        $database = $databaseParameters['database'] ?? null;
 
         $sshParameters = null;
         if (isset($databaseParameters['ssh']) && $databaseParameters['ssh']['enabled']) {
@@ -93,7 +94,7 @@ class DatabaseParameters implements DatabaseParametersInterface
                 '127.0.0.1',
                 $databaseParameters['user'],
                 $databaseParameters['#password'],
-                $databaseParameters['database'],
+                $database,
                 $sshParameters->getLocalPort(),
                 $sshParameters
             );
@@ -102,7 +103,7 @@ class DatabaseParameters implements DatabaseParametersInterface
                 $host,
                 $databaseParameters['user'],
                 $databaseParameters['#password'],
-                $databaseParameters['database'],
+                $database,
                 $port
             );
         }
