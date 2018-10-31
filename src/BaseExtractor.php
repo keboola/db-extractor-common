@@ -15,7 +15,7 @@ use Keboola\DbExtractorCommon\Configuration\Definition\ActionConfigDefinition;
 use Keboola\DbExtractorCommon\Configuration\BaseExtractorConfig;
 use Keboola\DbExtractorCommon\Configuration\Definition\ConfigDefinition;
 use Keboola\DbExtractorCommon\Configuration\Definition\ConfigRowDefinition;
-use Keboola\DbExtractorCommon\Configuration\SshParameters;
+use Keboola\DbExtractorCommon\Configuration\SshParametersInterface;
 use Keboola\DbExtractorCommon\Configuration\TableDetailParameters;
 use Keboola\DbExtractorCommon\Configuration\TableParameters;
 use Keboola\DbExtractorCommon\Exception\DeadConnectionException;
@@ -52,7 +52,7 @@ abstract class BaseExtractor extends BaseComponent
     {
         /** @var BaseExtractorConfig $config */
         $config = $this->getConfig();
-        $sshParameters = $config->getSshParameters();
+        $sshParameters = $config->getDbParameters()->getSsh();
         $action = $config->getAction();
 
         if ($sshParameters
@@ -175,7 +175,7 @@ abstract class BaseExtractor extends BaseComponent
         return new CsvWriter($this->getOutputFilePath($outputTable));
     }
 
-    protected function createSshTunnel(SshParameters $sshParameters): void
+    protected function createSshTunnel(SshParametersInterface $sshParameters): void
     {
         $tunnelParams = $sshParameters->toArray();
         $this->getLogger()->info("Creating SSH tunnel to '" . $tunnelParams['sshHost'] . "'");

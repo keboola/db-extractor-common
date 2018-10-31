@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractorCommon\Configuration;
 
-class DatabaseParameters
+class DatabaseParameters implements DatabaseParametersInterface
 {
+    /** @var int */
+    protected $defaultDatabasePort = 3306;
+
     /** @var string */
     private $host;
 
@@ -21,18 +24,23 @@ class DatabaseParameters
     /** @var string */
     private $password;
 
+    /** @var SshParametersInterface */
+    private $sshParameters;
+
     public function __construct(
         string $host,
         string $user,
         string $password,
-        ?string $database = null,
-        ?int $port = null
+        string $database,
+        ?int $port = null,
+        ?SshParametersInterface $sshParameters = null
     ) {
         $this->host = $host;
         $this->port = $port;
         $this->database = $database;
         $this->user = $user;
         $this->password = $password;
+        $this->sshParameters = $sshParameters;
     }
 
     public function getHost(): string
@@ -40,15 +48,15 @@ class DatabaseParameters
         return $this->host;
     }
 
-    public function getPort(?int $default = null): ?int
+    public function getPort(): int
     {
         if ($this->port) {
             return $this->port;
         }
-        return $default;
+        return $this->defaultDatabasePort;
     }
 
-    public function getDatabase(): ?string
+    public function getDatabase(): string
     {
         return $this->database;
     }
@@ -63,24 +71,40 @@ class DatabaseParameters
         return $this->password;
     }
 
-    public function setHost(string $host): void
+    public function getSsh(): ?SshParametersInterface
     {
-        $this->host = $host;
-    }
-
-    public function setPort(int $port): void
-    {
-        $this->port = $port;
+        return $this->sshParameters;
     }
 
     public static function fromRaw(array $databaseParameters): DatabaseParameters
     {
-        return new DatabaseParameters(
-            $databaseParameters['host'],
-            $databaseParameters['user'],
-            $databaseParameters['#password'],
-            $databaseParameters['database'] ?? null,
-            isset($databaseParameters['port']) ? (int) $databaseParameters['port'] : null
-        );
+        $host = $databaseParameters['host'];
+        $port = isset($databaseParameters['port']) ? (int) $databaseParameters['port'] : null;
+
+        $sshParameters = null;
+        if (isset($databaseParameters['ssh']) && $databaseParameters['ssh']['enabled']) {
+            $sshParameters = SshParameters::fromRaw(
+                $databaseParameters['ssh'],
+                $host,
+                $port,
+                $databaseParameters['user']
+            );
+            return new DatabaseParameters(
+                '127.0.0.1',
+                $databaseParameters['user'],
+                $databaseParameters['#password'],
+                $databaseParameters['database'],
+                $sshParameters->getLocalPort(),
+                $sshParameters
+            );
+        } else {
+            return new DatabaseParameters(
+                $host,
+                $databaseParameters['user'],
+                $databaseParameters['#password'],
+                $databaseParameters['database'],
+                $port
+            );
+        }
     }
 }

@@ -8,7 +8,7 @@ use Keboola\Component\UserException;
 use Keboola\Csv\CsvWriter;
 use Keboola\Csv\Exception as CsvException;
 use Keboola\DbExtractorCommon\Configuration\BaseExtractorConfig;
-use Keboola\DbExtractorCommon\Configuration\DatabaseParameters;
+use Keboola\DbExtractorCommon\Configuration\DatabaseParametersInterface;
 use Keboola\DbExtractorCommon\Configuration\TableDetailParameters;
 use Keboola\DbExtractorCommon\Configuration\TableParameters;
 use Keboola\DbExtractorCommon\Exception\ApplicationException;
@@ -302,7 +302,7 @@ class CommonExtractor extends BaseExtractor
         return $output;
     }
 
-    private function createConnection(DatabaseParameters $parameters): \PDO
+    private function createConnection(DatabaseParametersInterface $parameters): \PDO
     {
         if ($parameters->getPort()) {
             $dsn = sprintf(

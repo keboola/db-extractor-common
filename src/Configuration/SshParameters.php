@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractorCommon\Configuration;
 
-class SshParameters
+class SshParameters implements SshParametersInterface
 {
     /** @var bool */
     private $enabled;
@@ -34,8 +34,9 @@ class SshParameters
     private $privateKey;
 
     public function __construct(
-        DatabaseParameters $databaseParameters,
         bool $enabled,
+        string $databaseHost,
+        ?int $databasePort,
         ?array $keys = null,
         ?string $sshHost = null,
         ?int $sshPort = 22,
@@ -47,10 +48,10 @@ class SshParameters
         $this->privateKey = $this->getKeys()['#private'] ?? $this->getKeys()['private'];
         $this->sshHost = $sshHost;
         $this->sshPort = $sshPort;
-        $this->remoteHost = $databaseParameters->getHost();
-        $this->remotePort = $databaseParameters->getPort();
+        $this->remoteHost = $databaseHost;
+        $this->remotePort = $databasePort;
         $this->localPort = $localPort;
-        $this->user = $user ?? $databaseParameters->getUser();
+        $this->user = $user;
     }
 
     public function isEnabled(): bool
@@ -73,7 +74,7 @@ class SshParameters
         return $this->sshPort;
     }
 
-    public function getRemoteHost(): ?string
+    public function getRemoteHost(): string
     {
         return $this->remoteHost;
     }
@@ -88,7 +89,7 @@ class SshParameters
         return $this->localPort;
     }
 
-    public function getUser(): ?string
+    public function getUser(): string
     {
         return $this->user;
     }
@@ -111,16 +112,21 @@ class SshParameters
         ];
     }
 
-    public static function fromRaw(DatabaseParameters $databaseParameters, array $sshParameters): SshParameters
-    {
+    public static function fromRaw(
+        array $sshParameters,
+        string $databaseHost,
+        ?int $databasePort,
+        string $databaseUser
+    ): SshParameters {
         return new SshParameters(
-            $databaseParameters,
             $sshParameters['enabled'] ?? false,
+            $databaseHost,
+            $databasePort,
             $sshParameters['keys'] ?? null,
             $sshParameters['sshHost'] ?? null,
             isset($sshParameters['sshPort']) ? (int) $sshParameters['sshPort'] : null,
             isset($sshParameters['localPort']) ? (int) $sshParameters['localPort'] : null,
-            $sshParameters['user'] ?? null
+            $sshParameters['user'] ?? $databaseUser
         );
     }
 }
