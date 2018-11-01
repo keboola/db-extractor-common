@@ -2,14 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Keboola\DbExtractor\Tests\Old;
+namespace Keboola\DbExtractorCommon\Tests\Old;
 
+use Keboola\Component\JsonHelper;
 use Keboola\Csv\CsvReader;
-use Keboola\DbExtractor\Application;
-use Keboola\DbExtractor\Exception\ApplicationException;
+use Keboola\DbExtractorCommon\Exception\ApplicationException;
 use Keboola\Component\UserException;
-use Keboola\DbExtractor\Test\DataLoader;
-use Keboola\DbExtractor\Test\ExtractorTest;
+use Keboola\DbExtractorCommon\Tests\CommonExtractor;
+use Keboola\DbExtractorCommon\Tests\DataLoader;
+use Keboola\DbExtractorCommon\Tests\ExtractorTest;
 use Keboola\Component\Logger;
 use Monolog\Handler\TestHandler;
 use Symfony\Component\Filesystem\Filesystem;
@@ -29,13 +30,14 @@ class CommonExtractorTest extends ExtractorTest
 
     public function setUp(): void
     {
+        $this->cleanInputDirectory();
         $this->cleanOutputDirectory();
         $this->initDatabase();
     }
 
-    private function getApp(array $config, array $state = []): Application
+    private function getApp(array $config, array $state = []): CommonExtractor
     {
-        return parent::getApplication($config, $state);
+        return parent::getCommonExtractor($config, $state);
     }
 
     private function initDatabase(): void
@@ -48,10 +50,12 @@ class CommonExtractorTest extends ExtractorTest
             $this->getEnv(self::DRIVER, 'DB_PASSWORD')
         );
 
-        $dataLoader->getPdo()->exec(sprintf(
-            "DROP DATABASE IF EXISTS `%s`",
-            $this->getEnv(self::DRIVER, 'DB_DATABASE')
-        ));
+        $dataLoader->getPdo()->exec(
+            sprintf(
+                "DROP DATABASE IF EXISTS `%s`",
+                $this->getEnv(self::DRIVER, 'DB_DATABASE')
+            )
+        );
         $dataLoader->getPdo()->exec(
             sprintf(
                 "
@@ -96,6 +100,14 @@ class CommonExtractorTest extends ExtractorTest
         $this->db = $dataLoader->getPdo();
     }
 
+    private function cleanInputDirectory(): void
+    {
+        $inputStateFile = $this->dataDir . '/in/state.json';
+        if (file_exists($inputStateFile)) {
+            unlink($inputStateFile);
+        }
+    }
+
     private function cleanOutputDirectory(): void
     {
         $configFilePath = $this->dataDir . DIRECTORY_SEPARATOR . 'config.json';
@@ -120,18 +132,17 @@ class CommonExtractorTest extends ExtractorTest
 
         $app = $this->getApp($config);
         $stdout = $this->runApplication($app);
-        $result = json_decode($stdout, true);
+        $result = JsonHelper::decode($stdout);
 
         $this->assertExtractedData($this->dataDir . '/escaping.csv', $result['imported'][0]['outputTable']);
         $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][1]['outputTable']);
 
-        $manifest = json_decode(
-            (string) file_get_contents(sprintf(
+        $manifest = JsonHelper::readFile(
+            sprintf(
                 "%s/out/tables/%s.csv.manifest",
                 $this->dataDir,
                 $result['imported'][1]['outputTable']
-            )),
-            true
+            )
         );
         $this->assertEquals(["weird_I_d", 'S_oPaulo'], $manifest['columns']);
         $this->assertEquals(["weird_I_d"], $manifest['primary_key']);
@@ -144,28 +155,28 @@ class CommonExtractorTest extends ExtractorTest
 
         $app = $this->getApp($config);
         $stdout = $this->runApplication($app);
-        $result = json_decode($stdout, true);
+        $result = JsonHelper::decode($stdout);
 
         $this->assertExtractedData($this->dataDir . '/escaping.csv', $result['imported'][0]['outputTable']);
-        $manifest = json_decode(
-            (string) file_get_contents(sprintf(
+
+        $manifest = JsonHelper::readFile(
+            sprintf(
                 "%s/out/tables/%s.csv.manifest",
                 $this->dataDir,
                 $result['imported'][0]['outputTable']
-            )),
-            true
+            )
         );
         $this->assertArrayNotHasKey('columns', $manifest);
         $this->assertArrayNotHasKey('primary_key', $manifest);
 
         $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][1]['outputTable']);
-        $manifest = json_decode(
-            (string) file_get_contents(sprintf(
+
+        $manifest = JsonHelper::readFile(
+            sprintf(
                 "%s/out/tables/%s.csv.manifest",
                 $this->dataDir,
                 $result['imported'][1]['outputTable']
-            )),
-            true
+            )
         );
         $this->assertEquals(["weird_I_d", 'S_oPaulo'], $manifest['columns']);
         $this->assertEquals(["weird_I_d"], $manifest['primary_key']);
@@ -178,19 +189,19 @@ class CommonExtractorTest extends ExtractorTest
 
         $app = $this->getApp($config);
         $stdout = $this->runApplication($app);
-        $result = json_decode($stdout, true);
+        $result = JsonHelper::decode($stdout);
 
         $this->assertEquals('success', $result['status']);
         $this->assertEquals('in.c-main.simple', $result['imported']['outputTable']);
         $this->assertEquals(2, $result['imported']['rows']);
         $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported']['outputTable']);
-        $manifest = json_decode(
-            (string) file_get_contents(sprintf(
+
+        $manifest = JsonHelper::readFile(
+            sprintf(
                 "%s/out/tables/%s.csv.manifest",
                 $this->dataDir,
                 $result['imported']['outputTable']
-            )),
-            true
+            )
         );
         $this->assertEquals(["weird_I_d", 'S_oPaulo'], $manifest['columns']);
         $this->assertEquals(["weird_I_d"], $manifest['primary_key']);
@@ -211,7 +222,7 @@ class CommonExtractorTest extends ExtractorTest
 
         $app = $this->getApp($config);
         $stdout = $this->runApplication($app);
-        $result = json_decode($stdout, true);
+        $result = JsonHelper::decode($stdout);
 
         $this->assertExtractedData($this->dataDir . '/escaping.csv', $result['imported'][0]['outputTable']);
         $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][1]['outputTable']);
@@ -235,7 +246,7 @@ class CommonExtractorTest extends ExtractorTest
 
         $app = $this->getApp($config);
         $stdout = $this->runApplication($app);
-        $result = json_decode($stdout, true);
+        $result = JsonHelper::decode($stdout);
 
         $this->assertExtractedData($this->dataDir . '/escaping.csv', $result['imported'][0]['outputTable']);
         $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][1]['outputTable']);
@@ -257,12 +268,14 @@ class CommonExtractorTest extends ExtractorTest
         ];
         $this->prepareConfigInDataDir($config);
 
+        $app = $this->getApp($config);
+
         $this->expectException(UserException::class);
         $this->expectExceptionMessage(
             'Unable to create ssh tunnel. Output:  ErrorOutput: ssh:'
             . ' Could not resolve hostname wronghost: Name or service not known'
         );
-        $this->getApp($config);
+        $app->run();
     }
 
     public function testRunWithWrongCredentials(): void
@@ -272,12 +285,14 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['db']['#password'] = 'somecrap';
         $this->prepareConfigInDataDir($config);
 
+        $app = $this->getApp($config);
+
         $this->expectException(UserException::class);
         $this->expectExceptionMessage(
             'Error connecting to DB: SQLSTATE[HY000] [2002] php_network_getaddresses:'
             . ' getaddrinfo failed: Name or service not known'
         );
-        $this->getApp($config);
+        $app->run();
     }
 
     public function testRetries(): void
@@ -308,7 +323,7 @@ class CommonExtractorTest extends ExtractorTest
 
         $app = $this->getApp($config);
         $stdout = $this->runApplication($app);
-        $result = json_decode($stdout, true);
+        $result = JsonHelper::decode($stdout);
 
         $this->assertEquals('success', $result['status']);
         $this->assertFileNotExists($outputCsvFile);
@@ -324,7 +339,7 @@ class CommonExtractorTest extends ExtractorTest
 
         $app = $this->getApp($config);
         $stdout = $this->runApplication($app);
-        $result = json_decode($stdout, true);
+        $result = JsonHelper::decode($stdout);
 
         $this->assertEquals('success', $result['status']);
     }
@@ -345,7 +360,7 @@ class CommonExtractorTest extends ExtractorTest
         $this->expectException(UserException::class);
         $this->expectExceptionMessage(
             '[dummy]: DB query failed: SQLSTATE[70100]: <<Unknown error>>:'
-            . ' 1317 Query execution was interrupted Tried 5 times.'
+            . ' 1317 Query execution was interrupted'
         );
         $app->run();
     }
@@ -358,11 +373,13 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['db']['#password'] = 'bullshit';
         $this->prepareConfigInDataDir($config);
 
+        $app = $this->getApp($config);
+
         $this->expectException(UserException::class);
         $this->expectExceptionMessageRegExp(
             '~Error connecting to DB: SQLSTATE\[HY000\] \[1045\] Access denied for user \'root\'~'
         );
-        $this->getApp($config);
+        $app->run();
     }
 
     public function testGetTablesAction(): void
@@ -373,7 +390,7 @@ class CommonExtractorTest extends ExtractorTest
 
         $app = $this->getApp($config);
         $stdout = $this->runApplication($app);
-        $result = json_decode($stdout, true);
+        $result = JsonHelper::decode($stdout);
 
         $this->assertArrayHasKey('status', $result);
         $this->assertArrayHasKey('tables', $result);
@@ -495,16 +512,13 @@ class CommonExtractorTest extends ExtractorTest
 
         $app = $this->getApp($config);
         $stdout = $this->runApplication($app);
-        $result = json_decode($stdout, true);
+        $result = JsonHelper::decode($stdout);
 
         $manifestFile = $this->dataDir . '/out/tables/in.c-main.simple.csv.manifest';
 
         $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][0]['outputTable']);
 
-        $outputManifest = json_decode(
-            (string) file_get_contents($manifestFile),
-            true
-        );
+        $outputManifest = JsonHelper::readFile($manifestFile);
 
         $this->assertArrayHasKey('destination', $outputManifest);
         $this->assertArrayHasKey('incremental', $outputManifest);
@@ -649,7 +663,7 @@ class CommonExtractorTest extends ExtractorTest
         $app = $this->getApp($config);
 
         $this->expectException(UserException::class);
-        $this->expectExceptionMessage('Action \'sample\' does not exist.');
+        $this->expectExceptionMessage('Undefined action "sample".');
         $app->run();
     }
 
@@ -661,17 +675,17 @@ class CommonExtractorTest extends ExtractorTest
 
         $app = $this->getApp($config);
         $stdout = $this->runApplication($app);
-        $result = json_decode($stdout, true);
+        $result = JsonHelper::decode($stdout);
 
         $outputTableName = $result['imported'][0]['outputTable'];
         $this->assertExtractedData($this->dataDir . '/simple.csv', $outputTableName);
-        $manifest = json_decode(
-            (string) file_get_contents(sprintf(
+
+        $manifest = JsonHelper::readFile(
+            sprintf(
                 "%s/out/tables/%s.csv.manifest",
                 $this->dataDir,
                 $outputTableName
-            )),
-            true
+            )
         );
         $this->assertEquals(["weird_I_d", 'S_oPaulo'], $manifest['columns']);
         $this->assertEquals(["weird_I_d"], $manifest['primary_key']);
@@ -714,7 +728,7 @@ class CommonExtractorTest extends ExtractorTest
 
         $app = $this->getApp($config);
         $stdout = $this->runApplication($app);
-        $result = json_decode($stdout, true);
+        $result = JsonHelper::decode($stdout);
 
         $this->assertEquals('success', $result['status']);
         $this->assertFileExists($this->dataDir . '/out/tables/in.c-main.something-weird.csv');
@@ -731,7 +745,7 @@ class CommonExtractorTest extends ExtractorTest
 
         $app = $this->getApp($config);
         $stdout = $this->runApplication($app);
-        $result = json_decode($stdout, true);
+        $result = JsonHelper::decode($stdout);
 
         $this->assertEquals('success', $result['status']);
         $this->assertEquals(
@@ -752,7 +766,7 @@ class CommonExtractorTest extends ExtractorTest
         // the next fetch should be empty
         $app = $this->getApp($config, $result['state']);
         $stdout = $this->runApplication($app);
-        $emptyResult = json_decode($stdout, true);
+        $emptyResult = JsonHelper::decode($stdout);
 
         $this->assertEquals(0, $emptyResult['imported']['rows']);
 
@@ -762,7 +776,7 @@ class CommonExtractorTest extends ExtractorTest
 
         $app = $this->getApp($config, $result['state']);
         $stdout = $this->runApplication($app);
-        $newResult = json_decode($stdout, true);
+        $newResult = JsonHelper::decode($stdout);
 
         //check that output state contains expected information
         $this->assertArrayHasKey('state', $newResult);
@@ -783,7 +797,7 @@ class CommonExtractorTest extends ExtractorTest
 
         $app = $this->getApp($config);
         $stdout = $this->runApplication($app);
-        $result = json_decode($stdout, true);
+        $result = JsonHelper::decode($stdout);
 
         $this->assertEquals('success', $result['status']);
         $this->assertEquals(
@@ -804,7 +818,7 @@ class CommonExtractorTest extends ExtractorTest
 
         $app = $this->getApp($config, $result['state']);
         $stdout = $this->runApplication($app);
-        $emptyResult = json_decode($stdout, true);
+        $emptyResult = JsonHelper::decode($stdout);
 
         $this->assertEquals(0, $emptyResult['imported']['rows']);
 
@@ -814,7 +828,7 @@ class CommonExtractorTest extends ExtractorTest
 
         $app = $this->getApp($config, $result['state']);
         $stdout = $this->runApplication($app);
-        $newResult = json_decode($stdout, true);
+        $newResult = JsonHelper::decode($stdout);
 
 
         //check that output state contains expected information
@@ -834,7 +848,7 @@ class CommonExtractorTest extends ExtractorTest
 
         $app = $this->getApp($config);
         $stdout = $this->runApplication($app);
-        $result = json_decode($stdout, true);
+        $result = JsonHelper::decode($stdout);
 
         $this->assertEquals('success', $result['status']);
         $this->assertEquals(
@@ -855,7 +869,7 @@ class CommonExtractorTest extends ExtractorTest
         // the next fetch should contain the second row
         $app = $this->getApp($config, $result['state']);
         $stdout = $this->runApplication($app);
-        $result = json_decode($stdout, true);
+        $result = JsonHelper::decode($stdout);
 
         $this->assertEquals(
             [
@@ -881,7 +895,7 @@ class CommonExtractorTest extends ExtractorTest
 
         $app = $this->getApp($config);
         $stdout = $this->runApplication($app);
-        $result = json_decode($stdout, true);
+        $result = JsonHelper::decode($stdout);
 
         $this->assertEquals(
             [
@@ -959,15 +973,12 @@ class CommonExtractorTest extends ExtractorTest
 
         $app = $this->getApp($config);
         $stdout = $this->runApplication($app);
-        $result = json_decode($stdout, true);
+        $result = JsonHelper::decode($stdout);
 
         $this->assertEquals('success', $result['status']);
         $outputManifestFile = $this->dataDir . '/out/tables/in.c-main.columnscheck.csv.manifest';
 
-        $outputManifest = json_decode(
-            (string) file_get_contents($outputManifestFile),
-            true
-        );
+        $outputManifest = JsonHelper::readFile($outputManifestFile);
 
         // check that the manifest has the correct column ordering
         $this->assertEquals($config['parameters']['columns'], $outputManifest['columns']);
@@ -989,15 +1000,13 @@ class CommonExtractorTest extends ExtractorTest
             'action' => 'testConnection',
             'parameters' => [
                 'db' => $this->getConfigDbNode(self::DRIVER),
-                'data_dir' => $this->dataDir,
-                'extractor_class' => ucfirst(self::DRIVER),
             ],
         ];
         $this->prepareConfigInDataDir($config);
 
         $app = $this->getApp($config);
         $stdout = $this->runApplication($app);
-        $result = json_decode($stdout, true);
+        $result = JsonHelper::decode($stdout);
 
         $this->assertCount(1, $result);
         $this->assertArrayHasKey('status', $result);
@@ -1015,7 +1024,7 @@ class CommonExtractorTest extends ExtractorTest
 
         $app = $this->getApp($config);
         $stdout = $this->runApplication($app);
-        $result = json_decode($stdout, true);
+        $result = JsonHelper::decode($stdout);
 
         $this->assertArrayHasKey('status', $result);
         $this->assertEquals('success', $result['status']);
@@ -1095,7 +1104,7 @@ class CommonExtractorTest extends ExtractorTest
         $logger = new Logger();
         $logger->pushHandler($handler);
         putenv(sprintf('KBC_DATADIR=%s', $this->dataDir));
-        $app = new Application($config, $logger, []);
+        $app = new CommonExtractor($logger);
         try {
             $app->run();
             self::fail('Must raise exception');

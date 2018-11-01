@@ -2,14 +2,41 @@
 
 declare(strict_types=1);
 
-namespace Keboola\DbExtractor\Configuration;
+namespace Keboola\DbExtractorCommon\Configuration\Definition;
 
 use Keboola\Component\Config\BaseConfigDefinition;
+use Keboola\DbExtractorCommon\Configuration\ConfigDefinitionValidationHelper;
 use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 
 abstract class BaseExtractorConfigDefinition extends BaseConfigDefinition
 {
+    protected function getParametersDefinition(): ArrayNodeDefinition
+    {
+        $parametersNode = parent::getParametersDefinition();
+        $parametersNode->validate()
+            ->ifTrue(function ($v) {
+                $databaseName = $v['db']['database'] ?? null;
+                if (isset($v['tables'])) {
+                    foreach ($v['tables'] as $tableParameters) {
+                        return ConfigDefinitionValidationHelper::isDatabaseAndTableSchemaEqual(
+                            $tableParameters,
+                            $databaseName
+                        );
+                    }
+                } else {
+                    return ConfigDefinitionValidationHelper::isDatabaseAndTableSchemaEqual(
+                        $v,
+                        $databaseName
+                    );
+                }
+                return false;
+            })
+            ->thenInvalid(ConfigDefinitionValidationHelper::MESSAGE_DATABASE_AND_TABLE_SCHEMA_ARE_DIFFERENT)
+            ->end();
+        return $parametersNode;
+    }
+
     protected function getDbNode(): ArrayNodeDefinition
     {
         $builder = new TreeBuilder();
@@ -23,7 +50,9 @@ abstract class BaseExtractorConfigDefinition extends BaseConfigDefinition
             ->children()
                 ->scalarNode('driver')->end()
                 ->scalarNode('host')->end()
-                ->scalarNode('port')->end()
+                ->scalarNode('port')
+                    ->defaultValue($this->getDatabasePortDefaultValue())
+                ->end()
                 ->scalarNode('database')
                     ->cannotBeEmpty()
                 ->end()
@@ -49,20 +78,31 @@ abstract class BaseExtractorConfigDefinition extends BaseConfigDefinition
 
         // @formatter:off
         $node
+            ->addDefaultsIfNotSet()
             ->children()
-                ->booleanNode('enabled')->end()
+                ->booleanNode('enabled')
+                    ->defaultValue(false)
+                ->end()
                 ->arrayNode('keys')
                     ->children()
                         ->scalarNode('private')->end()
-                        ->scalarNode('#private')->end()
+                        ->scalarNode('#private')
+                            ->isRequired()
+                        ->end()
                         ->scalarNode('public')->end()
                     ->end()
                 ->end()
-                ->scalarNode('sshHost')->end()
-                ->scalarNode('sshPort')->end()
+                ->scalarNode('sshHost')
+                    ->cannotBeEmpty()
+                ->end()
+                ->scalarNode('sshPort')
+                    ->defaultValue($this->getSshPortDefaultValue())
+                ->end()
                 ->scalarNode('remoteHost')->end()
                 ->scalarNode('remotePort')->end()
-                ->scalarNode('localPort')->end()
+                ->scalarNode('localPort')
+                    ->defaultValue($this->getSshLocalPortDefaultValue())
+                ->end()
                 ->scalarNode('user')->end();
             //->end();
         // @formatter:on
@@ -104,7 +144,6 @@ abstract class BaseExtractorConfigDefinition extends BaseConfigDefinition
         // @formatter:off
         $node
             ->arrayPrototype()
-            ->addDefaultsIfNotSet()
                 ->children()
                     ->integerNode('id')
                         ->isRequired()
@@ -135,6 +174,7 @@ abstract class BaseExtractorConfigDefinition extends BaseConfigDefinition
                     ->integerNode('retries')
                         ->min(0)
                     ->end()
+                    ->booleanNode('advancedMode')->end()
                 ->end()
             ->end();
 
@@ -159,7 +199,7 @@ abstract class BaseExtractorConfigDefinition extends BaseConfigDefinition
         $node->validate()
             ->ifTrue(function ($v) {
                 foreach ($v as $table) {
-                    return ConfigDefinitionValidationHelper::isIncrementalFetchingSetForAdvancedQuery($table);
+                    return isset($table['query']) && $table['incremental'];
                 }
             })
             ->thenInvalid(ConfigDefinitionValidationHelper::MESSAGE_CUSTOM_QUERY_CANNOT_BE_FETCHED_INCREMENTALLY)
@@ -167,5 +207,20 @@ abstract class BaseExtractorConfigDefinition extends BaseConfigDefinition
         // @formatter:on
 
         return $node;
+    }
+
+    protected function getSshPortDefaultValue(): int
+    {
+        return 22;
+    }
+
+    protected function getSshLocalPortDefaultValue(): int
+    {
+        return 33006;
+    }
+
+    protected function getDatabasePortDefaultValue(): int
+    {
+        return 3306;
     }
 }

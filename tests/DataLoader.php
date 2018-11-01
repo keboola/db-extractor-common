@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Keboola\DbExtractor\Test;
+namespace Keboola\DbExtractorCommon\Tests;
 
 use PDO;
 

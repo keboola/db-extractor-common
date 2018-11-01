@@ -2,16 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Keboola\DbExtractor\Test;
+namespace Keboola\DbExtractorCommon\Tests;
 
-use Keboola\DbExtractor\Application;
+use Keboola\Component\JsonHelper;
 use Keboola\Component\Logger;
+use Keboola\DbExtractorCommon\BaseExtractor;
 use PHPUnit\Framework\TestCase;
 
 class ExtractorTest extends TestCase
 {
     /** @var string */
-    protected $dataDir = __DIR__ . "/../../../../tests/Old/data";
+    protected $dataDir = __DIR__ . "/Old/data";
 
     protected function getConfigDbNode(string $driver): array
     {
@@ -26,38 +27,24 @@ class ExtractorTest extends TestCase
 
     protected function getConfig(string $driver): array
     {
-        $config = json_decode(
-            (string) file_get_contents($this->dataDir . '/' .$driver . '/exampleConfig.json'),
-            true
-        );
+        $config = JsonHelper::readFile($this->dataDir . '/' .$driver . '/exampleConfig.json');
         $config['parameters']['db'] = $this->getConfigDbNode($driver);
-        $config['parameters']['extractor_class'] = ucfirst($driver);
         
         return $config;
     }
 
     protected function getConfigRow(string $driver): array
     {
-        $config = json_decode(
-            (string) file_get_contents($this->dataDir . '/' .$driver . '/exampleConfigRow.json'),
-            true
-        );
-
+        $config = JsonHelper::readFile($this->dataDir . '/' .$driver . '/exampleConfigRow.json');
         $config['parameters']['db'] = $this->getConfigDbNode($driver);
-        $config['parameters']['extractor_class'] = ucfirst($driver);
 
         return $config;
     }
 
     protected function getConfigRowForCsvErr(string $driver): array
     {
-        $config = json_decode(
-            (string) file_get_contents($this->dataDir . '/' .$driver . '/exampleConfigRowCsvErr.json'),
-            true
-        );
-
+        $config = JsonHelper::readFile($this->dataDir . '/' .$driver . '/exampleConfigRowCsvErr.json');
         $config['parameters']['db'] = $this->getConfigDbNode($driver);
-        $config['parameters']['extractor_class'] = ucfirst($driver);
 
         return $config;
     }
@@ -80,22 +67,31 @@ class ExtractorTest extends TestCase
         return str_replace('"', '', str_replace('\n', "\n", $this->getEnv($driver, 'DB_SSH_KEY_PRIVATE')));
     }
 
-    protected function getApplication(array $config, array $state = []): Application
+    protected function getCommonExtractor(array $config, array $state = []): CommonExtractor
     {
         putenv(sprintf('KBC_DATADIR=%s', $this->dataDir));
-        return new Application($config, new Logger(), $state);
+        $this->prepareConfigInDataDir($config);
+        if (!empty($state)) {
+            $this->prepareInputStateInDataDir($state);
+        }
+
+        $app = new CommonExtractor(new Logger());
+        return $app;
     }
 
     protected function prepareConfigInDataDir(array $config): void
     {
         $configFilePath = $this->dataDir . DIRECTORY_SEPARATOR . 'config.json';
-        file_put_contents(
-            $configFilePath,
-            json_encode($config, JSON_PRETTY_PRINT)
-        );
+        JsonHelper::writeFile($configFilePath, $config);
     }
 
-    protected function runApplication(Application $application): string
+    protected function prepareInputStateInDataDir(array $state): void
+    {
+        $inputStateFilePath = $this->dataDir . DIRECTORY_SEPARATOR . 'in/state.json';
+        JsonHelper::writeFile($inputStateFilePath, $state);
+    }
+
+    protected function runApplication(BaseExtractor $application): string
     {
         ob_start();
         $application->run();

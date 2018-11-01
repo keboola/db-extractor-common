@@ -2,8 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Keboola\DbExtractor\Configuration;
+namespace Keboola\DbExtractorCommon\Configuration\Definition;
 
+use Keboola\DbExtractorCommon\Configuration\ConfigDefinitionValidationHelper;
 use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
 
 class ConfigRowDefinition extends BaseExtractorConfigDefinition
@@ -16,10 +17,6 @@ class ConfigRowDefinition extends BaseExtractorConfigDefinition
         $rootNode
             ->ignoreExtraKeys(false)
             ->children()
-                ->scalarNode('extractor_class')
-                    ->isRequired()
-                    ->cannotBeEmpty()
-                ->end()
                 ->append($this->getDbNode())
                 ->integerNode('id')->end()
                 ->scalarNode('name')->end()
@@ -46,6 +43,7 @@ class ConfigRowDefinition extends BaseExtractorConfigDefinition
                 ->integerNode('retries')
                     ->min(0)
                 ->end()
+                ->booleanNode('advancedMode')->end()
             ->end();
 
         $rootNode->validate()

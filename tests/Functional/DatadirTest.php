@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Keboola\DbExtractor\Tests\Functional;
+namespace Keboola\DbExtractorCommon\Tests\Functional;
 
+use Keboola\Component\JsonHelper;
 use Keboola\DatadirTests\AbstractDatadirTestCase;
-use Keboola\DatadirTests\DatadirTestSpecification;
-use Keboola\DbExtractor\Test\DataLoader;
+use Keboola\DbExtractorCommon\Tests\DataLoader;
 
 class DatadirTest extends AbstractDatadirTestCase
 {
@@ -53,9 +53,8 @@ class DatadirTest extends AbstractDatadirTestCase
 
     private function getConfig(string $testDirectory): array
     {
-        $configuration = json_decode((string) file_get_contents($testDirectory . '/config.json'), true);
-        $configuration['parameters']['extractor_class'] = 'Common';
-        return$configuration;
+        $configuration = JsonHelper::readFile($testDirectory . '/config.json');
+        return $configuration;
     }
 
     private function getCredentials(): array
@@ -80,30 +79,6 @@ class DatadirTest extends AbstractDatadirTestCase
         );
     }
 
-    private function runCommonTest(
-        string $testDirectory,
-        array $configuration,
-        int $expectedReturnCode,
-        ?string $expectedStdout,
-        ?string $expectedStderr
-    ): void {
-        $specification = new DatadirTestSpecification(
-            $testDirectory . '/source/data',
-            $expectedReturnCode,
-            $expectedStdout,
-            $expectedStderr,
-            $testDirectory . '/expected/data/out'
-        );
-        $tempDatadir = $this->getTempDatadir($specification);
-
-        file_put_contents(
-            $tempDatadir->getTmpFolder() . '/config.json',
-            json_encode($configuration, JSON_PRETTY_PRINT)
-        );
-        $process = $this->runScript($tempDatadir->getTmpFolder());
-        $this->assertMatchesSpecification($specification, $process, $tempDatadir->getTmpFolder());
-    }
-
     public function testActionTestConnection(): void
     {
         $testDirectory = __DIR__ . '/empty-data';
@@ -114,11 +89,11 @@ class DatadirTest extends AbstractDatadirTestCase
         $configuration['action'] = 'testConnection';
         $configuration['parameters']['db'] = $credentials;
 
-        $expectedStdout = json_encode(['status' => 'success'], JSON_PRETTY_PRINT);
+        $expectedStdout = JsonHelper::encode(['status' => 'success']);
 
         $this->createDatabase($credentials['database']);
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             0,
@@ -200,14 +175,14 @@ class DatadirTest extends AbstractDatadirTestCase
             ],
             'status' => 'success',
         ];
-        $expectedStdout = json_encode($response, JSON_PRETTY_PRINT);
+        $expectedStdout = JsonHelper::encode($response);
 
         $database = $credentials['database'];
         $this->createDatabase($database);
         $this->createTable($database, 'table1');
         $this->createTable($database, 'table2');
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             0,
@@ -229,12 +204,12 @@ class DatadirTest extends AbstractDatadirTestCase
         $database = $credentials['database'];
         $this->createDatabase($database);
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             1,
             null,
-            'Action \'funkyAction\' does not exist.' . PHP_EOL
+            null
         );
     }
 
@@ -263,7 +238,7 @@ class DatadirTest extends AbstractDatadirTestCase
         $this->createDatabase($database);
         $this->createTable($database, 'table1');
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             1,
@@ -293,7 +268,7 @@ class DatadirTest extends AbstractDatadirTestCase
         $this->createDatabase($database);
         $this->createTable($database, 'table1');
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             1,
@@ -323,7 +298,7 @@ class DatadirTest extends AbstractDatadirTestCase
         $this->createDatabase($database);
         $this->createTable($database, 'table1');
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             1,
@@ -335,8 +310,10 @@ class DatadirTest extends AbstractDatadirTestCase
     public function testExportTableByOldConfigOnNonExistingDatabase(): void
     {
         $testDirectory = __DIR__ . '/empty-data';
+        $invalidDatabaseName = 'invalid_db';
 
         $credentials = $this->getCredentials();
+        $credentials['database'] = $invalidDatabaseName;
 
         $configuration = $this->getConfig($testDirectory);
         $configuration['parameters']['db'] = $credentials;
@@ -345,25 +322,20 @@ class DatadirTest extends AbstractDatadirTestCase
                 'id' => 1,
                 'name' => 'table1',
                 'table' => [
-                    'schema' => 'invaliddb',
+                    'schema' => $invalidDatabaseName,
                     'tableName' => 'table1',
                 ],
                 'outputTable' => 'table1',
             ],
         ];
 
-        $database = $credentials['database'];
-        $table = 'table1';
-        $this->createDatabase($database);
-        $this->createTable($database, $table);
-
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             1,
             null,
-            '[table1]: DB query failed: SQLSTATE[42S02]:'
-            . ' Base table or view not found: 1146 Table \'invaliddb.table1\' doesn\'t exist Tried 5 times.' . PHP_EOL
+            '[table1]: DB query failed: Error connecting to DB: '
+            . 'SQLSTATE[HY000] [1049] Unknown database \'invalid_db\' Tried 5 times.' . PHP_EOL
         );
     }
 
@@ -392,7 +364,7 @@ class DatadirTest extends AbstractDatadirTestCase
         $this->createDatabase($database);
         $this->createTable($database, $table);
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             1,
@@ -438,11 +410,11 @@ class DatadirTest extends AbstractDatadirTestCase
         $this->createDatabase($database);
         $this->createTable($database, $table);
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             0,
-            'Exporting to table1' . PHP_EOL . json_encode($response, JSON_PRETTY_PRINT),
+            'Exporting to table1' . PHP_EOL . JsonHelper::encode($response),
             null
         );
     }
@@ -481,11 +453,11 @@ class DatadirTest extends AbstractDatadirTestCase
             'r2'
         ));
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             0,
-            'Exporting to table1' . PHP_EOL . json_encode($response, JSON_PRETTY_PRINT),
+            'Exporting to table1' . PHP_EOL . JsonHelper::encode($response),
             null
         );
     }
@@ -524,11 +496,11 @@ class DatadirTest extends AbstractDatadirTestCase
             'r2'
         ));
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             0,
-            'Exporting to table1' . PHP_EOL . json_encode($response, JSON_PRETTY_PRINT),
+            'Exporting to table1' . PHP_EOL . JsonHelper::encode($response),
             null
         );
     }
@@ -550,7 +522,7 @@ class DatadirTest extends AbstractDatadirTestCase
             ],
         ];
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             1,
@@ -578,7 +550,7 @@ class DatadirTest extends AbstractDatadirTestCase
             ],
         ];
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             1,
@@ -606,7 +578,7 @@ class DatadirTest extends AbstractDatadirTestCase
             ],
         ];
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             1,
@@ -660,11 +632,11 @@ class DatadirTest extends AbstractDatadirTestCase
             'r2'
         ));
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             0,
-            'Exporting to table1' . PHP_EOL . json_encode($response, JSON_PRETTY_PRINT),
+            'Exporting to table1' . PHP_EOL . JsonHelper::encode($response),
             null
         );
     }
@@ -724,11 +696,11 @@ class DatadirTest extends AbstractDatadirTestCase
             'r2'
         ));
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             0,
-            'Exporting to table1' . PHP_EOL . json_encode($response, JSON_PRETTY_PRINT),
+            'Exporting to table1' . PHP_EOL . JsonHelper::encode($response),
             null
         );
     }
@@ -767,12 +739,41 @@ class DatadirTest extends AbstractDatadirTestCase
             'r2'
         ));
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             0,
-            'Exporting to table1' . PHP_EOL . json_encode($response, JSON_PRETTY_PRINT),
+            'Exporting to table1' . PHP_EOL . JsonHelper::encode($response),
             null
+        );
+    }
+
+    public function testExportTableByOldConfigWithDifferentDatabaseAndShemaThrowsError(): void
+    {
+        $testDirectory = __DIR__ . '/empty-data';
+
+        $credentials = $this->getCredentials();
+        $configuration = $this->getConfig($testDirectory);
+        $configuration['parameters']['db'] = $credentials;
+        $configuration['parameters']['tables'] = [
+            [
+                'id' => 1,
+                'name' => 'table_1',
+                'outputTable' => 'out.table',
+                'table' => [
+                    'schema' => 'mismatch',
+                    'tableName' => 'table_name',
+                ],
+            ],
+        ];
+
+        $this->runTestWithCustomConfiguration(
+            $testDirectory,
+            $configuration,
+            1,
+            null,
+            'Invalid configuration for path "root.parameters":'
+            . ' Table schema and database mismatch.' . PHP_EOL
         );
     }
 
@@ -797,7 +798,7 @@ class DatadirTest extends AbstractDatadirTestCase
         $this->createDatabase($database);
         $this->createTable($database, 'table1');
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             1,
@@ -822,7 +823,7 @@ class DatadirTest extends AbstractDatadirTestCase
         $this->createDatabase($database);
         $this->createTable($database, 'table1');
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             1,
@@ -847,7 +848,7 @@ class DatadirTest extends AbstractDatadirTestCase
         $this->createDatabase($database);
         $this->createTable($database, 'table1');
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             1,
@@ -859,30 +860,27 @@ class DatadirTest extends AbstractDatadirTestCase
     public function testExportTableByConfigRowsOnNonExistingDatabase(): void
     {
         $testDirectory = __DIR__ . '/empty-data';
+        $invalidDatabaseName = 'invalid_db';
 
         $credentials = $this->getCredentials();
+        $credentials['database'] = $invalidDatabaseName;
 
         $configuration = $this->getConfig($testDirectory);
         $configuration['parameters']['db'] = $credentials;
         $configuration['parameters']['name'] = 'table1';
         $configuration['parameters']['outputTable'] = 'table1';
         $configuration['parameters']['table'] = [
-            'schema' => 'invaliddb',
+            'schema' => $invalidDatabaseName,
             'tableName' => 'table1',
         ];
 
-        $database = $credentials['database'];
-        $table = 'table1';
-        $this->createDatabase($database);
-        $this->createTable($database, $table);
-
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             1,
             null,
-            '[table1]: DB query failed: SQLSTATE[42S02]:'
-            . ' Base table or view not found: 1146 Table \'invaliddb.table1\' doesn\'t exist Tried 5 times.' . PHP_EOL
+            '[table1]: DB query failed: Error connecting to DB:'
+            . ' SQLSTATE[HY000] [1049] Unknown database \'invalid_db\' Tried 5 times.' . PHP_EOL
         );
     }
 
@@ -906,7 +904,7 @@ class DatadirTest extends AbstractDatadirTestCase
         $this->createDatabase($database);
         $this->createTable($database, $table);
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             1,
@@ -945,11 +943,11 @@ class DatadirTest extends AbstractDatadirTestCase
         $this->createDatabase($database);
         $this->createTable($database, $table);
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             0,
-            'Exporting to table1' . PHP_EOL . json_encode($response, JSON_PRETTY_PRINT),
+            'Exporting to table1' . PHP_EOL . JsonHelper::encode($response),
             null
         );
     }
@@ -990,11 +988,11 @@ class DatadirTest extends AbstractDatadirTestCase
             'r2'
         ));
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             0,
-            'Exporting to table1' . PHP_EOL . json_encode($response, JSON_PRETTY_PRINT),
+            'Exporting to table1' . PHP_EOL . JsonHelper::encode($response),
             null
         );
     }
@@ -1038,11 +1036,11 @@ class DatadirTest extends AbstractDatadirTestCase
             'r2'
         ));
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             0,
-            'Exporting to table1' . PHP_EOL . json_encode($response, JSON_PRETTY_PRINT),
+            'Exporting to table1' . PHP_EOL . JsonHelper::encode($response),
             null
         );
     }
@@ -1059,7 +1057,7 @@ class DatadirTest extends AbstractDatadirTestCase
         $configuration['parameters']['outputTable'] = 'table1';
         $configuration['parameters']['table'] = [];
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             1,
@@ -1082,7 +1080,7 @@ class DatadirTest extends AbstractDatadirTestCase
             'tableName' => 'table',
         ];
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             1,
@@ -1105,7 +1103,7 @@ class DatadirTest extends AbstractDatadirTestCase
             'schema' => 'database',
         ];
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             1,
@@ -1153,11 +1151,11 @@ class DatadirTest extends AbstractDatadirTestCase
             'r2'
         ));
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             0,
-            'Exporting to table1' . PHP_EOL . json_encode($response, JSON_PRETTY_PRINT),
+            'Exporting to table1' . PHP_EOL . JsonHelper::encode($response),
             null
         );
     }
@@ -1204,11 +1202,11 @@ class DatadirTest extends AbstractDatadirTestCase
             'r2'
         ));
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             0,
-            'Exporting to table1' . PHP_EOL . json_encode($response, JSON_PRETTY_PRINT),
+            'Exporting to table1' . PHP_EOL . JsonHelper::encode($response),
             null
         );
     }
@@ -1235,7 +1233,7 @@ class DatadirTest extends AbstractDatadirTestCase
         $this->createDatabase($database);
         $this->createTable($database, $table);
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             1,
@@ -1266,7 +1264,7 @@ class DatadirTest extends AbstractDatadirTestCase
         $this->createDatabase($database);
         $this->createTable($database, $table);
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             1,
@@ -1322,12 +1320,35 @@ class DatadirTest extends AbstractDatadirTestCase
             'r2'
         ));
 
-        $this->runCommonTest(
+        $this->runTestWithCustomConfiguration(
             $testDirectory,
             $configuration,
             0,
-            'Exporting to table1' . PHP_EOL . json_encode($response, JSON_PRETTY_PRINT),
+            'Exporting to table1' . PHP_EOL . JsonHelper::encode($response),
             null
+        );
+    }
+
+    public function testExportTableByConfigRowsWithDifferentDatabaseAndShemaThrowsError(): void
+    {
+        $testDirectory = __DIR__ . '/empty-data';
+
+        $credentials = $this->getCredentials();
+        $configuration = $this->getConfig($testDirectory);
+        $configuration['parameters']['db'] = $credentials;
+        $configuration['parameters']['outputTable'] = 'out.table';
+        $configuration['parameters']['table'] = [
+            'schema' => 'mismatch',
+            'tableName' => 'table_name',
+        ];
+
+        $this->runTestWithCustomConfiguration(
+            $testDirectory,
+            $configuration,
+            1,
+            null,
+            'Invalid configuration for path "root.parameters":'
+            . ' Table schema and database mismatch.' . PHP_EOL
         );
     }
 }

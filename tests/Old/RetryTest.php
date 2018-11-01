@@ -2,14 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Keboola\DbExtractor\Tests;
+namespace Keboola\DbExtractorCommon\Tests\Old;
 
+use Keboola\Component\JsonHelper;
 use Keboola\Csv\CsvWriter;
-use Keboola\DbExtractor\Exception\DeadConnectionException;
-use Keboola\DbExtractor\Exception\UserException;
-use Keboola\DbExtractor\Extractor\Common;
-use Keboola\DbExtractor\Logger;
-use Keboola\DbExtractor\Test\ExtractorTest;
+use Keboola\DbExtractorCommon\Exception\DeadConnectionException;
+use Keboola\Component\UserException;
+use Keboola\DbExtractorCommon\Tests\ExtractorTest;
 use Keboola\Temp\Temp;
 use Monolog\Handler\TestHandler;
 use PDO;
@@ -19,7 +18,7 @@ class RetryTest extends ExtractorTest
 {
     private const ROW_COUNT = 1000000;
 
-    private const SERVER_KILLER_EXECUTABLE =  'php ' . __DIR__ . '/killerRabbit.php';
+    private const SERVER_KILLER_EXECUTABLE =  'php ' . __DIR__ . '/../killerRabbit.php';
 
     /**
      * @var array
@@ -380,13 +379,13 @@ class RetryTest extends ExtractorTest
             was retried, and the partial result was discarded. */
         $this->setupLargeTable();
         $config = $this->getRetryConfig();
-        $app = $this->getApplication('ex-db-common', $config);
+        $app = $this->getCommonExtractor($config);
 
         // execute asynchronously the script to reboot the server
         exec(self::SERVER_KILLER_EXECUTABLE . ' 2 > /dev/null &');
 
         $stdout = $this->runApplication($app);
-        $result = json_decode($stdout, true);
+        $result = JsonHelper::decode($stdout);
 
         $outputCsvFile = $this->dataDir . '/out/tables/' . $result['imported'][0]['outputTable'] . '.csv';
 
@@ -407,7 +406,7 @@ class RetryTest extends ExtractorTest
         // execute asynchronously the script to reboot the server
         exec(self::SERVER_KILLER_EXECUTABLE . ' 0');
         $this->waitForDeadConnection();
-        $app = new Application($config, $logger, []);
+        $app = $this->getCommonExtractor($config);
         try {
             $app->run();
             self::fail('Must raise exception.');

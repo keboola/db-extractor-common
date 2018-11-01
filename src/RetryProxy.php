@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Keboola\DbExtractor;
+namespace Keboola\DbExtractorCommon;
 
-use Keboola\Component\Logger;
+use Psr\Log\LoggerInterface;
 use Retry\Policy\RetryPolicyInterface;
 use Retry\Policy\SimpleRetryPolicy;
 use Retry\BackOff\BackOffPolicyInterface;
@@ -27,11 +27,11 @@ class RetryProxy implements RetryProxyInterface
     /** @var BackOffPolicyInterface */
     private $backOffPolicy;
 
-    /** @var Logger */
+    /** @var LoggerInterface */
     private $logger;
 
     public function __construct(
-        Logger $logger,
+        LoggerInterface $logger,
         ?int $maxTries = null,
         ?int $backoffInterval = null,
         ?array $expectedExceptions = null,

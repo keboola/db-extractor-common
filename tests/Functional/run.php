@@ -4,19 +4,16 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../../vendor/autoload.php';
 
-use Keboola\DbExtractor\Application;
 use Keboola\Component\UserException;
 use Keboola\Component\Logger;
+use Keboola\DbExtractorCommon\Tests\CommonExtractor;
 
-$datadirPath = rtrim((string) getenv('KBC_DATADIR'), '/');
-
-$config = json_decode((string) file_get_contents($datadirPath . '/config.json'), true);
 $logger = new Logger();
 
-
 try {
-    $app = new Application($config, $logger);
-    $app->run();
+    $commonExtractor = new CommonExtractor($logger);
+    $commonExtractor->run();
+
     exit(0);
 } catch (UserException $e) {
     $logger->error($e->getMessage());

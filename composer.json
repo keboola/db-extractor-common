@@ -13,7 +13,7 @@
     "php": ">=7.1",
     "keboola/csv": "^2.0",
     "keboola/datadir-tests": "^2.1",
-    "keboola/php-component": "^4.2",
+    "keboola/php-component": "^5.0",
     "keboola/php-datatypes": "^3.2",
     "keboola/php-utils": "^2.3",
     "keboola/ssh-tunnel": "^2.0",
@@ -33,12 +33,8 @@
   },
   "autoload": {
     "psr-4": {
-      "Keboola\\": "src/Keboola/"
-    }
-  },
-  "autoload-dev": {
-    "psr-4": {
-      "Keboola\\DbExtractor\\Tests\\": "tests/"
+      "Keboola\\DbExtractorCommon\\": "src/",
+      "Keboola\\DbExtractorCommon\\Tests\\": "tests/"
     }
   },
   "scripts": {

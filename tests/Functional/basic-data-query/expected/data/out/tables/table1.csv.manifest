@@ -1,1 +1,4 @@
-{"destination":"table1","incremental":false}
+{
+  "destination": "table1",
+  "incremental": false
+}
