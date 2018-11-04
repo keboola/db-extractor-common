@@ -88,6 +88,7 @@ abstract class BaseExtractorConfigDefinition extends BaseConfigDefinition
                         ->scalarNode('private')->end()
                         ->scalarNode('#private')
                             ->isRequired()
+                            ->cannotBeEmpty()
                         ->end()
                         ->scalarNode('public')->end()
                     ->end()
@@ -106,6 +107,21 @@ abstract class BaseExtractorConfigDefinition extends BaseConfigDefinition
                 ->scalarNode('user')->end();
             //->end();
         // @formatter:on
+
+        $node->validate()
+            ->ifTrue(function ($v) {
+                if ($v['enabled'] === false) {
+                    return false;
+                }
+                $requiredKeys = ['sshHost', 'keys'];
+                foreach ($requiredKeys as $requiredKey) {
+                    if (!in_array($requiredKey, array_keys($v))) {
+                        return true;
+                    }
+                }
+                return false;
+            })
+            ->thenInvalid('Nodes "sshHost" and "keys" are required.');
 
         return $node;
     }
