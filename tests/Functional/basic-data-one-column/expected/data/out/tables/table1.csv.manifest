@@ -23,7 +23,7 @@
     },
     {
       "key": "KBC.rowCount",
-      "value": "2"
+      "value": 2
     }
   ],
   "column_metadata": {
@@ -58,7 +58,7 @@
       },
       {
         "key": "KBC.ordinalPosition",
-        "value": "1"
+        "value": 1
       }
     ]
   }

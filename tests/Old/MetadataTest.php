@@ -5,19 +5,21 @@ declare(strict_types=1);
 namespace Keboola\DbExtractorCommon\Tests\Old;
 
 use Keboola\DbExtractorCommon\BaseExtractor;
+use Keboola\DbExtractorCommon\DatabaseMetadata\Column;
+use Keboola\DbExtractorCommon\DatabaseMetadata\Table;
 use PHPUnit\Framework\TestCase;
 
 class MetadataTest extends TestCase
 {
     public function testTableMetadata(): void
     {
-        $sourceData = [
-            'name' => 'simple',
-            'sanitizedName' => 'simple',
-            'schema' => 'testdb',
-            'type' => 'BASE TABLE',
-            'rowCount' => '2',
-        ];
+        $sourceData = new Table(
+            'simple',
+            'simple',
+            'testdb',
+            'BASE TABLE',
+            2
+        );
         $expectedOutput = [
             [
                 "key" => "KBC.name",
@@ -33,7 +35,7 @@ class MetadataTest extends TestCase
                 "value" => "BASE TABLE",
             ],[
                 "key" => "KBC.rowCount",
-                "value" => "2",
+                "value" => 2,
             ],
         ];
         $outputMetadata = BaseExtractor::getTableLevelMetadata($sourceData);
@@ -42,16 +44,16 @@ class MetadataTest extends TestCase
 
     public function testColumnMetadata(): void
     {
-        $testColumn = [
-            'name' => '_weird-I-d',
-            'sanitizedName' => 'weird_I_d',
-            'type' => 'varchar',
-            'primaryKey' => true,
-            'length' => '155',
-            'nullable' => false,
-            'default' => 'abc',
-            'ordinalPosition' => '1',
-        ];
+        $testColumn = new Column(
+            '_weird-I-d',
+            'weird_I_d',
+            'varchar',
+            true,
+            '155',
+            false,
+            'abc',
+            1
+        );
         $expectedOutput = array (
             0 =>
                 array (
@@ -96,7 +98,7 @@ class MetadataTest extends TestCase
             8 =>
                 array (
                     'key' => 'KBC.ordinalPosition',
-                    'value' => '1',
+                    'value' => 1,
                 ),
         );
 

@@ -119,7 +119,7 @@ class DatadirTest extends AbstractDatadirTestCase
                     'sanitizedName' => 'table1',
                     'schema' => 'testdb',
                     'type' => 'BASE TABLE',
-                    'rowCount' => '0',
+                    'rowCount' => 0,
                     'columns' => [
                         [
                             'name' => 'col1',
@@ -129,7 +129,7 @@ class DatadirTest extends AbstractDatadirTestCase
                             'length' => '128',
                             'nullable' => false,
                             'default' => null,
-                            'ordinalPosition' => '1',
+                            'ordinalPosition' => 1,
                         ],
                         [
                             'name' => 'col2',
@@ -139,7 +139,7 @@ class DatadirTest extends AbstractDatadirTestCase
                             'length' => '128',
                             'nullable' => false,
                             'default' => null,
-                            'ordinalPosition' => '2',
+                            'ordinalPosition' => 2,
                         ],
                     ],
                 ],
@@ -148,7 +148,7 @@ class DatadirTest extends AbstractDatadirTestCase
                     'sanitizedName' => 'table2',
                     'schema' => 'testdb',
                     'type' => 'BASE TABLE',
-                    'rowCount' => '0',
+                    'rowCount' => 0,
                     'columns' => [
                         [
                             'name' => 'col1',
@@ -158,7 +158,7 @@ class DatadirTest extends AbstractDatadirTestCase
                             'length' => '128',
                             'nullable' => false,
                             'default' => null,
-                            'ordinalPosition' => '1',
+                            'ordinalPosition' => 1,
                         ],
                         [
                             'name' => 'col2',
@@ -168,7 +168,7 @@ class DatadirTest extends AbstractDatadirTestCase
                             'length' => '128',
                             'nullable' => false,
                             'default' => null,
-                            'ordinalPosition' => '2',
+                            'ordinalPosition' => 2,
                         ],
                     ],
                 ],

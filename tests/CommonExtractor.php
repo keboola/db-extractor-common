@@ -7,15 +7,18 @@ namespace Keboola\DbExtractorCommon\Tests;
 use Keboola\Component\UserException;
 use Keboola\Csv\CsvWriter;
 use Keboola\Csv\Exception as CsvException;
+use Keboola\DbExtractorCommon\ColumnMetadata;
 use Keboola\DbExtractorCommon\Configuration\BaseExtractorConfig;
 use Keboola\DbExtractorCommon\Configuration\DatabaseParametersInterface;
 use Keboola\DbExtractorCommon\Configuration\TableDetailParameters;
 use Keboola\DbExtractorCommon\Configuration\TableParameters;
+use Keboola\DbExtractorCommon\DatabaseMetadata\Table;
 use Keboola\DbExtractorCommon\Exception\ApplicationException;
 use Keboola\DbExtractorCommon\Exception\DeadConnectionException;
 use Keboola\DbExtractorCommon\BaseExtractor;
 use Keboola\DbExtractorCommon\IncrementalFetchingSettings;
 use Keboola\DbExtractorCommon\RetryProxy;
+use Keboola\DbExtractorCommon\Tests\Old\CommonExtractorColumnMetadata;
 
 class CommonExtractor extends BaseExtractor
 {
@@ -114,20 +117,21 @@ class CommonExtractor extends BaseExtractor
         }
 
         $tableNameArray = [];
+        /** @var Table[] $tableDefs */
         $tableDefs = [];
 
         foreach ($arr as $table) {
             $tableNameArray[] = $table['TABLE_NAME'];
             $tableNameWithSchema = $table['TABLE_SCHEMA'] . '.' . $table['TABLE_NAME'];
-            $tableDefs[$tableNameWithSchema] = [
-                'name' => $table['TABLE_NAME'],
-                'sanitizedName' => \Keboola\Utils\sanitizeColumnName($table['TABLE_NAME']),
-                'schema' => (isset($table['TABLE_SCHEMA'])) ? $table['TABLE_SCHEMA'] : '',
-                'type' => (isset($table['TABLE_TYPE'])) ? $table['TABLE_TYPE'] : '',
-                'rowCount' => (isset($table['TABLE_ROWS'])) ? $table['TABLE_ROWS'] : '',
-            ];
+            $tableDefs[$tableNameWithSchema] = new Table(
+                $table['TABLE_NAME'],
+                \Keboola\Utils\sanitizeColumnName($table['TABLE_NAME']),
+                $table['TABLE_SCHEMA'] ?? '',
+                $table['TABLE_TYPE'] ?? '',
+                $table['TABLE_ROWS'] ? (int) $table['TABLE_ROWS'] : 0
+            );
             if ($table["AUTO_INCREMENT"]) {
-                $tableDefs[$tableNameWithSchema]['autoIncrement'] = $table['AUTO_INCREMENT'];
+                $tableDefs[$tableNameWithSchema]->setAutoIncrement((int) $table['AUTO_INCREMENT']);
             }
         }
 
@@ -161,36 +165,38 @@ class CommonExtractor extends BaseExtractor
                     $length = $column['NUMERIC_PRECISION'];
                 }
             }
-            $curColumn = [
-                "name" => $column['COLUMN_NAME'],
-                "sanitizedName" => \Keboola\Utils\sanitizeColumnName($column['COLUMN_NAME']),
-                "type" => $column['DATA_TYPE'],
-                "primaryKey" => ($column['COLUMN_KEY'] === "PRI") ? true : false,
-                "length" => $length,
-                "nullable" => ($column['IS_NULLABLE'] === "NO") ? false : true,
-                "default" => $column['COLUMN_DEFAULT'],
-                "ordinalPosition" => $column['ORDINAL_POSITION'],
-            ];
+            $curColumn = new CommonExtractorColumnMetadata(
+                $column['COLUMN_NAME'],
+                \Keboola\Utils\sanitizeColumnName($column['COLUMN_NAME']),
+                $column['DATA_TYPE'],
+                ($column['COLUMN_KEY'] === "PRI") ? true : false,
+                $length,
+                ($column['IS_NULLABLE'] === "NO") ? false : true,
+                $column['COLUMN_DEFAULT'],
+                (int) $column['ORDINAL_POSITION']
+            );
 
             if (array_key_exists('CONSTRAINT_NAME', $column) && !is_null($column['CONSTRAINT_NAME'])) {
-                $curColumn['constraintName'] = $column['CONSTRAINT_NAME'];
+                $curColumn->setConstraintName($column['CONSTRAINT_NAME']);
             }
             if (array_key_exists('REFERENCED_TABLE_NAME', $column) && !is_null($column['REFERENCED_TABLE_NAME'])) {
-                $curColumn['foreignKeyRefSchema'] = $column['REFERENCED_TABLE_SCHEMA'];
-                $curColumn['foreignKeyRefTable'] = $column['REFERENCED_TABLE_NAME'];
-                $curColumn['foreignKeyRefColumn'] = $column['REFERENCED_COLUMN_NAME'];
+                $curColumn->setForeignKey(
+                    $column['REFERENCED_TABLE_SCHEMA'],
+                    $column['REFERENCED_TABLE_NAME'],
+                    $column['REFERENCED_COLUMN_NAME']
+                );
             }
             if ($column['EXTRA']) {
-                $curColumn["extra"] = $column["EXTRA"];
+                $curColumn->setExtra($column["EXTRA"]);
                 if ($column['EXTRA'] === 'auto_increment') {
-                    $curColumn['autoIncrement'] = $tableDefs[$curTable]['autoIncrement'];
+                    $curColumn->setAutoIncrement($tableDefs[$curTable]->getAutoIncrement());
                 }
                 if ($column['EXTRA'] === 'on update CURRENT_TIMESTAMP'
                     && $column['COLUMN_DEFAULT'] === 'CURRENT_TIMESTAMP') {
-                    $tableDefs[$curTable]['timestampUpdateColumn'] = $column['COLUMN_NAME'];
+                    $tableDefs[$curTable]->setTimestampUpdateColumn($column['COLUMN_NAME']);
                 }
             }
-            $tableDefs[$curTable]['columns'][$column['ORDINAL_POSITION'] - 1] = $curColumn;
+            $tableDefs[$curTable]->addColumn($column['ORDINAL_POSITION'] - 1, $curColumn);
         }
         return array_values($tableDefs);
     }
