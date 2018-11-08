@@ -88,8 +88,8 @@ class RetryProxyTest extends ExtractorTest
     {
         return [
             [
-                ['82000', '64000']
-            ]
+                ['82000', '64000'],
+            ],
         ];
     }
 
