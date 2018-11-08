@@ -84,7 +84,7 @@ class RetryProxyTest extends ExtractorTest
         }
     }
 
-    public function retryableErrorCodesProvider(): arrays
+    public function retryableErrorCodesProvider(): array
     {
         return [
             [
@@ -93,7 +93,7 @@ class RetryProxyTest extends ExtractorTest
         ];
     }
 
-    public function ignorableSqlCodesProvider(): array
+    public function ignorableErrorCodesProvider(): array
     {
         return [
             [['42S02']],
