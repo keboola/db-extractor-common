@@ -32,10 +32,9 @@ class RetryProxyTest extends ExtractorTest
     }
 
     /**
-     * @param $sqlCodes
-     * @dataProvider ignorableSqlCodesProvider
+     * @dataProvider ignorableErrorCodesProvider
      */
-    public function testSkipRetryFor42(array $sqlCodes): void
+    public function testSkipRetryFor42(array $errorCodes): void
     {
         $logger = new Logger('test-retry-proxy-logger');
         $testHandler = new TestHandler();
@@ -46,7 +45,7 @@ class RetryProxyTest extends ExtractorTest
             RetryProxy::DEFAULT_MAX_TRIES,
             RetryProxy::DEFAULT_BACKOFF_INTERVAL,
             RetryProxy::DEFAULT_EXCEPTED_EXCEPTIONS,
-            $sqlCodes
+            $errorCodes
         );
 
         try {
@@ -59,11 +58,46 @@ class RetryProxyTest extends ExtractorTest
         }
     }
 
+    /**
+     * @dataProvider retryableErrorCodesProvider
+     */
+    public function testDoesRetry(array $errorCodes): void
+    {
+        $logger = new Logger('test-retry-proxy-logger');
+        $testHandler = new TestHandler();
+        $logger->pushHandler($testHandler);
+
+        $retryProxy = new RetryProxy(
+            $logger,
+            RetryProxy::DEFAULT_MAX_TRIES,
+            RetryProxy::DEFAULT_BACKOFF_INTERVAL,
+            RetryProxy::DEFAULT_EXCEPTED_EXCEPTIONS,
+            $errorCodes
+        );
+
+        try {
+            $retryProxy->call(function (): void {
+                $this->db->query('SELECT SOMETHING FROM NOTHING;');
+            });
+        } catch (\Throwable $e) {
+            $this->assertTrue($testHandler->hasInfoThatContains('Retrying'));
+        }
+    }
+
+    public function retryableErrorCodesProvider(): arrays
+    {
+        return [
+            [
+                ['82000', '64000']
+            ]
+        ];
+    }
+
     public function ignorableSqlCodesProvider(): array
     {
         return [
             [['42S02']],
-            [['^42']],
+            [['^42.*']],
         ];
     }
 }
