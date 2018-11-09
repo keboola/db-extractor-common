@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Keboola\DbExtractor\Tests;
 
 use Keboola\DbExtractor\Logger;
+use Keboola\DbExtractor\Retry\RetryableException;
 use Keboola\DbExtractor\Retry\RetryProxy;
 use Keboola\DbExtractor\Test\DataLoader;
 use Keboola\DbExtractor\Test\ExtractorTest;
@@ -32,9 +33,9 @@ class RetryProxyTest extends ExtractorTest
     }
 
     /**
-     * @dataProvider ignorableErrorCodesProvider
+     * @dataProvider ignorableExceptionsProvider
      */
-    public function testSkipRetryFor42(array $errorCodes): void
+    public function testSkipRetryFor42(RetryableException $retryableException): void
     {
         $logger = new Logger('test-retry-proxy-logger');
         $testHandler = new TestHandler();
@@ -44,8 +45,7 @@ class RetryProxyTest extends ExtractorTest
             $logger,
             RetryProxy::DEFAULT_MAX_TRIES,
             RetryProxy::DEFAULT_BACKOFF_INTERVAL,
-            RetryProxy::DEFAULT_EXCEPTED_EXCEPTIONS,
-            $errorCodes
+            [$retryableException]
         );
 
         try {
@@ -61,7 +61,7 @@ class RetryProxyTest extends ExtractorTest
     /**
      * @dataProvider retryableErrorCodesProvider
      */
-    public function testDoesRetry(array $errorCodes): void
+    public function testDoesRetry(RetryableException $retryableException): void
     {
         $logger = new Logger('test-retry-proxy-logger');
         $testHandler = new TestHandler();
@@ -71,8 +71,7 @@ class RetryProxyTest extends ExtractorTest
             $logger,
             RetryProxy::DEFAULT_MAX_TRIES,
             RetryProxy::DEFAULT_BACKOFF_INTERVAL,
-            RetryProxy::DEFAULT_EXCEPTED_EXCEPTIONS,
-            $errorCodes
+            [$retryableException]
         );
 
         try {
@@ -88,7 +87,7 @@ class RetryProxyTest extends ExtractorTest
     {
         return [
             [
-                ['82000', '64000'],
+                new RetryableException(\PDOException::class, ['82000', '64000']),
             ],
         ];
     }
@@ -96,8 +95,8 @@ class RetryProxyTest extends ExtractorTest
     public function ignorableErrorCodesProvider(): array
     {
         return [
-            [['42S02']],
-            [['^42.*']],
+            [new RetryableException(\PDOException::class, ['42S02'])],
+            [new RetryableException(\PDOException::class, ['^42.*'])],
         ];
     }
 }
