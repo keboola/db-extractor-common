@@ -24,18 +24,11 @@ class ErrorCodeRetryPolicy extends AbstractRetryPolicy
     private $maxAttempts;
 
     /**
-     * The list of retryable exceptions
+     * The list of exceptions that can have ignorable error codes included
      *
-     * @var array
+     * @var array of RetryableException
      */
-    private $retryableExceptions = ['Exception'];
-
-    /**
-     * The list of SQLSTATE code masks to NOT retry
-     *
-     * @var array
-     */
-    private $ignorableErrorCodes = [];
+    private $retryableExceptions;
 
     /**
      * @param int        $maxAttempts The number of attempts before a retry becomes impossible.
@@ -44,17 +37,13 @@ class ErrorCodeRetryPolicy extends AbstractRetryPolicy
     public function __construct(
         ?int $maxAttempts = null,
         ?array $retryableExceptions = null,
-        ?array $ignorableErrorCodes = null
+        ?array $potentiallyRetryableExceptions = null
     ) {
 
         $this->maxAttempts = $maxAttempts ?? self::DEFAULT_MAX_ATTEMPTS;
 
         if ($retryableExceptions) {
             $this->retryableExceptions = $retryableExceptions;
-        }
-
-        if ($ignorableErrorCodes) {
-            $this->ignorableErrorCodes = $ignorableErrorCodes;
         }
     }
 
@@ -67,31 +56,12 @@ class ErrorCodeRetryPolicy extends AbstractRetryPolicy
 
     private function shouldRetryForException(\Exception $e): bool
     {
-        foreach ($this->retryableExceptions as $class) {
-            if ($e instanceof $class) {
-                if ($this->shouldIgnoreForSqlStateCode($e->getMessage())) {
-                    return false;
+        foreach ($this->retryableExceptions as $retryableException) {
+            $className = $retryableException->getClassName();
+            if ($e instanceof $className) {
+                if ($retryableException->shouldThisExceptionBeRetried((string) $e->getCode())) {
+                    return true;
                 }
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private function shouldIgnoreForSqlStateCode(string $errorMessage): bool
-    {
-        if (strstr($errorMessage, 'SQLSTATE') === false) {
-            return false;
-        }
-        preg_match('/SQLSTATE\[(.*)\]/', $errorMessage, $matches);
-        if (count($matches) < 2) {
-            return false;
-        }
-        $sqlCode = $matches[1];
-        foreach ($this->ignorableErrorCodes as $ignorable) {
-            preg_match('/' . $ignorable . '/', $sqlCode, $ignorableMatches);
-            if (count($ignorableMatches) > 0) {
-                return true;
             }
         }
         return false;
