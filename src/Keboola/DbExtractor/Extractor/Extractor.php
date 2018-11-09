@@ -44,8 +44,8 @@ abstract class Extractor
     /** @var array */
     private $dbParameters;
 
-    /** @var array */
-    protected $ignorableSqlStateCodes = [];
+    /** @var array of RetryableException*/
+    protected $retryableExceptions;
 
     public function __construct(array $parameters, array $state = [], ?Logger $logger = null)
     {
@@ -252,8 +252,7 @@ abstract class Extractor
             $this->logger,
             $maxTries,
             RetryProxy::DEFAULT_BACKOFF_INTERVAL,
-            RetryProxy::DEFAULT_EXCEPTED_EXCEPTIONS,
-            $this->ignorableSqlStateCodes
+            $this->retryableExceptions ? $this->retryableExceptions : RetryProxy::DEFAULT_EXCEPTED_EXCEPTIONS
         );
         $stmt = $proxy->call(function () use ($query) {
             try {

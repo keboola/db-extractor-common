@@ -6,6 +6,8 @@ namespace Keboola\DbExtractor\Extractor;
 
 use Keboola\DbExtractor\Exception\ApplicationException;
 use Keboola\DbExtractor\Exception\UserException;
+use Keboola\DbExtractor\Logger;
+use Keboola\DbExtractor\Retry\RetryableException;
 use PDO;
 
 class Common extends Extractor
@@ -16,8 +18,14 @@ class Common extends Extractor
     /** @var array */
     protected $database;
 
-    /** @var array  */
-    protected $ignorableSqlStateCodes = ['^42'];
+    public function __construct(array $parameters, array $state = [], $logger = null)
+    {
+        $this->retryableExceptions = [
+            \ErrorException::class,
+            new RetryableException(\PDOException::class, ['^42.*'])
+        ];
+        parent::__construct($parameters, $state, $logger);
+    }
 
     public function createConnection(array $params): PDO
     {
