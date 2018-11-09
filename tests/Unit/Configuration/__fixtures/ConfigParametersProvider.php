@@ -16,6 +16,20 @@ class ConfigParametersProvider
         return ['db' => self::getDbNodeMinimal()];
     }
 
+    public static function getDbParametersMinimalWithSshEmptyParameters(): array
+    {
+        $dbNode = self::getDbNodeMinimal();
+        $dbNode['ssh'] = [];
+        return ['db' => $dbNode];
+    }
+
+    public static function getDbParametersMinimalDisabledSshWithEmptyParameters(): array
+    {
+        $dbNode = self::getDbNodeMinimal();
+        $dbNode['ssh'] = ['enabled' => false];
+        return ['db' => $dbNode];
+    }
+
     public static function getDbParametersMinimalEnabledSshWithEmptyParameters(): array
     {
         $dbNode = self::getDbNodeMinimal();

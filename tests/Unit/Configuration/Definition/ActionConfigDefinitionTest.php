@@ -23,6 +23,15 @@ class ActionConfigDefinitionTest extends TestCase
         new BaseExtractorConfig(['parameters' => $parameters], new ActionConfigDefinition());
     }
 
+    /**
+     * @dataProvider validConfigurationData
+     */
+    public function testValidConfiguration(array $parameters): void
+    {
+        $config = new BaseExtractorConfig(['parameters' => $parameters], new ActionConfigDefinition());
+        $this->assertInstanceOf(BaseExtractorConfig::class, $config);
+    }
+
     public function invalidConfigurationData(): array
     {
         return [
@@ -49,57 +58,15 @@ class ActionConfigDefinitionTest extends TestCase
         ];
     }
 
-    public function testConfigDatabaseNodeWithMinimumParameters(): void
+    public function validConfigurationData(): array
     {
-        $configuration = [
-            'parameters' => ConfigParametersProvider::getDbParametersMinimal(),
+        return [
+            [ConfigParametersProvider::getDbParametersMinimal()],
+            [ConfigParametersProvider::getDbParametersBasic()],
+            [ConfigParametersProvider::getDbParametersMinimalWithSshEmptyParameters()],
+            [ConfigParametersProvider::getDbParametersMinimalDisabledSshWithEmptyParameters()],
+            [ConfigParametersProvider::getDbParametersMinimalWithSshMinimal()],
+            [ConfigParametersProvider::getDbParametersMinimalWithSshBasic()],
         ];
-        $config = new BaseExtractorConfig($configuration, new ActionConfigDefinition());
-        $this->assertInstanceOf(BaseExtractorConfig::class, $config);
-    }
-
-    public function testConfigDatabaseNodeWithBasicParameters(): void
-    {
-        $configuration = [
-            'parameters' => ConfigParametersProvider::getDbParametersBasic(),
-        ];
-        $config = new BaseExtractorConfig($configuration, new ActionConfigDefinition());
-        $this->assertInstanceOf(BaseExtractorConfig::class, $config);
-    }
-
-    public function testConfigDatabaseNodeWithSshEmpty(): void
-    {
-        $parameters = ConfigParametersProvider::getDbParametersMinimal();
-        $parameters['db']['ssh'] = [];
-        $configuration = ['parameters' => $parameters];
-
-        $config = new BaseExtractorConfig($configuration, new ActionConfigDefinition());
-        $this->assertInstanceOf(BaseExtractorConfig::class, $config);
-    }
-
-    public function testConfigDatabaseNodeDisabledSshWithEmptyParameters(): void
-    {
-        $parameters = ConfigParametersProvider::getDbParametersMinimal();
-        $parameters['db']['ssh'] = ['enabled' => false];
-        $configuration = ['parameters' => $parameters];
-
-        $config = new BaseExtractorConfig($configuration, new ActionConfigDefinition());
-        $this->assertInstanceOf(BaseExtractorConfig::class, $config);
-    }
-
-    public function testConfigDatabaseNodeEnabledSshWithMinimumParameters(): void
-    {
-        $configuration = ['parameters' => ConfigParametersProvider::getDbParametersMinimalWithSshMinimal()];
-
-        $config = new BaseExtractorConfig($configuration, new ActionConfigDefinition());
-        $this->assertInstanceOf(BaseExtractorConfig::class, $config);
-    }
-
-    public function testConfigDatabaseNodeEnabledSshWithBasicParameters(): void
-    {
-        $configuration = ['parameters' => ConfigParametersProvider::getDbParametersMinimalWithSshBasic()];
-
-        $config = new BaseExtractorConfig($configuration, new ActionConfigDefinition());
-        $this->assertInstanceOf(BaseExtractorConfig::class, $config);
     }
 }
