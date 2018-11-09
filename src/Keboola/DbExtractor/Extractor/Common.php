@@ -18,11 +18,11 @@ class Common extends Extractor
     /** @var array */
     protected $database;
 
-    public function __construct(array $parameters, array $state = [], $logger = null)
+    public function __construct(array $parameters, array $state = [], ?Logger $logger = null)
     {
         $this->retryableExceptions = [
             \ErrorException::class,
-            new RetryableException(\PDOException::class, ['^42.*'])
+            new RetryableException(\PDOException::class, ['^42.*']),
         ];
         parent::__construct($parameters, $state, $logger);
     }

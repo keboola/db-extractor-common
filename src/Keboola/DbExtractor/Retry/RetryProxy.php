@@ -47,7 +47,7 @@ class RetryProxy implements RetryProxyInterface
                 // for backward compatibility
                 $retryableExceptions = array_map(function ($retryableException) {
                     if (is_string($retryableException)) {
-                        return new RetryException($retryableException, []);
+                        return new RetryableException($retryableException, []);
                     } else {
                         return $retryableException;
                     }
