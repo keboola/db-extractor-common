@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Tests;
 
-use PHPUnit_Framework_TestCase;
 use Keboola\DbExtractor\Extractor\Extractor;
+use PHPUnit\Framework\TestCase;
 
-class MetadataTest extends PHPUnit_Framework_TestCase
+class MetadataTest extends TestCase
 {
     public function testTableMetadata(): void
     {

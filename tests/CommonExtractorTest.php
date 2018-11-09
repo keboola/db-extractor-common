@@ -65,21 +65,21 @@ class CommonExtractorTest extends ExtractorTest
         $dataLoader->getPdo()->exec("SET NAMES utf8;");
         $dataLoader->getPdo()->exec(
             "CREATE TABLE escapingPK (
-                                    col1 VARCHAR(155), 
-                                    col2 VARCHAR(155), 
+                                    col1 VARCHAR(155),
+                                    col2 VARCHAR(155),
                                     PRIMARY KEY (col1, col2))"
         );
 
         $dataLoader->getPdo()->exec(
             "CREATE TABLE escaping (
-                                  col1 VARCHAR(155) NOT NULL DEFAULT 'abc', 
+                                  col1 VARCHAR(155) NOT NULL DEFAULT 'abc',
                                   col2 VARCHAR(155) NOT NULL DEFAULT 'abc',
                                   FOREIGN KEY (col1, col2) REFERENCES escapingPK(col1, col2))"
         );
 
         $dataLoader->getPdo()->exec(
             "CREATE TABLE simple (
-                                  `_weird-I-d` VARCHAR(155) NOT NULL DEFAULT 'abc', 
+                                  `_weird-I-d` VARCHAR(155) NOT NULL DEFAULT 'abc',
                                   `SãoPaulo` VARCHAR(155) NOT NULL DEFAULT 'abc',
                                   PRIMARY KEY (`_weird-I-d`))"
         );
@@ -131,7 +131,7 @@ class CommonExtractorTest extends ExtractorTest
         );
         $this->assertArrayNotHasKey('columns', $manifest);
         $this->assertArrayNotHasKey('primary_key', $manifest);
-        
+
         $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][1]['outputTable']);
         $manifest = json_decode(
             file_get_contents($this->dataDir . '/out/tables/' . $result['imported'][1]['outputTable'] . ".csv.manifest"),
@@ -198,7 +198,7 @@ class CommonExtractorTest extends ExtractorTest
     public function testRunWithSSHUserException(): void
     {
         $this->cleanOutputDirectory();
-        $this->setExpectedException('Keboola\DbExtractor\Exception\UserException');
+        $this->expectException(UserException::class);
 
         $config = $this->getConfig(self::DRIVER);
         $config['parameters']['db']['ssh'] = [
@@ -979,7 +979,7 @@ class CommonExtractorTest extends ExtractorTest
             `id` INT NOT NULL AUTO_INCREMENT,
             `name` VARCHAR(30) NOT NULL DEFAULT \'pam\',
             `timestamp` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            PRIMARY KEY (`id`)  
+            PRIMARY KEY (`id`)
         )'
         );
         $this->db->exec('INSERT INTO auto_increment_timestamp (`name`) VALUES (\'george\'), (\'henry\')');
