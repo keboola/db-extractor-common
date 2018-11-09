@@ -18,6 +18,11 @@ class RetryableException
         $this->ignorableErrorCodes = $ignorableErrorCodes;
     }
 
+    public function getClassName(): string
+    {
+        return $this->className;
+    }
+
     public function shouldThisExceptionBeRetried(string $errorCode): bool
     {
         foreach ($this->ignorableErrorCodes as $ignorableExpression) {
