@@ -40,9 +40,18 @@ class RetryProxy implements RetryProxyInterface
     ) {
         if ($retryPolicy === null) {
             if (!$retryableExceptions) {
-                $retryableExceptions = array_map(function($exceptionClass) {
+                $retryableExceptions = array_map(function ($exceptionClass) {
                     return new RetryableException($exceptionClass, []);
                 }, self::DEFAULT_EXCEPTED_EXCEPTIONS);
+            } else {
+                // for backward compatibility
+                $retryableExceptions = array_map(function ($retryableException) {
+                    if (is_string($retryableException)) {
+                        return new RetryException($retryableException, []);
+                    } else {
+                        return $retryableException;
+                    }
+                }, $retryableExceptions);
             }
             $retryPolicy = new ErrorCodeRetryPolicy(
                 $maxTries ?? self::DEFAULT_MAX_TRIES,
