@@ -114,12 +114,9 @@ abstract class BaseExtractorConfigDefinition extends BaseConfigDefinition
                     return false;
                 }
                 $requiredKeys = ['sshHost', 'keys'];
-                foreach ($requiredKeys as $requiredKey) {
-                    if (!in_array($requiredKey, array_keys($v))) {
-                        return true;
-                    }
-                }
-                return false;
+                $actualKeys = array_keys($v);
+
+                return array_intersect($requiredKeys, $actualKeys) !== $requiredKeys;
             })
             ->thenInvalid('Nodes "sshHost" and "keys" are required.');
 
