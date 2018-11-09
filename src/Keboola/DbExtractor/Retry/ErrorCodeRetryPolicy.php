@@ -36,8 +36,7 @@ class ErrorCodeRetryPolicy extends AbstractRetryPolicy
      */
     public function __construct(
         ?int $maxAttempts = null,
-        ?array $retryableExceptions = null,
-        ?array $potentiallyRetryableExceptions = null
+        ?array $retryableExceptions = null
     ) {
 
         $this->maxAttempts = $maxAttempts ?? self::DEFAULT_MAX_ATTEMPTS;
