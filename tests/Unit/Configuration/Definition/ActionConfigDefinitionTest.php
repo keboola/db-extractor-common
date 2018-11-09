@@ -12,32 +12,41 @@ use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 
 class ActionConfigDefinitionTest extends TestCase
 {
-    public function testConfigDatabaseNodeEmptyThrowsException(): void
-    {
-        $configuration = [
-            'parameters' => [
-                'db' => [],
-            ],
-        ];
 
+    /**
+     * @dataProvider invalidConfigurationData
+     */
+    public function testInvalidConfigurationThrowsException(array $parameters, string $exceptionMessage): void
+    {
         $this->expectException(InvalidConfigurationException::class);
-        $this->expectExceptionMessage('The child node "user" at path "root.parameters.db" must be configured.');
-        new BaseExtractorConfig($configuration, new ActionConfigDefinition());
+        $this->expectExceptionMessage($exceptionMessage);
+        new BaseExtractorConfig(['parameters' => $parameters], new ActionConfigDefinition());
     }
 
-    public function testConfigDatabaseNodeWithUserOnlyThrowsException(): void
+    public function invalidConfigurationData(): array
     {
-        $configuration = [
-            'parameters' => [
-                'db' => [
-                    'user' => 'username',
-                ],
+        return [
+            [
+                ['db' => []],
+                'The child node "user" at path "root.parameters.db" must be configured.',
+            ],
+            [
+                ['db' => ['user' => 'username']],
+                'The child node "#password" at path "root.parameters.db" must be configured.',
+            ],
+            [
+                ConfigParametersProvider::getDbParametersMinimalEnabledSshWithEmptyParameters(),
+                'Invalid configuration for path "root.parameters.db.ssh": Nodes "sshHost" and "keys" are required.',
+            ],
+            [
+                ConfigParametersProvider::getDbParametersMinimalEnabledSshWithPSshHostOnly(),
+                'Invalid configuration for path "root.parameters.db.ssh": Nodes "sshHost" and "keys" are required.',
+            ],
+            [
+                ConfigParametersProvider::getDbParametersMinimalEnabledSshWithPSshHostOnly(),
+                'Invalid configuration for path "root.parameters.db.ssh": Nodes "sshHost" and "keys" are required.',
             ],
         ];
-
-        $this->expectException(InvalidConfigurationException::class);
-        $this->expectExceptionMessage('The child node "#password" at path "root.parameters.db" must be configured.');
-        new BaseExtractorConfig($configuration, new ActionConfigDefinition());
     }
 
     public function testConfigDatabaseNodeWithMinimumParameters(): void
@@ -76,51 +85,6 @@ class ActionConfigDefinitionTest extends TestCase
 
         $config = new BaseExtractorConfig($configuration, new ActionConfigDefinition());
         $this->assertInstanceOf(BaseExtractorConfig::class, $config);
-    }
-
-    public function testConfigDatabaseNodeEnabledSshWithEmptyParameters(): void
-    {
-        $parameters = ConfigParametersProvider::getDbParametersMinimal();
-        $parameters['db']['ssh'] = ['enabled' => true];
-        $configuration = ['parameters' => $parameters];
-
-        $this->expectException(InvalidConfigurationException::class);
-        $this->expectExceptionMessage(
-            'Invalid configuration for path "root.parameters.db.ssh": Nodes "sshHost" and "keys" are required.'
-        );
-        new BaseExtractorConfig($configuration, new ActionConfigDefinition());
-    }
-
-    public function testConfigDatabaseNodeEnabledSshWithSshHostOnlyThrowsException(): void
-    {
-        $parameters = ConfigParametersProvider::getDbParametersMinimal();
-        $parameters['db']['ssh'] = [
-            'enabled' => true,
-            'sshHost' => 'some.host',
-        ];
-        $configuration = ['parameters' => $parameters];
-
-        $this->expectException(InvalidConfigurationException::class);
-        $this->expectExceptionMessage(
-            'Invalid configuration for path "root.parameters.db.ssh": Nodes "sshHost" and "keys" are required.'
-        );
-        new BaseExtractorConfig($configuration, new ActionConfigDefinition());
-    }
-
-    public function testConfigDatabaseNodeEnabledSshWithPrimaryKeyOnlyThrowsException(): void
-    {
-        $parameters = ConfigParametersProvider::getDbParametersMinimal();
-        $parameters['db']['ssh'] = [
-            'enabled' => true,
-            'keys' => ['#private' => 'private.key'],
-        ];
-        $configuration = ['parameters' => $parameters];
-
-        $this->expectException(InvalidConfigurationException::class);
-        $this->expectExceptionMessage(
-            'Invalid configuration for path "root.parameters.db.ssh": Nodes "sshHost" and "keys" are required.'
-        );
-        new BaseExtractorConfig($configuration, new ActionConfigDefinition());
     }
 
     public function testConfigDatabaseNodeEnabledSshWithMinimumParameters(): void

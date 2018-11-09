@@ -16,6 +16,33 @@ class ConfigParametersProvider
         return ['db' => self::getDbNodeMinimal()];
     }
 
+    public static function getDbParametersMinimalEnabledSshWithEmptyParameters(): array
+    {
+        $dbNode = self::getDbNodeMinimal();
+        $dbNode['ssh'] = ['enabled' => true];
+        return ['db' => $dbNode];
+    }
+
+    public static function getDbParametersMinimalEnabledSshWithPrivateKeyOnly(): array
+    {
+        $dbNode = self::getDbNodeMinimal();
+        $dbNode['ssh'] = [
+            'enabled' => true,
+            'keys' => ['#private' => 'priv.key'],
+        ];
+        return ['db' => $dbNode];
+    }
+
+    public static function getDbParametersMinimalEnabledSshWithPSshHostOnly(): array
+    {
+        $dbNode = self::getDbNodeMinimal();
+        $dbNode['ssh'] = [
+            'enabled' => true,
+            'sshHost' => 'some.host',
+        ];
+        return ['db' => $dbNode];
+    }
+
     public static function getDbParametersMinimalWithSshMinimal(): array
     {
         $dbNode = self::getDbNodeMinimal();
