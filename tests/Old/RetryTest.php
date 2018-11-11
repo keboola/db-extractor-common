@@ -5,10 +5,15 @@ declare(strict_types=1);
 namespace Keboola\DbExtractorCommon\Tests\Old;
 
 use Keboola\Component\JsonHelper;
+use Keboola\Component\Logger;
 use Keboola\Csv\CsvWriter;
-use Keboola\DbExtractorCommon\Exception\DeadConnectionException;
 use Keboola\Component\UserException;
+use Keboola\DbExtractorCommon\Configuration\BaseExtractorConfig;
+use Keboola\DbExtractorCommon\Configuration\DatabaseParametersInterface;
+use Keboola\DbExtractorCommon\Tests\CommonExtractor;
 use Keboola\DbExtractorCommon\Tests\ExtractorTest;
+use Keboola\DbExtractorCommon\Tests\TaintedPDO;
+use Keboola\DbExtractorCommon\Tests\TaintedPDOStatement;
 use Keboola\Temp\Temp;
 use Monolog\Handler\TestHandler;
 use PDO;
@@ -50,6 +55,9 @@ class RetryTest extends ExtractorTest
      */
     private $serviceConnection;
 
+    /** @var int */
+    private $retryCounter = 0;
+
     public function setUp(): void
     {
         // intentionally don't call parent, we use a different PDO connection here
@@ -69,7 +77,10 @@ class RetryTest extends ExtractorTest
             try {
                 $this->taintedPdo = null;
                 $conn = $this->getConnection();
-                $conn->query('SELECT NOW();')->execute();
+                /** @var \PDOStatement $stmt */
+                $stmt = $conn->query('SELECT NOW();');
+                $stmt->execute();
+                $stmt->fetchAll();
                 $this->taintedPdo = $conn;
                 break;
             } catch (\Throwable $e) {
@@ -82,9 +93,10 @@ class RetryTest extends ExtractorTest
             }
         }
         // save the PID of the current connection
+        /** @var \PDOStatement $stmt */
         $stmt = $this->taintedPdo->query('SELECT CONNECTION_ID() AS pid;');
         $stmt->execute();
-        $this->pid = $stmt->fetch()['pid'];
+        $this->pid = $stmt->fetchAll()[0]['pid'];
     }
 
     private function waitForDeadConnection(): void
@@ -93,7 +105,9 @@ class RetryTest extends ExtractorTest
         $cnt = 0;
         while (true) {
             try {
-                $this->taintedPdo->query('SELECT NOW();')->execute();
+                /** @var \PDOStatement $stmt */
+                $stmt = $this->taintedPdo->query('SELECT NOW();');
+                $stmt->execute();
                 $cnt++;
                 if ($cnt > 50) {
                     self::fail('Failed to kill the server');
@@ -175,7 +189,7 @@ class RetryTest extends ExtractorTest
 
     private function getRetryConfig(): array
     {
-        $config = $this->getConfig('common', 'json');
+        $config = $this->getConfig('common');
         $config['parameters']['db'] = $this->dbParams;
         $config['parameters']['db']['password'] = $config['parameters']['db']['#password'];
         $config['parameters']['tables'] = [[
@@ -198,6 +212,7 @@ class RetryTest extends ExtractorTest
         $temp->initRunFolder();
         $sourceFileName = $temp->getTmpFolder() . '/large.csv';
 
+        /** @var \PDOStatement $res */
         $res = $this->serviceConnection->query(sprintf(
             "SELECT * 
             FROM information_schema.tables
@@ -208,14 +223,16 @@ class RetryTest extends ExtractorTest
             $tableName
         ));
 
-        $tableExists = count($res->fetchAll()) > 0;
+        /** @var array $result */
+        $result = $res->fetchAll();
+        $tableExists = count($result) > 0;
 
         // Set up the data table
         if (!$tableExists) {
             $csvWriter = new CsvWriter($sourceFileName);
             $header = ["usergender", "usercity", "usersentiment", "zipcode", "sku", "createdat", "category"];
             $csvWriter->writeRow($header);
-            for ($i = 0; $i < self::ROW_COUNT - 1; $i++) { // -1 for the header
+            for ($i = 0; $i < self::ROW_COUNT; $i++) {
                 $csvWriter->writeRow(
                     [uniqid('g'), "The Lakes", "1", "89124", "ZD111402", "2013-09-23 22:38:30", uniqid('c')]
                 );
@@ -272,7 +289,9 @@ class RetryTest extends ExtractorTest
         // wait for the reboot to start (otherwise waitForConnection() would pass with the old connection
         $this->waitForDeadConnection();
         try {
-            $this->taintedPdo->query('SELECT NOW();')->execute();
+            /** @var \PDOStatement $stmt */
+            $stmt = $this->taintedPdo->query('SELECT NOW();');
+            $stmt->execute();
             self::fail('Connection must be dead now.');
         } catch (\Throwable $e) {
         }
@@ -345,6 +364,7 @@ class RetryTest extends ExtractorTest
             will convert the warnings to PHPUnit\Framework\Error\Warning */
         ErrorHandler::register(null, true);
 
+        /** @var \PDOStatement $stmt */
         $stmt = $this->taintedPdo->query('SELECT NOW();');
         $this->killerEnabled = 'execute';
         self::expectException(\ErrorException::class);
@@ -363,6 +383,7 @@ class RetryTest extends ExtractorTest
             will convert the warnings to PHPUnit\Framework\Error\Warning */
         ErrorHandler::register(null, true);
 
+        /** @var \PDOStatement $stmt */
         $stmt = $this->taintedPdo->query('SELECT * FROM sales LIMIT 100000');
         $stmt->execute();
         self::expectException(\ErrorException::class);
@@ -392,15 +413,15 @@ class RetryTest extends ExtractorTest
         self::assertEquals('success', $result['status']);
         self::assertFileExists($outputCsvFile);
         self::assertFileExists($outputCsvFile . '.manifest');
-        self::assertEquals(self::ROW_COUNT, $this->getLineCount($outputCsvFile));
+        self::assertEquals(self::ROW_COUNT + 1, $this->getLineCount($outputCsvFile));
     }
 
     public function testConnectServerError(): void
     {
         self::markTestSkipped('This test is a bit unstable');
         $handler = new TestHandler();
-        $logger = new Logger('test');
-        $logger->pushHandler($handler);
+        $logger = new Logger();
+        $logger->setHandlers([$handler]);
         $this->setupLargeTable();
         $config = $this->getRetryConfig();
         // execute asynchronously the script to reboot the server
@@ -421,16 +442,28 @@ class RetryTest extends ExtractorTest
         $rowCount = 100;
         $this->setupLargeTable();
         $handler = new TestHandler();
-        $logger = new Logger('test');
-        $logger->pushHandler($handler);
+        $logger = new Logger();
+        $logger->setHandlers([$handler]);
         $config = $this->getRetryConfig();
         $config['parameters']['tables'][0]['query'] = 'SELECT * FROM sales LIMIT ' . $rowCount;
 
-        $extractor = new Common($config['parameters'], [], $logger);
+        $this->prepareConfigInDataDir($config);
+        putenv(sprintf('KBC_DATADIR=%s', $this->dataDir));
         // plant the tainted PDO into the extractor
-        $reflectionProperty = new \ReflectionProperty($extractor, 'db');
-        $reflectionProperty->setAccessible(true);
-        $reflectionProperty->setValue($extractor, $this->taintedPdo);
+        $extractor = self::getMockBuilder(CommonExtractor::class)
+            ->setMethods(['createConnection'])
+            ->setConstructorArgs([$logger])
+            ->disableAutoReturnValueGeneration()
+            ->getMock();
+
+        $this->retryCounter = 0;
+        $extractor->method('createConnection')->willReturnCallback(
+            function (DatabaseParametersInterface $parameters): \PDO {
+                foreach ($this->connectionGeneratorWithFirstDeadConnection() as $connection) {
+                    return $connection;
+                }
+            }
+        );
 
         /* Register symfony error handler (used in production) and replace phpunit error handler. This
             is very important to receive correct type of exception (\ErrorException), otherwise Phpunit
@@ -438,8 +471,10 @@ class RetryTest extends ExtractorTest
         ErrorHandler::register(null, true);
         // This will cause interrupt before PDO::prepare(), see testNetworkKillerPrepare
         $this->killerEnabled = 'prepare';
-        $result = $extractor->export($config['parameters']['tables'][0]);
-        $outputCsvFile = $this->dataDir . '/out/tables/' . $result['outputTable'] . '.csv';
+        /** @var BaseExtractorConfig $configClass */
+        $configClass = $extractor->getConfig();
+        $result = $extractor->extract($configClass);
+        $outputCsvFile = $this->dataDir . '/out/tables/' . $result['imported'][0]['outputTable'] . '.csv';
 
         self::assertFileExists($outputCsvFile);
         self::assertFileExists($outputCsvFile . '.manifest');
@@ -457,16 +492,28 @@ class RetryTest extends ExtractorTest
         $rowCount = 100;
         $this->setupLargeTable();
         $handler = new TestHandler();
-        $logger = new Logger('test');
-        $logger->pushHandler($handler);
+        $logger = new Logger();
+        $logger->setHandlers([$handler]);
         $config = $this->getRetryConfig();
         $config['parameters']['tables'][0]['query'] = 'SELECT * FROM sales LIMIT ' . $rowCount;
 
-        $extractor = new Common($config['parameters'], [], $logger);
+        $this->prepareConfigInDataDir($config);
+        putenv(sprintf('KBC_DATADIR=%s', $this->dataDir));
         // plant the tainted PDO into the extractor
-        $reflectionProperty = new \ReflectionProperty($extractor, 'db');
-        $reflectionProperty->setAccessible(true);
-        $reflectionProperty->setValue($extractor, $this->taintedPdo);
+        $extractor = self::getMockBuilder(CommonExtractor::class)
+            ->setMethods(['createConnection'])
+            ->setConstructorArgs([$logger])
+            ->disableAutoReturnValueGeneration()
+            ->getMock();
+
+        $this->retryCounter = 0;
+        $extractor->method('createConnection')->willReturnCallback(
+            function (DatabaseParametersInterface $parameters): \PDO {
+                foreach ($this->connectionGeneratorWithFirstDeadConnection() as $connection) {
+                    return $connection;
+                }
+            }
+        );
 
         /* Register symfony error handler (used in production) and replace phpunit error handler. This
             is very important to receive correct type of exception (\ErrorException), otherwise Phpunit
@@ -474,12 +521,14 @@ class RetryTest extends ExtractorTest
         ErrorHandler::register(null, true);
         // This will cause interrupt before PDO::prepare(), see testNetworkKillerPrepare
         $this->killerEnabled = 'prepare';
-        $result = $extractor->export($config['parameters']['tables'][0]);
-        $outputCsvFile = $this->dataDir . '/out/tables/' . $result['outputTable'] . '.csv';
+        /** @var BaseExtractorConfig $configClass */
+        $configClass = $extractor->getConfig();
+        $result = $extractor->extract($configClass);
+        $outputCsvFile = $this->dataDir . '/out/tables/' . $result['imported'][0]['outputTable'] . '.csv';
 
         self::assertFileExists($outputCsvFile);
         self::assertFileExists($outputCsvFile . '.manifest');
-        self::assertEquals(100 + 1, $this->getLineCount($outputCsvFile));
+        self::assertEquals($rowCount + 1, $this->getLineCount($outputCsvFile));
         self::assertTrue($handler->hasInfoThatContains('Retrying...'));
         self::assertTrue($handler->hasInfoThatContains(
             'Warning: PDOStatement::execute(): MySQL server has gone away. Retrying'
@@ -493,16 +542,28 @@ class RetryTest extends ExtractorTest
         $rowCount = 1000000;
         $this->setupLargeTable();
         $handler = new TestHandler();
-        $logger = new Logger('test');
-        $logger->pushHandler($handler);
+        $logger = new Logger();
+        $logger->setHandlers([$handler]);
         $config = $this->getRetryConfig();
         $config['parameters']['tables'][0]['query'] = 'SELECT * FROM sales LIMIT ' . $rowCount;
 
-        $extractor = new Common($config['parameters'], [], $logger);
+        $this->prepareConfigInDataDir($config);
+        putenv(sprintf('KBC_DATADIR=%s', $this->dataDir));
         // plant the tainted PDO into the extractor
-        $reflectionProperty = new \ReflectionProperty($extractor, 'db');
-        $reflectionProperty->setAccessible(true);
-        $reflectionProperty->setValue($extractor, $this->taintedPdo);
+        $extractor = self::getMockBuilder(CommonExtractor::class)
+            ->setMethods(['createConnection'])
+            ->setConstructorArgs([$logger])
+            ->disableAutoReturnValueGeneration()
+            ->getMock();
+
+        $this->retryCounter = 0;
+        $extractor->method('createConnection')->willReturnCallback(
+            function (DatabaseParametersInterface $parameters): \PDO {
+                foreach ($this->connectionGeneratorWithFirstDeadConnection() as $connection) {
+                    return $connection;
+                }
+            }
+        );
 
         /* Register symfony error handler (used in production) and replace phpunit error handler. This
             is very important to receive correct type of exception (\ErrorException), otherwise Phpunit
@@ -510,12 +571,14 @@ class RetryTest extends ExtractorTest
         ErrorHandler::register(null, true);
         // This will cause interrupt before PDO::prepare(), see testNetworkKillerPrepare
         $this->killerEnabled = 'fetch';
-        $result = $extractor->export($config['parameters']['tables'][0]);
-        $outputCsvFile = $this->dataDir . '/out/tables/' . $result['outputTable'] . '.csv';
+        /** @var BaseExtractorConfig $configClass */
+        $configClass = $extractor->getConfig();
+        $result = $extractor->extract($configClass);
+        $outputCsvFile = $this->dataDir . '/out/tables/' . $result['imported'][0]['outputTable'] . '.csv';
 
         self::assertFileExists($outputCsvFile);
         self::assertFileExists($outputCsvFile . '.manifest');
-        self::assertEquals($rowCount, $this->getLineCount($outputCsvFile));
+        self::assertEquals($rowCount + 1, $this->getLineCount($outputCsvFile));
         self::assertTrue($handler->hasInfoThatContains('Retrying...'));
         self::assertTrue($handler->hasInfoThatContains('Warning: Empty row packet body. Retrying... [1x]'));
     }
@@ -525,23 +588,18 @@ class RetryTest extends ExtractorTest
         $rowCount = 100;
         $this->setupLargeTable();
         $handler = new TestHandler();
-        $logger = new Logger('test');
-        $logger->pushHandler($handler);
+        $logger = new Logger();
+        $logger->setHandlers([$handler]);
         $config = $this->getRetryConfig();
         $config['parameters']['tables'][0]['query'] = 'SELECT * FROM sales LIMIT ' . $rowCount;
 
         // plant the tainted PDO into the createConnection method of the extractor
-        $extractor = self::getMockBuilder(Common::class)
-            ->setMethods(['createConnection'])
-            ->setConstructorArgs([$config['parameters'], [], $logger])
+        $extractor = self::getMockBuilder(CommonExtractor::class)
+            ->setMethods(['getConnection'])
+            ->setConstructorArgs([$logger])
             ->disableAutoReturnValueGeneration()
             ->getMock();
-        $extractor->method('createConnection')->willReturn($this->taintedPdo);
-
-        // plant the tainted PDO into the extractor
-        $reflectionProperty = new \ReflectionProperty($extractor, 'db');
-        $reflectionProperty->setAccessible(true);
-        $reflectionProperty->setValue($extractor, $this->taintedPdo);
+        $extractor->method('getConnection')->willReturn($this->taintedPdo);
 
         /* Both of the above are needed because the DB connection is initialized in the Common::__construct()
             using the `createConnection` method. That means that during instantiation of the mock, the createConnection
@@ -560,8 +618,9 @@ class RetryTest extends ExtractorTest
         ErrorHandler::register(null, true);
         $this->killerEnabled = 'prepare';
         try {
-            /** @var Common $extractor */
-            $extractor->export($config['parameters']['tables'][0]);
+            /** @var BaseExtractorConfig $configClass */
+            $configClass = $extractor->getConfig();
+            $extractor->extract($configClass);
             self::fail('Must raise exception.');
         } catch (UserException $e) {
             self::assertTrue($handler->hasInfoThatContains('Retrying...'));
@@ -578,23 +637,36 @@ class RetryTest extends ExtractorTest
     public function testRetryException(): void
     {
         $handler = new TestHandler();
-        $logger = new Logger('test');
-        $logger->pushHandler($handler);
+        $logger = new Logger();
+        $logger->setHandlers([$handler]);
         $config = $this->getRetryConfig();
         $config['parameters']['tables'][0]['query'] = 'SELECT * FROM non_existent_table';
 
-        $extractor = new Common($config['parameters'], [], $logger);
+        $this->prepareConfigInDataDir($config);
+        putenv(sprintf('KBC_DATADIR=%s', $this->dataDir));
         // plant the tainted PDO into the extractor
-        $reflectionProperty = new \ReflectionProperty($extractor, 'db');
-        $reflectionProperty->setAccessible(true);
-        $reflectionProperty->setValue($extractor, $this->taintedPdo);
+        $extractor = self::getMockBuilder(CommonExtractor::class)
+            ->setMethods(['createConnection'])
+            ->setConstructorArgs([$logger])
+            ->disableAutoReturnValueGeneration()
+            ->getMock();
 
+        $this->retryCounter = 0;
+        $extractor->method('createConnection')->willReturnCallback(
+            function (DatabaseParametersInterface $parameters): \PDO {
+                foreach ($this->connectionGeneratorWithFirstDeadConnection() as $connection) {
+                    return $connection;
+                }
+            }
+        );
         /* Register symfony error handler (used in production) and replace phpunit error handler. This
             is very important to receive correct type of exception (\ErrorException), otherwise Phpunit
             will convert the warnings to PHPUnit\Framework\Error\Warning */
         ErrorHandler::register(null, true);
         try {
-            $extractor->export($config['parameters']['tables'][0]);
+            /** @var BaseExtractorConfig $configClass */
+            $configClass = $extractor->getConfig();
+            $extractor->extract($configClass);
             self::fail('Must raise exception.');
         } catch (UserException $e) {
             self::assertContains(
@@ -605,6 +677,17 @@ class RetryTest extends ExtractorTest
             self::assertTrue($handler->hasInfoThatContains(
                 'non_existent_table\' doesn\'t exist. Retrying... [9x]'
             ));
+        }
+    }
+
+    private function connectionGeneratorWithFirstDeadConnection(): \Generator
+    {
+        $this->retryCounter++;
+        if ($this->retryCounter === 1) {
+            yield $this->taintedPdo;
+        } else {
+            $this->killerEnabled = null;
+            yield $this->getConnection();
         }
     }
 }

@@ -302,7 +302,7 @@ class CommonExtractor extends BaseExtractor
         return $output;
     }
 
-    private function createConnection(DatabaseParametersInterface $parameters): \PDO
+    protected function createConnection(DatabaseParametersInterface $parameters): \PDO
     {
         if ($parameters->getPort()) {
             $dsn = sprintf(
@@ -412,7 +412,7 @@ class CommonExtractor extends BaseExtractor
         return $output;
     }
 
-    private function getConnection(): \PDO
+    protected function getConnection(): \PDO
     {
         if ($this->connection) {
             return $this->connection;

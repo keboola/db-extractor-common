@@ -67,7 +67,7 @@ class ExtractorTest extends TestCase
         return str_replace('"', '', str_replace('\n', "\n", $this->getEnv($driver, 'DB_SSH_KEY_PRIVATE')));
     }
 
-    protected function getCommonExtractor(array $config, array $state = []): CommonExtractor
+    protected function getCommonExtractor(array $config, array $state = [], ?Logger $logger = null): CommonExtractor
     {
         putenv(sprintf('KBC_DATADIR=%s', $this->dataDir));
         $this->prepareConfigInDataDir($config);
@@ -75,7 +75,11 @@ class ExtractorTest extends TestCase
             $this->prepareInputStateInDataDir($state);
         }
 
-        $app = new CommonExtractor(new Logger());
+        if (!$logger) {
+            $logger = new Logger();
+        }
+
+        $app = new CommonExtractor($logger);
         return $app;
     }
 
