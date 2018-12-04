@@ -118,7 +118,7 @@ abstract class BaseExtractorConfigDefinition extends BaseConfigDefinition
 
                 return array_intersect($requiredKeys, $actualKeys) !== $requiredKeys;
             })
-            ->thenInvalid('Nodes "sshHost" and "keys" are required.');
+            ->thenInvalid('Nodes "sshHost" and "keys" are required when SSH tunnel is enabled.');
 
         return $node;
     }

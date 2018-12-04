@@ -45,15 +45,18 @@ class ActionConfigDefinitionTest extends TestCase
             ],
             [
                 ConfigParametersProvider::getDbParametersMinimalEnabledSshWithEmptyParameters(),
-                'Invalid configuration for path "root.parameters.db.ssh": Nodes "sshHost" and "keys" are required.',
+                'Invalid configuration for path "root.parameters.db.ssh":'
+                . ' Nodes "sshHost" and "keys" are required when SSH tunnel is enabled.',
             ],
             [
                 ConfigParametersProvider::getDbParametersMinimalEnabledSshWithPSshHostOnly(),
-                'Invalid configuration for path "root.parameters.db.ssh": Nodes "sshHost" and "keys" are required.',
+                'Invalid configuration for path "root.parameters.db.ssh":'
+                . ' Nodes "sshHost" and "keys" are required when SSH tunnel is enabled.',
             ],
             [
                 ConfigParametersProvider::getDbParametersMinimalEnabledSshWithPSshHostOnly(),
-                'Invalid configuration for path "root.parameters.db.ssh": Nodes "sshHost" and "keys" are required.',
+                'Invalid configuration for path "root.parameters.db.ssh":'
+                . ' Nodes "sshHost" and "keys" are required when SSH tunnel is enabled.',
             ],
         ];
     }
