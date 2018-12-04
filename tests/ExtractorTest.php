@@ -29,7 +29,7 @@ class ExtractorTest extends TestCase
     {
         $config = JsonHelper::readFile($this->dataDir . '/' .$driver . '/exampleConfig.json');
         $config['parameters']['db'] = $this->getConfigDbNode($driver);
-        
+
         return $config;
     }
 

@@ -88,6 +88,7 @@ abstract class BaseExtractorConfigDefinition extends BaseConfigDefinition
                         ->scalarNode('private')->end()
                         ->scalarNode('#private')
                             ->isRequired()
+                            ->cannotBeEmpty()
                         ->end()
                         ->scalarNode('public')->end()
                     ->end()
@@ -106,6 +107,18 @@ abstract class BaseExtractorConfigDefinition extends BaseConfigDefinition
                 ->scalarNode('user')->end();
             //->end();
         // @formatter:on
+
+        $node->validate()
+            ->ifTrue(function ($v) {
+                if ($v['enabled'] === false) {
+                    return false;
+                }
+                $requiredKeys = ['sshHost', 'keys'];
+                $actualKeys = array_keys($v);
+
+                return array_intersect($requiredKeys, $actualKeys) !== $requiredKeys;
+            })
+            ->thenInvalid('Nodes "sshHost" and "keys" are required when SSH tunnel is enabled.');
 
         return $node;
     }
