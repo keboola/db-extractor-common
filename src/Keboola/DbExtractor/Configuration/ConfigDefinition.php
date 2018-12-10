@@ -113,6 +113,7 @@ class ConfigDefinition implements ConfigurationInterface
                 ->scalarNode('remotePort')->end()
                 ->scalarNode('localPort')->end()
                 ->scalarNode('user')->end()
+                ->booleanNode('compression')->defaultValue(false)->end()
             ->end();
         // @formatter:on
         return $node;
