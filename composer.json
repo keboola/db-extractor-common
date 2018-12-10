@@ -16,7 +16,6 @@
     "keboola/php-datatypes": "^3.2",
     "pimple/pimple": "^3.0",
     "monolog/monolog": "^1.17",
-    "symfony/process": "^4.0",
     "symfony/config": "^3.0",
     "symfony/yaml": "^3.0",
     "keboola/ssh-tunnel": "^2.0",
