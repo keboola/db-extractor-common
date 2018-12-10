@@ -964,6 +964,7 @@ class CommonExtractorTest extends ExtractorTest
                 'public' => $this->getEnv(self::DRIVER, 'DB_SSH_KEY_PUBLIC'),
             ],
             'sshHost' => 'sshproxy',
+            'localPort' => '33056',
             'compression' => true,
         ];
         $result = ($this->getApp($config))->run();
@@ -971,7 +972,7 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][1]['outputTable']);
     }
 
-    public function testSshWithCompressionConfigRow(): void
+    public function testSshWithFalseCompressionConfigRow(): void
     {
         $this->cleanOutputDirectory();
         $config = $this->getConfigRow(self::DRIVER);
@@ -982,6 +983,7 @@ class CommonExtractorTest extends ExtractorTest
                 'public' => $this->getEnv(self::DRIVER, 'DB_SSH_KEY_PUBLIC'),
             ],
             'sshHost' => 'sshproxy',
+            'localPort' => '33066',
             'compression' => true,
         ];
         $result = ($this->getApp($config))->run();
