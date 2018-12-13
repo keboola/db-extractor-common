@@ -972,7 +972,7 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][1]['outputTable']);
     }
 
-    public function testSshWithFalseCompressionConfigRow(): void
+    public function testSshWithCompressionConfigRow(): void
     {
         $this->cleanOutputDirectory();
         $config = $this->getConfigRow(self::DRIVER);
