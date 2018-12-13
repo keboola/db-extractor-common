@@ -953,6 +953,43 @@ class CommonExtractorTest extends ExtractorTest
         }
     }
 
+    public function testSshWithCompression(): void
+    {
+        $this->cleanOutputDirectory();
+        $config = $this->getConfig(self::DRIVER);
+        $config['parameters']['db']['ssh'] = [
+            'enabled' => true,
+            'keys' => [
+                '#private' => $this->getPrivateKey(self::DRIVER),
+                'public' => $this->getEnv(self::DRIVER, 'DB_SSH_KEY_PUBLIC'),
+            ],
+            'sshHost' => 'sshproxy',
+            'localPort' => '33056',
+            'compression' => true,
+        ];
+        $result = ($this->getApp($config))->run();
+        $this->assertExtractedData($this->dataDir . '/escaping.csv', $result['imported'][0]['outputTable']);
+        $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][1]['outputTable']);
+    }
+
+    public function testSshWithCompressionConfigRow(): void
+    {
+        $this->cleanOutputDirectory();
+        $config = $this->getConfigRow(self::DRIVER);
+        $config['parameters']['db']['ssh'] = [
+            'enabled' => true,
+            'keys' => [
+                '#private' => $this->getPrivateKey(self::DRIVER),
+                'public' => $this->getEnv(self::DRIVER, 'DB_SSH_KEY_PUBLIC'),
+            ],
+            'sshHost' => 'sshproxy',
+            'localPort' => '33066',
+            'compression' => true,
+        ];
+        $result = ($this->getApp($config))->run();
+        $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported']['outputTable']);
+    }
+
     private function getIncrementalFetchingConfig(): array
     {
         $config = $this->getConfigRow(self::DRIVER);

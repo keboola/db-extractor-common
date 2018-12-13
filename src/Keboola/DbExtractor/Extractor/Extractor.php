@@ -83,7 +83,7 @@ abstract class Extractor
                 throw new UserException(sprintf("Parameter '%s' is missing.", $k));
             }
         }
-        
+
         $sshConfig['remoteHost'] = $dbConfig['host'];
         $sshConfig['remotePort'] = $dbConfig['port'];
 
@@ -103,7 +103,7 @@ abstract class Extractor
             $sshConfig,
             array_flip(
                 [
-                'user', 'sshHost', 'sshPort', 'localPort', 'remoteHost', 'remotePort', 'privateKey',
+                'user', 'sshHost', 'sshPort', 'localPort', 'remoteHost', 'remotePort', 'privateKey', 'compression',
                 ]
             )
         );
@@ -292,7 +292,7 @@ abstract class Extractor
                 $numRows++;
             }
             $stmt->closeCursor();
-            
+
             if (isset($this->incrementalFetching['column'])) {
                 if (!array_key_exists($this->incrementalFetching['column'], $lastRow)) {
                     throw new UserException(
