@@ -391,7 +391,7 @@ class RetryTest extends ExtractorTest
         self::assertEquals('success', $result['status']);
         self::assertFileExists($outputCsvFile);
         self::assertFileExists($outputCsvFile . '.manifest');
-        self::assertEquals(self::ROW_COUNT, $this->getLineCount($outputCsvFile));
+        self::assertEquals(self::ROW_COUNT + 1, $this->getLineCount($outputCsvFile));
     }
 
     public function testConnectServerError(): void
@@ -514,7 +514,7 @@ class RetryTest extends ExtractorTest
 
         self::assertFileExists($outputCsvFile);
         self::assertFileExists($outputCsvFile . '.manifest');
-        self::assertEquals($rowCount, $this->getLineCount($outputCsvFile));
+        self::assertEquals($rowCount + 1, $this->getLineCount($outputCsvFile));
         self::assertTrue($handler->hasInfoThatContains('Retrying...'));
         self::assertTrue($handler->hasInfoThatContains('Warning: Empty row packet body. Retrying... [1x]'));
     }
