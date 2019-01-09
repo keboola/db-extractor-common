@@ -13,7 +13,7 @@
     "php": ">=7.1",
     "ext-pdo": "*",
     "keboola/csv": "^1.1",
-    "keboola/php-datatypes": "^3.2",
+    "keboola/php-datatypes": "^4.0",
     "pimple/pimple": "^3.0",
     "monolog/monolog": "^1.17",
     "symfony/config": "^3.0",
