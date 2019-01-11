@@ -266,6 +266,7 @@ abstract class Extractor
                 throw $e;
             }
         });
+        /** @var \PDOStatement $stmt */
         return $stmt;
     }
 
