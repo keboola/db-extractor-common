@@ -6,6 +6,7 @@ namespace Keboola\DbExtractor\Extractor;
 
 use Keboola\Csv\Exception as CsvException;
 use Keboola\Datatype\Definition\GenericStorage;
+use Keboola\DbExtractor\DbRetryPolicy;
 use Keboola\DbExtractor\Exception\ApplicationException;
 use Keboola\DbExtractor\Exception\DeadConnectionException;
 use Keboola\DbExtractor\Exception\UserException;
@@ -47,6 +48,9 @@ abstract class Extractor
 
     /** @var array */
     private $dbParameters;
+
+    /** @var array of RetryableException*/
+    protected $retryableExceptions;
 
     public function __construct(array $parameters, array $state = [], ?Logger $logger = null)
     {
@@ -248,7 +252,7 @@ abstract class Extractor
     protected function executeQuery(string $query, ?int $maxTries): PDOStatement
     {
         $proxy = new RetryProxy(
-            new SimpleRetryPolicy($maxTries, [\PDOException::class, \ErrorException::class]),
+            new DbRetryPolicy($maxTries, $this->retryableExceptions),
             new ExponentialBackOffPolicy(),
             $this->logger
         );
