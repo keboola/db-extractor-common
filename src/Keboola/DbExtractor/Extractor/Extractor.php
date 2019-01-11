@@ -12,15 +12,14 @@ use Keboola\DbExtractor\Exception\DeadConnectionException;
 use Keboola\DbExtractor\Exception\UserException;
 use Keboola\Csv\CsvFile;
 use Keboola\DbExtractor\Logger;
+use Keboola\DbExtractor\Retry\RetryableException;
 use Retry\BackOff\ExponentialBackOffPolicy;
-use Retry\Policy\CallableRetryPolicy;
 use Retry\Policy\SimpleRetryPolicy;
 use Retry\RetryProxy;
 use Keboola\SSHTunnel\SSH;
 use Keboola\SSHTunnel\SSHException;
 use Nette\Utils;
 
-use Retry\Test\Policy\CallableRetryPolicyTest;
 use Throwable;
 use PDO;
 use PDOStatement;
@@ -182,11 +181,14 @@ abstract class Extractor
         }
         $maxTries = isset($table['retries']) ? (int) $table['retries'] : self::DEFAULT_MAX_TRIES;
 
+        $policy = new DbRetryPolicy($maxTries, $this->retryableExceptions);
+        $policy->addRetryableException(new RetryableException(DeadConnectionException::class));
         $proxy = new RetryProxy(
-            new SimpleRetryPolicy($maxTries, [DeadConnectionException::class, \ErrorException::class]),
+            $policy,
             new ExponentialBackOffPolicy(),
             $this->logger
         );
+
         try {
             $result = $proxy->call(function () use ($query, $maxTries, $outputTable, $isAdvancedQuery) {
                 /** @var PDOStatement $stmt */
