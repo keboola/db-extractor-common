@@ -4,18 +4,22 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Extractor;
 
-use Keboola\Csv\CsvFile;
 use Keboola\Csv\Exception as CsvException;
 use Keboola\Datatype\Definition\GenericStorage;
 use Keboola\DbExtractor\Exception\ApplicationException;
 use Keboola\DbExtractor\Exception\DeadConnectionException;
 use Keboola\DbExtractor\Exception\UserException;
+use Keboola\Csv\CsvFile;
 use Keboola\DbExtractor\Logger;
-use Keboola\DbExtractor\RetryProxy;
+use Retry\BackOff\ExponentialBackOffPolicy;
+use Retry\Policy\CallableRetryPolicy;
+use Retry\Policy\SimpleRetryPolicy;
+use Retry\RetryProxy;
 use Keboola\SSHTunnel\SSH;
 use Keboola\SSHTunnel\SSHException;
 use Nette\Utils;
 
+use Retry\Test\Policy\CallableRetryPolicyTest;
 use Throwable;
 use PDO;
 use PDOStatement;
@@ -108,11 +112,11 @@ abstract class Extractor
             )
         );
         $this->logger->info("Creating SSH tunnel to '" . $tunnelParams['sshHost'] . "'");
+
         $proxy = new RetryProxy(
-            $this->logger,
-            RetryProxy::DEFAULT_MAX_TRIES,
-            RetryProxy::DEFAULT_BACKOFF_INTERVAL,
-            ['SSHException', 'Exception']
+            new SimpleRetryPolicy(self::DEFAULT_MAX_TRIES, ['SSHException', 'Exception']),
+            new ExponentialBackOffPolicy(),
+            $this->logger
         );
         try {
             $proxy->call(function () use ($tunnelParams):void {
@@ -174,12 +178,10 @@ abstract class Extractor
         }
         $maxTries = isset($table['retries']) ? (int) $table['retries'] : self::DEFAULT_MAX_TRIES;
 
-        // this will retry on CsvException
         $proxy = new RetryProxy(
-            $this->logger,
-            $maxTries,
-            RetryProxy::DEFAULT_BACKOFF_INTERVAL,
-            [DeadConnectionException::class, \ErrorException::class]
+            new SimpleRetryPolicy($maxTries, [DeadConnectionException::class, \ErrorException::class]),
+            new ExponentialBackOffPolicy(),
+            $this->logger
         );
         try {
             $result = $proxy->call(function () use ($query, $maxTries, $outputTable, $isAdvancedQuery) {
@@ -245,8 +247,12 @@ abstract class Extractor
 
     protected function executeQuery(string $query, ?int $maxTries): PDOStatement
     {
-        $proxy = new RetryProxy($this->logger, $maxTries);
-        $stmt = $proxy->call(function () use ($query) {
+        $proxy = new RetryProxy(
+            new SimpleRetryPolicy($maxTries, [\PDOException::class, \ErrorException::class]),
+            new ExponentialBackOffPolicy(),
+            $this->logger
+        );
+        $stmt = $proxy->call(function () use ($query): PDOStatement {
             try {
                 /** @var \PDOStatement $stmt */
                 $stmt = $this->db->prepare($query);
