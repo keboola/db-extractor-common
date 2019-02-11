@@ -7,18 +7,17 @@ namespace Keboola\DbExtractorCommon\Tests;
 use Keboola\Component\UserException;
 use Keboola\Csv\CsvWriter;
 use Keboola\Csv\Exception as CsvException;
-use Keboola\DbExtractorCommon\ColumnMetadata;
 use Keboola\DbExtractorCommon\Configuration\BaseExtractorConfig;
 use Keboola\DbExtractorCommon\Configuration\DatabaseParametersInterface;
 use Keboola\DbExtractorCommon\Configuration\TableDetailParameters;
 use Keboola\DbExtractorCommon\Configuration\TableParameters;
-use Keboola\DbExtractorCommon\DatabaseMetadata\Table;
 use Keboola\DbExtractorCommon\Exception\ApplicationException;
 use Keboola\DbExtractorCommon\Exception\DeadConnectionException;
 use Keboola\DbExtractorCommon\BaseExtractor;
 use Keboola\DbExtractorCommon\IncrementalFetchingSettings;
 use Keboola\DbExtractorCommon\RetryProxy;
 use Keboola\DbExtractorCommon\Tests\Old\CommonExtractorColumnMetadata;
+use Keboola\DbExtractorCommon\Tests\Old\CommonExtractorTableMetadata;
 
 class CommonExtractor extends BaseExtractor
 {
@@ -117,15 +116,14 @@ class CommonExtractor extends BaseExtractor
         }
 
         $tableNameArray = [];
-        /** @var Table[] $tableDefs */
+        /** @var CommonExtractorTableMetadata[] $tableDefs */
         $tableDefs = [];
 
         foreach ($arr as $table) {
             $tableNameArray[] = $table['TABLE_NAME'];
             $tableNameWithSchema = $table['TABLE_SCHEMA'] . '.' . $table['TABLE_NAME'];
-            $tableDefs[$tableNameWithSchema] = new Table(
+            $tableDefs[$tableNameWithSchema] = new CommonExtractorTableMetadata(
                 $table['TABLE_NAME'],
-                \Keboola\Utils\sanitizeColumnName($table['TABLE_NAME']),
                 $table['TABLE_SCHEMA'] ?? '',
                 $table['TABLE_TYPE'] ?? '',
                 $table['TABLE_ROWS'] ? (int) $table['TABLE_ROWS'] : 0
@@ -167,7 +165,6 @@ class CommonExtractor extends BaseExtractor
             }
             $curColumn = new CommonExtractorColumnMetadata(
                 $column['COLUMN_NAME'],
-                \Keboola\Utils\sanitizeColumnName($column['COLUMN_NAME']),
                 $column['DATA_TYPE'],
                 ($column['COLUMN_KEY'] === "PRI") ? true : false,
                 $length,

@@ -119,7 +119,6 @@ class DatadirTest extends AbstractDatadirTestCase
                     'sanitizedName' => 'table1',
                     'schema' => 'testdb',
                     'type' => 'BASE TABLE',
-                    'rowCount' => 0,
                     'columns' => [
                         [
                             'name' => 'col1',
@@ -142,13 +141,13 @@ class DatadirTest extends AbstractDatadirTestCase
                             'ordinalPosition' => 2,
                         ],
                     ],
+                    'rowCount' => 0,
                 ],
                 [
                     'name' => 'table2',
                     'sanitizedName' => 'table2',
                     'schema' => 'testdb',
                     'type' => 'BASE TABLE',
-                    'rowCount' => 0,
                     'columns' => [
                         [
                             'name' => 'col1',
@@ -171,6 +170,7 @@ class DatadirTest extends AbstractDatadirTestCase
                             'ordinalPosition' => 2,
                         ],
                     ],
+                    'rowCount' => 0,
                 ],
             ],
             'status' => 'success',

@@ -9,61 +9,38 @@ class Table implements \JsonSerializable
     /** @var string */
     private $name;
 
-    /** @var string|null */
+    /** @var string */
     private $sanitizedName;
 
-    /** @var string|null */
+    /** @var string */
     private $schema;
 
-    /** @var string|null */
+    /** @var string */
     private $type;
-
-    /** @var int|null */
-    private $rowCount;
-
-    /** @var int|null */
-    private $autoIncrement;
-
-    /** @var string|null */
-    private $timestampUpdateColumn;
 
     /** @var Column[] */
     private $columns = [];
 
     public function __construct(
         string $name,
-        ?string $sanitizedName,
-        ?string $schema,
-        ?string $type,
-        ?int $rowCount
+        string $schema,
+        string $type
     ) {
         $this->name = $name;
-        $this->sanitizedName = $sanitizedName;
+        $this->sanitizedName = \Keboola\Utils\sanitizeColumnName($name);
         $this->schema = $schema;
         $this->type = $type;
-        $this->rowCount = $rowCount;
     }
 
     public function jsonSerialize(): array
     {
-        $result = [
+        return [
             'name' => $this->name,
             'sanitizedName' => $this->sanitizedName,
             'schema' => $this->schema,
             'type' => $this->type,
-            'rowCount' => $this->rowCount,
+            'columns' => $this->getColumns(),
         ];
-
-        if ($this->autoIncrement) {
-            $result['autoIncrement'] = $this->autoIncrement;
-        }
-
-        if ($this->timestampUpdateColumn) {
-            $result['timestampUpdateColumn'] = $this->timestampUpdateColumn;
-        }
-
-        $result['columns'] = $this->getColumns();
-        return $result;
     }
 
     public function addColumn(int $position, Column $columnMetadata): void
@@ -91,21 +68,6 @@ class Table implements \JsonSerializable
         return $this->type;
     }
 
-    public function getRowCount(): ?int
-    {
-        return $this->rowCount;
-    }
-
-    public function getAutoIncrement(): ?int
-    {
-        return $this->autoIncrement;
-    }
-
-    public function getTimestampUpdateColumn(): ?string
-    {
-        return $this->timestampUpdateColumn;
-    }
-
     /**
      * @return Column[]
      */
@@ -113,15 +75,5 @@ class Table implements \JsonSerializable
     {
         ksort($this->columns);
         return $this->columns;
-    }
-
-    public function setAutoIncrement(int $autoIncrement): void
-    {
-        $this->autoIncrement = $autoIncrement;
-    }
-
-    public function setTimestampUpdateColumn(string $timestampUpdateColumn): void
-    {
-        $this->timestampUpdateColumn = $timestampUpdateColumn;
     }
 }

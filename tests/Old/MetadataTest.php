@@ -15,10 +15,8 @@ class MetadataTest extends TestCase
     {
         $sourceData = new Table(
             'simple',
-            'simple',
             'testdb',
-            'BASE TABLE',
-            2
+            'BASE TABLE'
         );
         $expectedOutput = [
             [
@@ -33,9 +31,6 @@ class MetadataTest extends TestCase
             ],[
                 "key" => "KBC.type",
                 "value" => "BASE TABLE",
-            ],[
-                "key" => "KBC.rowCount",
-                "value" => 2,
             ],
         ];
         $outputMetadata = BaseExtractor::getTableLevelMetadata($sourceData);
@@ -46,7 +41,6 @@ class MetadataTest extends TestCase
     {
         $testColumn = new Column(
             '_weird-I-d',
-            'weird_I_d',
             'varchar',
             true,
             '155',

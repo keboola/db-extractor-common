@@ -32,7 +32,6 @@ class Column implements \JsonSerializable
 
     public function __construct(
         string $name,
-        ?string $sanitizedName,
         string $type,
         bool $primaryKey,
         ?string $length,
@@ -41,7 +40,7 @@ class Column implements \JsonSerializable
         int $ordinalPosition
     ) {
         $this->name = $name;
-        $this->sanitizedName = $sanitizedName;
+        $this->sanitizedName = \Keboola\Utils\sanitizeColumnName($name);
         $this->type = $type;
         $this->primaryKey = $primaryKey;
         $this->length = $length;

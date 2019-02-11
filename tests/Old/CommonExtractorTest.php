@@ -472,7 +472,6 @@ class CommonExtractorTest extends ExtractorTest
                     'sanitizedName' => 'simple',
                     'schema' => 'testdb',
                     'type' => 'BASE TABLE',
-                    'rowCount' => '2',
                     'columns' =>
                         array (
                             0 =>
@@ -498,6 +497,7 @@ class CommonExtractorTest extends ExtractorTest
                                     'ordinalPosition' => '2',
                                 ),
                         ),
+                    'rowCount' => 2,
                 ),
         );
 
@@ -529,6 +529,7 @@ class CommonExtractorTest extends ExtractorTest
             'KBC.schema' => 'testdb',
             'KBC.type' => 'BASE TABLE',
             'KBC.sanitizedName' => 'simple',
+            'KBC.rowCount' => 2,
         ];
         $metadataList = [];
         foreach ($outputManifest['metadata'] as $i => $metadata) {
@@ -536,9 +537,6 @@ class CommonExtractorTest extends ExtractorTest
             $this->assertArrayHasKey('value', $metadata);
             $metadataList[$metadata['key']] = $metadata['value'];
         }
-
-        $this->assertEquals(2, $metadataList['KBC.rowCount']);
-        unset($metadataList['KBC.rowCount']);
 
         $this->assertEquals($expectedMetadata, $metadataList);
         $this->assertArrayHasKey('column_metadata', $outputManifest);
