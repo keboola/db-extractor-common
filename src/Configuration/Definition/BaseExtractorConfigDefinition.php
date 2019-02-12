@@ -46,9 +46,7 @@ abstract class BaseExtractorConfigDefinition extends BaseConfigDefinition
 
         // @formatter:off
         $node
-            ->ignoreExtraKeys(false)
             ->children()
-                ->scalarNode('driver')->end()
                 ->scalarNode('host')->end()
                 ->scalarNode('port')
                     ->defaultValue($this->getDatabasePortDefaultValue())
@@ -63,7 +61,6 @@ abstract class BaseExtractorConfigDefinition extends BaseConfigDefinition
                     ->isRequired()
                 ->end()
                 ->append($this->getSshNode());
-            //->end();
         // @formatter:on
 
         return $node;
@@ -85,7 +82,6 @@ abstract class BaseExtractorConfigDefinition extends BaseConfigDefinition
                 ->end()
                 ->arrayNode('keys')
                     ->children()
-                        ->scalarNode('private')->end()
                         ->scalarNode('#private')
                             ->isRequired()
                             ->cannotBeEmpty()
@@ -105,8 +101,9 @@ abstract class BaseExtractorConfigDefinition extends BaseConfigDefinition
                     ->defaultValue($this->getSshLocalPortDefaultValue())
                 ->end()
                 ->scalarNode('user')->end()
-                ->booleanNode('compression')->defaultValue(false)->end();
-            //->end();
+                ->booleanNode('compression')
+                    ->defaultValue(false)
+                ->end();
         // @formatter:on
 
         $node->validate()
@@ -188,7 +185,6 @@ abstract class BaseExtractorConfigDefinition extends BaseConfigDefinition
                     ->integerNode('retries')
                         ->min(0)
                     ->end()
-                    ->booleanNode('advancedMode')->end()
                 ->end()
             ->end();
 

@@ -191,7 +191,6 @@ class RetryTest extends ExtractorTest
     {
         $config = $this->getConfig('common');
         $config['parameters']['db'] = $this->dbParams;
-        $config['parameters']['db']['password'] = $config['parameters']['db']['#password'];
         $config['parameters']['tables'] = [[
             'id' => 1,
             'name' => 'sales',

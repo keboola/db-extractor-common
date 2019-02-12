@@ -14,7 +14,6 @@ class ConfigDefinition extends BaseExtractorConfigDefinition
 
         // @formatter:off
         $rootNode
-            ->ignoreExtraKeys(false)
             ->children()
                 ->append($this->getDbNode())
                 ->append($this->getTablesNode())

@@ -15,7 +15,6 @@ class ConfigRowDefinition extends BaseExtractorConfigDefinition
 
         // @formatter:off
         $rootNode
-            ->ignoreExtraKeys(false)
             ->children()
                 ->append($this->getDbNode())
                 ->integerNode('id')->end()
@@ -43,7 +42,6 @@ class ConfigRowDefinition extends BaseExtractorConfigDefinition
                 ->integerNode('retries')
                     ->min(0)
                 ->end()
-                ->booleanNode('advancedMode')->end()
             ->end();
 
         $rootNode->validate()
