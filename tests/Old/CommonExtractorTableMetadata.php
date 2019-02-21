@@ -51,6 +51,21 @@ class CommonExtractorTableMetadata extends Table
         return $this->autoIncrement;
     }
 
+    public function getDescription(): string
+    {
+        return $this->description;
+    }
+
+    public function getRowCount(): int
+    {
+        return $this->rowCount;
+    }
+
+    public function getTimestampUpdateColumn(): ?string
+    {
+        return $this->timestampUpdateColumn;
+    }
+
     public function setDescription(string $description): void
     {
         $this->description = $description;

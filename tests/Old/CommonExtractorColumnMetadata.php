@@ -56,6 +56,46 @@ class CommonExtractorColumnMetadata extends Column
         return $result;
     }
 
+    public function getConstraintName(): ?string
+    {
+        return $this->constraintName;
+    }
+
+    public function isForeignKey(): bool
+    {
+        return $this->isForeignKey;
+    }
+
+    public function getForeignKeyRefSchema(): ?string
+    {
+        return $this->foreignKeyRefSchema;
+    }
+
+    public function getForeignKeyRefTable(): ?string
+    {
+        return $this->foreignKeyRefTable;
+    }
+
+    public function getForeignKeyRefColumn(): ?string
+    {
+        return $this->foreignKeyRefColumn;
+    }
+
+    public function getExtra(): ?string
+    {
+        return $this->extra;
+    }
+
+    public function getAutoIncrement(): ?int
+    {
+        return $this->autoIncrement;
+    }
+
+    public function getTimestampUpdateColumn(): ?string
+    {
+        return $this->timestampUpdateColumn;
+    }
+
     public function setForeignKey(string $schema, string $table, string $column): void
     {
         $this->foreignKeyRefSchema = $schema;

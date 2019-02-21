@@ -58,17 +58,17 @@ class Table implements \JsonSerializable, ToArrayInterface
         return $this->name;
     }
 
-    public function getSanitizedName(): ?string
+    public function getSanitizedName(): string
     {
         return $this->sanitizedName;
     }
 
-    public function getSchema(): ?string
+    public function getSchema(): string
     {
         return $this->schema;
     }
 
-    public function getType(): ?string
+    public function getType(): string
     {
         return $this->type;
     }

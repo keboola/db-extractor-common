@@ -9,7 +9,7 @@ class Column implements \JsonSerializable, ToArrayInterface
     /** @var string */
     private $name;
 
-    /** @var string|null */
+    /** @var string */
     private $sanitizedName;
 
     /** @var string */
@@ -73,8 +73,38 @@ class Column implements \JsonSerializable, ToArrayInterface
         return $this->name;
     }
 
-    public function getSanitizedName(): ?string
+    public function getSanitizedName(): string
     {
         return $this->sanitizedName;
+    }
+
+    public function getType(): string
+    {
+        return $this->type;
+    }
+
+    public function isPrimaryKey(): bool
+    {
+        return $this->primaryKey;
+    }
+
+    public function getLength(): ?string
+    {
+        return $this->length;
+    }
+
+    public function isNullable(): bool
+    {
+        return $this->nullable;
+    }
+
+    public function getDefault(): ?string
+    {
+        return $this->default;
+    }
+
+    public function getOrdinalPosition(): int
+    {
+        return $this->ordinalPosition;
     }
 }
