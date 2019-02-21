@@ -16,7 +16,8 @@ class MetadataTest extends TestCase
         $sourceData = new Table(
             'simple',
             'testdb',
-            'BASE TABLE'
+            'BASE TABLE',
+            []
         );
         $expectedOutput = [
             [

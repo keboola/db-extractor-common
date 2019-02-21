@@ -20,9 +20,9 @@ class CommonExtractorTableMetadata extends Table
     /** @var string|null */
     private $timestampUpdateColumn;
 
-    public function __construct(string $name, string $schema, string $type, int $rowCount)
+    public function __construct(string $name, string $schema, string $type, array $columns, int $rowCount)
     {
-        parent::__construct($name, $schema, $type);
+        parent::__construct($name, $schema, $type, $columns);
         $this->rowCount = $rowCount;
     }
 

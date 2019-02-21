@@ -115,20 +115,12 @@ class CommonExtractor extends BaseExtractor
             return [];
         }
 
-        /** @var CommonExtractorTableMetadata[] $tableDefs */
-        $tableDefs = [];
-
+        /** @var CommonExtractorTableMetadata[] $tablesMetadata */
+        $tablesMetadata = [];
+        $tablesDefinition = [];
         foreach ($arr as $table) {
             $tableNameWithSchema = $table['TABLE_SCHEMA'] . '.' . $table['TABLE_NAME'];
-            $tableDefs[$tableNameWithSchema] = new CommonExtractorTableMetadata(
-                $table['TABLE_NAME'],
-                $table['TABLE_SCHEMA'] ?? '',
-                $table['TABLE_TYPE'] ?? '',
-                $table['TABLE_ROWS'] ? (int) $table['TABLE_ROWS'] : 0
-            );
-            if ($table["AUTO_INCREMENT"]) {
-                $tableDefs[$tableNameWithSchema]->setAutoIncrement((int) $table['AUTO_INCREMENT']);
-            }
+            $tablesDefinition[$tableNameWithSchema] = $table;
         }
 
         if (!empty($tables)) {
@@ -151,6 +143,7 @@ class CommonExtractor extends BaseExtractor
         /** @var array $rows */
         $rows = $res->fetchAll(\PDO::FETCH_ASSOC);
 
+        $columnsDefinition = [];
         foreach ($rows as $i => $column) {
             $curTable = $column['TABLE_SCHEMA'] . '.' . $column['TABLE_NAME'];
             $length = ($column['CHARACTER_MAXIMUM_LENGTH']) ? $column['CHARACTER_MAXIMUM_LENGTH'] : null;
@@ -184,16 +177,33 @@ class CommonExtractor extends BaseExtractor
             if ($column['EXTRA']) {
                 $curColumn->setExtra($column["EXTRA"]);
                 if ($column['EXTRA'] === 'auto_increment') {
-                    $curColumn->setAutoIncrement($tableDefs[$curTable]->getAutoIncrement());
+                    $curColumn->setAutoIncrement((int) $tablesDefinition[$curTable]['AUTO_INCREMENT']);
                 }
                 if ($column['EXTRA'] === 'on update CURRENT_TIMESTAMP'
                     && $column['COLUMN_DEFAULT'] === 'CURRENT_TIMESTAMP') {
-                    $tableDefs[$curTable]->setTimestampUpdateColumn($column['COLUMN_NAME']);
+                    $tablesDefinition[$curTable]['TIMESTAMP_UPDATE_COLUMN'] = $column['COLUMN_NAME'];
                 }
             }
-            $tableDefs[$curTable]->addColumn($column['ORDINAL_POSITION'] - 1, $curColumn);
+            $columnsDefinition[$curTable][$column['ORDINAL_POSITION'] - 1] = $curColumn;
         }
-        return array_values($tableDefs);
+
+        foreach ($tablesDefinition as $table => $definitions) {
+            $tablesMetadata[$table] = new CommonExtractorTableMetadata(
+                $definitions['TABLE_NAME'],
+                $definitions['TABLE_SCHEMA'] ?? '',
+                $definitions['TABLE_TYPE'] ?? '',
+                $columnsDefinition[$table],
+                $definitions['TABLE_ROWS'] ? (int) $definitions['TABLE_ROWS'] : 0
+            );
+            if (isset($definitions['AUTO_INCREMENT'])) {
+                $tablesMetadata[$table]->setAutoIncrement((int) $definitions['AUTO_INCREMENT']);
+            }
+            if (isset($definitions['TIMESTAMP_UPDATE_COLUMN'])) {
+                $tablesMetadata[$table]->setTimestampUpdateColumn($definitions['TIMESTAMP_UPDATE_COLUMN']);
+            }
+        }
+
+        return array_values($tablesMetadata);
     }
 
     public function validateIncrementalFetching(

@@ -24,12 +24,15 @@ class Table implements \JsonSerializable, ToArrayInterface
     public function __construct(
         string $name,
         string $schema,
-        string $type
+        string $type,
+        array $columns
     ) {
         $this->name = $name;
         $this->sanitizedName = \Keboola\Utils\sanitizeColumnName($name);
         $this->schema = $schema;
         $this->type = $type;
+        ksort($columns);
+        $this->columns = $columns;
     }
 
     public function jsonSerialize(): array
@@ -46,11 +49,6 @@ class Table implements \JsonSerializable, ToArrayInterface
             'type' => $this->type,
             'columns' => $this->getColumns(),
         ];
-    }
-
-    public function addColumn(int $position, Column $columnMetadata): void
-    {
-        $this->columns[$position] = $columnMetadata;
     }
 
     public function getName(): string
@@ -78,7 +76,6 @@ class Table implements \JsonSerializable, ToArrayInterface
      */
     public function getColumns(): array
     {
-        ksort($this->columns);
         return $this->columns;
     }
 }
