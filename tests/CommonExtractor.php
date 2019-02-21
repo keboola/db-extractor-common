@@ -236,14 +236,16 @@ class CommonExtractor extends BaseExtractor
         if ($columns[0]['EXTRA'] === 'auto_increment') {
             $this->incrementalFetching = new IncrementalFetchingSettings(
                 $columnName,
-                IncrementalFetchingSettings::TYPE_AUTO_INCREMENT
+                IncrementalFetchingSettings::TYPE_AUTO_INCREMENT,
+                $limit
             );
         } else if ($columns[0]['EXTRA'] === 'on update CURRENT_TIMESTAMP'
             && $columns[0]['COLUMN_DEFAULT'] === 'CURRENT_TIMESTAMP'
         ) {
             $this->incrementalFetching = new IncrementalFetchingSettings(
                 $columnName,
-                IncrementalFetchingSettings::TYPE_TIMESTAMP
+                IncrementalFetchingSettings::TYPE_TIMESTAMP,
+                $limit
             );
         } else {
             throw new UserException(
@@ -253,9 +255,6 @@ class CommonExtractor extends BaseExtractor
                     $columnName
                 )
             );
-        }
-        if ($limit) {
-            $this->incrementalFetching->setLimit($limit);
         }
     }
 

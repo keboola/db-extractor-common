@@ -18,10 +18,11 @@ class IncrementalFetchingSettings
     /** @var int|null */
     private $limit;
 
-    public function __construct(string $column, string $type)
+    public function __construct(string $column, string $type, ?int $limit)
     {
         $this->column = $column;
         $this->type = $type;
+        $this->limit = $limit;
     }
 
     public function getColumn(): string
@@ -47,10 +48,5 @@ class IncrementalFetchingSettings
     public function isTypeTimestamp(): bool
     {
         return $this->type === self::TYPE_TIMESTAMP;
-    }
-
-    public function setLimit(int $limit): void
-    {
-        $this->limit = $limit;
     }
 }
