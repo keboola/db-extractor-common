@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractorCommon\DatabaseMetadata;
 
-class Table implements \JsonSerializable
+class Table implements \JsonSerializable, ToArrayInterface
 {
     /** @var string */
     private $name;
@@ -33,6 +33,11 @@ class Table implements \JsonSerializable
     }
 
     public function jsonSerialize(): array
+    {
+        return $this->toArray();
+    }
+
+    public function toArray(): array
     {
         return [
             'name' => $this->name,

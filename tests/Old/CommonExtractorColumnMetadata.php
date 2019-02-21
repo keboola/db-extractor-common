@@ -32,9 +32,9 @@ class CommonExtractorColumnMetadata extends Column
     /** @var string|null */
     private $timestampUpdateColumn;
 
-    public function jsonSerialize(): array
+    public function toArray(): array
     {
-        $result = parent::jsonSerialize();
+        $result = parent::toArray();
 
         if ($this->constraintName) {
             $result['constraintName'] = $this->constraintName;

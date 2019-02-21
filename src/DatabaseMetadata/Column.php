@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractorCommon\DatabaseMetadata;
 
-class Column implements \JsonSerializable
+class Column implements \JsonSerializable, ToArrayInterface
 {
     /** @var string */
     private $name;
@@ -51,7 +51,12 @@ class Column implements \JsonSerializable
 
     public function jsonSerialize(): array
     {
-        $result = [
+        return $this->toArray();
+    }
+
+    public function toArray(): array
+    {
+        return [
             'name' => $this->name,
             'sanitizedName' => $this->sanitizedName,
             'type' => $this->type,
@@ -61,8 +66,6 @@ class Column implements \JsonSerializable
             'default' => $this->default,
             'ordinalPosition' => $this->ordinalPosition,
         ];
-
-        return $result;
     }
 
     public function getName(): string

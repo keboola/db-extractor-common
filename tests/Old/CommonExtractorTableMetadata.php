@@ -26,9 +26,9 @@ class CommonExtractorTableMetadata extends Table
         $this->rowCount = $rowCount;
     }
 
-    public function jsonSerialize(): array
+    public function toArray(): array
     {
-        $result = parent::jsonSerialize();
+        $result = parent::toArray();
         $result['rowCount'] = $this->rowCount;
 
         if ($this->description) {

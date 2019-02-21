@@ -259,20 +259,20 @@ abstract class BaseExtractor extends BaseComponent
         return BaseExtractorConfig::class;
     }
 
-    protected static function getDataTypeMetadata(array $column): array
+    protected static function getDataTypeMetadata(Column $column): array
     {
+        $columnArray = $column->toArray();
         $dataType = new GenericStorage(
-            $column['type'],
-            array_intersect_key($column, array_flip(self::DATATYPE_KEYS))
+            $columnArray['type'],
+            array_intersect_key($columnArray, array_flip(self::DATATYPE_KEYS))
         );
         return $dataType->toMetadata();
     }
 
     public static function getColumnMetadata(Column $column): array
     {
-        $column = JsonHelper::decode((string) json_encode($column));
         $columnMetadata = self::getDataTypeMetadata($column);
-        $nonDatatypeKeys = array_diff_key($column, array_flip(self::DATATYPE_KEYS));
+        $nonDatatypeKeys = array_diff_key($column->toArray(), array_flip(self::DATATYPE_KEYS));
         foreach ($nonDatatypeKeys as $key => $value) {
             if ($key === 'name') {
                 $columnMetadata[] = [
@@ -289,11 +289,11 @@ abstract class BaseExtractor extends BaseComponent
         return $columnMetadata;
     }
 
-    public static function getTableLevelMetadata(Table $tableDetails): array
+    public static function getTableLevelMetadata(Table $table): array
     {
-        $tableDetails = JsonHelper::decode((string) json_encode($tableDetails));
+        $tableArray = $table->toArray();
         $metadata = [];
-        foreach ($tableDetails as $key => $value) {
+        foreach ($tableArray as $key => $value) {
             if ($key === 'columns') {
                 continue;
             }
