@@ -47,6 +47,7 @@ abstract class BaseExtractorConfigDefinition extends BaseConfigDefinition
         // @formatter:off
         $node
             ->children()
+                ->scalarNode('driver')->end()
                 ->scalarNode('host')->end()
                 ->scalarNode('port')
                     ->defaultValue($this->getDatabasePortDefaultValue())
@@ -60,7 +61,8 @@ abstract class BaseExtractorConfigDefinition extends BaseConfigDefinition
                 ->scalarNode('#password')
                     ->isRequired()
                 ->end()
-                ->append($this->getSshNode());
+                ->append($this->getSshNode())
+            ->end();
         // @formatter:on
 
         return $node;
@@ -103,7 +105,8 @@ abstract class BaseExtractorConfigDefinition extends BaseConfigDefinition
                 ->scalarNode('user')->end()
                 ->booleanNode('compression')
                     ->defaultValue(false)
-                ->end();
+                ->end()
+            ->end();
         // @formatter:on
 
         $node->validate()
