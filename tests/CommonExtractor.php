@@ -115,12 +115,10 @@ class CommonExtractor extends BaseExtractor
             return [];
         }
 
-        $tableNameArray = [];
         /** @var CommonExtractorTableMetadata[] $tableDefs */
         $tableDefs = [];
 
         foreach ($arr as $table) {
-            $tableNameArray[] = $table['TABLE_NAME'];
             $tableNameWithSchema = $table['TABLE_SCHEMA'] . '.' . $table['TABLE_NAME'];
             $tableDefs[$tableNameWithSchema] = new CommonExtractorTableMetadata(
                 $table['TABLE_NAME'],
