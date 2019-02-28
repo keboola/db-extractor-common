@@ -16,6 +16,7 @@ use Keboola\SSHTunnel\SSH;
 use Keboola\SSHTunnel\SSHException;
 use Nette\Utils;
 
+use PDOException;
 use Throwable;
 use PDO;
 use PDOStatement;
@@ -57,8 +58,18 @@ abstract class Extractor
         }
         $this->dbParameters = $parameters['db'];
 
+        $proxy = new RetryProxy(
+            $this->logger,
+            RetryProxy::DEFAULT_MAX_TRIES,
+            RetryProxy::DEFAULT_BACKOFF_INTERVAL,
+            [PDOException::class]
+        );
         try {
-            $this->db = $this->createConnection($this->dbParameters);
+            $proxy->call(function ():void {
+                $this->db = $this->createConnection($this->dbParameters);
+            });
+        } catch (PDOException $e) {
+            throw new UserException("Error connecting to DB: " . $e->getMessage(), 0, $e);
         } catch (Throwable $e) {
             if (strstr(strtolower($e->getMessage()), 'could not find driver')) {
                 throw new ApplicationException("Missing driver: " . $e->getMessage());
