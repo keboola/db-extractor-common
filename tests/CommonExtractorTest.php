@@ -1034,4 +1034,22 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertFileExists($outputManifestFile);
         $this->assertEquals(file_get_contents($expectedCsvFile), file_get_contents($outputCsvFile));
     }
+
+
+    public function testWillRetryConnectingToServer(): void
+    {
+        $handler = new TestHandler();
+        $logger = new Logger('test');
+        $logger->pushHandler($handler);
+        $config = $this->getConfigRow(self::DRIVER);
+        $config['parameters']['db']['host'] = 'nonexistenthost.example';
+        $app = new Application($config, $logger, []);
+        try {
+            $app->run();
+            self::fail('Must raise exception.');
+        } catch (UserException $e) {
+            self::assertTrue($handler->hasInfoThatContains('Retrying...'));
+            self::assertContains('Error connecting to DB: SQLSTATE[HY000] [2002] php_network_getaddresses: getaddrinfo failed: Name or service not known', $e->getMessage());
+        }
+    }
 }
