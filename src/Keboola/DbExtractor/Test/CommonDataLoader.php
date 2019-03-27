@@ -22,6 +22,7 @@ class CommonDataLoader extends AbstractDataLoader
             $pass,
             [
                 PDO::MYSQL_ATTR_LOCAL_INFILE => true,
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             ]
         );
     }
@@ -43,7 +44,7 @@ class CommonDataLoader extends AbstractDataLoader
     private function getColumnsDefinition(array $columns): string
     {
         $columns = array_map(function (array $column) {
-            $result = $column['name'];
+            $result = $this->quoteIdentifier($column['name']) . ' ';
             switch ($column['type']) {
                 case AbstractExtractorTest::VARCHAR:
                     $result .= 'VARCHAR';
@@ -54,17 +55,24 @@ class CommonDataLoader extends AbstractDataLoader
             if ($column['length'] > 0) {
                 $result .= '(' . $column['length'] . ')';
             }
-            if ($column['nullable'] === true) {
-                $result .= ' NULL ';
-            } elseif ($column['nullable'] === false) {
-                $result .= ' NOT NULL ';
+            if (isset($column['nullable'])) {
+                $nullable = $column['nullable'];
+                if ($nullable === true) {
+                    $result .= ' NULL ';
+                } elseif ($nullable === false) {
+                    $result .= ' NOT NULL ';
+                }
             }
-            if ($column['default']) {
-                $result .= 'DEFAULT ' . $this->quote($column['default']);
+            if (isset($column['default'])) {
+                $default = $column['default'];
+                if ($default) {
+                    $result .= 'DEFAULT ' . $this->quote($default);
+                }
             }
+
             return $result;
         }, $columns);
-        return implode(',', $columns);
+        return implode(',' . \PHP_EOL, $columns);
     }
 
     private function getForeignKeyDefintion(array $foreignKey): string
@@ -79,25 +87,33 @@ class CommonDataLoader extends AbstractDataLoader
             return $this->quoteIdentifier($column);
         }, $foreignKey['references']['columns']));
         return sprintf(
-            'FOREIGN KEY (%s) REFERENCES %s(%s))',
+            ',FOREIGN KEY (%s) REFERENCES %s(%s)',
             $quotedColumnsString,
             $this->quoteIdentifier($foreignKey['references']['table']),
             $quotedReferenceColumnsString
         );
     }
 
-    public function addRow(string $table, array $data): ?int
+    public function addRow(string $table, array $data): void
     {
         $columns = array_keys($data);
-        $dataString = implode('),(', $rows);
-        return sprintf(
+        $rowStrings = array_map(function ($row) {
+            $quotedColumns = array_map(function ($column) {
+                return $this->quote($column);
+            }, $row);
+            return implode(', ', $quotedColumns);
+        }, $data);
+        $dataString = '(' . implode('),(', $rowStrings) . ')';
+        $query = sprintf(
             'INSERT INTO %s (%s) VALUES %s',
             $this->quoteIdentifier($table),
             implode(', ', array_map(function ($column) {
                 return $this->quoteIdentifier($column);
             }, $columns)),
-
+            $dataString
         );
+
+        $this->db->exec($query);
     }
 
     public function load(string $inputFile, string $destinationTable, int $ignoreLines = 1): int
@@ -119,27 +135,37 @@ class CommonDataLoader extends AbstractDataLoader
 
     public function createAndUseDb(string $database): void
     {
+        $quotedDatabase = $this->quoteIdentifier($database);
         $this->db->exec(sprintf(
-            'DROP DATABASE IF EXISTS `%s`',
-            $this->quoteIdentifier($database)
+            'DROP DATABASE IF EXISTS %s',
+            $quotedDatabase
         ));
         $this->db->exec(sprintf(
             '
-            CREATE DATABASE `%s`
+            CREATE DATABASE %s
             DEFAULT CHARACTER SET utf8
             DEFAULT COLLATE utf8_general_ci
             ',
-            $this->quoteIdentifier($database)
+            $quotedDatabase
         ));
-        $this->db->exec('USE ' . $database);
+        $this->db->exec('USE ' . $quotedDatabase);
         $this->db->exec('SET NAMES utf8;');
     }
 
-    public function createTable(string $name, array $columns, array $foreignKey): void
+    public function createTable(string $name, array $columns = [], array $foreignKey = []): void
     {
         $columnsDefinition = $this->getColumnsDefinition($columns);
         $primaryKeyDefinition = $this->getPrimaryKeyDefintion($columns);
         $foreignKeyDefintion = $this->getForeignKeyDefintion($foreignKey);
+        $drop = <<<SQL
+DROP TABLE IF EXISTS %s
+SQL;
+        $query = sprintf(
+            $drop,
+            $this->quoteIdentifier($name)
+        );
+        $this->db->exec($query);
+
         $sql = <<<SQL
 CREATE TABLE %s (
   %s
@@ -148,13 +174,14 @@ CREATE TABLE %s (
 )
 SQL;
 
-        $this->db->exec(sprintf(
+        $query = sprintf(
             $sql,
             $this->quoteIdentifier($name),
             $columnsDefinition,
             $primaryKeyDefinition,
             $foreignKeyDefintion
-        ));
+        );
+        $this->db->exec($query);
     }
 
     public function quote(string $string): string
@@ -165,5 +192,19 @@ SQL;
     public function quoteIdentifier(string $identifier): string
     {
         return '`' . str_replace('`', '``', $identifier) . '`';
+    }
+
+    public function createAutoIncrementTable(): void
+    {
+        $this->db->exec('DROP TABLE IF EXISTS auto_increment_timestamp');
+
+        $this->db->exec(
+            'CREATE TABLE auto_increment_timestamp (
+            `id` INT NOT NULL AUTO_INCREMENT,
+            `name` VARCHAR(30) NOT NULL DEFAULT \'pam\',
+            `timestamp` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (`id`)
+        )'
+        );
     }
 }

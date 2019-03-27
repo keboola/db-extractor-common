@@ -24,10 +24,8 @@ abstract class AbstractExtractorTest extends ExtractorTest
     /** @var string */
     protected $appName = 'ex-db-common';
 
-    /**
-     * @var  \PDO
-     */
-    private $db;
+    /** @var AbstractDataLoader */
+    private $dataLoader;
 
     public function setUp(): void
     {
@@ -41,9 +39,9 @@ abstract class AbstractExtractorTest extends ExtractorTest
 
     private function initDatabase(): void
     {
-        $dataLoader = $this->getDataLoader();
+        $this->dataLoader = $this->getDataLoader();
 
-        $dataLoader->createAndUseDb();
+        $this->dataLoader->createAndUseDb(getenv('COMMON_DB_DATABASE'));
 
         $name = 'escapingPK';
         $columns = [
@@ -54,13 +52,13 @@ abstract class AbstractExtractorTest extends ExtractorTest
                 'length' => '155',
             ],
             [
-                'name' => 'col1',
+                'name' => 'col2',
                 'type' => self::VARCHAR,
                 'primaryKey' => true,
                 'length' => '155',
             ],
         ];
-        $dataLoader->createTable($name, $columns);
+        $this->dataLoader->createTable($name, $columns);
 
         $columns = [
             [
@@ -72,7 +70,7 @@ abstract class AbstractExtractorTest extends ExtractorTest
                 'default' => 'abc',
             ],
             [
-                'name' => 'col1',
+                'name' => 'col2',
                 'type' => self::VARCHAR,
                 'primaryKey' => false,
                 'length' => '155',
@@ -87,7 +85,7 @@ abstract class AbstractExtractorTest extends ExtractorTest
                 'columns' => ['col1', 'col2'],
             ],
         ];
-        $dataLoader->createTable('escaping', $columns, $foreignKey);
+        $this->dataLoader->createTable('escaping', $columns, $foreignKey);
 
         $columns = [
             [
@@ -107,15 +105,13 @@ abstract class AbstractExtractorTest extends ExtractorTest
                 'default' => 'abc',
             ],
         ];
-        $dataLoader->createTable('simple', $columns);
+        $this->dataLoader->createTable('simple', $columns);
 
         $inputFile = $this->dataDir . '/escaping.csv';
         $simpleFile = $this->dataDir . '/simple.csv';
-        $dataLoader->load($inputFile, 'escapingPK');
-        $dataLoader->load($inputFile, 'escaping');
-        $dataLoader->load($simpleFile, 'simple', 0);
-        // let other methods use the db connection
-        $this->db = $dataLoader->getPdo();
+        $this->dataLoader->load($inputFile, 'escapingPK');
+        $this->dataLoader->load($inputFile, 'escaping');
+        $this->dataLoader->load($simpleFile, 'simple', 0);
     }
 
     private function cleanOutputDirectory(): void
@@ -698,7 +694,7 @@ abstract class AbstractExtractorTest extends ExtractorTest
 
         sleep(2);
         //now add a couple rows and run it again.
-        $this->db->exec('INSERT INTO auto_increment_timestamp (`name`) VALUES (\'charles\'), (\'william\')');
+        $this->getDataLoader()->addRow('auto_increment_timestamp', [['name' => 'charles'], ['name' => 'william']]);
 
         $newResult = ($this->getApp($config, $result['state']))->run();
 
@@ -740,7 +736,7 @@ abstract class AbstractExtractorTest extends ExtractorTest
 
         sleep(2);
         //now add a couple rows and run it again.
-        $this->db->exec('INSERT INTO auto_increment_timestamp (`name`) VALUES (\'charles\'), (\'william\')');
+        $this->getDataLoader()->addRow('auto_increment_timestamp', [['name' => 'charles'], ['name' => 'william']]);
 
         $newResult = ($this->getApp($config, $result['state']))->run();
 
@@ -1034,17 +1030,9 @@ abstract class AbstractExtractorTest extends ExtractorTest
 
     protected function createAutoIncrementAndTimestampTable(): void
     {
-        $this->db->exec('DROP TABLE IF EXISTS auto_increment_timestamp');
 
-        $this->db->exec(
-            'CREATE TABLE auto_increment_timestamp (
-            `id` INT NOT NULL AUTO_INCREMENT,
-            `name` VARCHAR(30) NOT NULL DEFAULT \'pam\',
-            `timestamp` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            PRIMARY KEY (`id`)
-        )'
-        );
-        $this->db->exec('INSERT INTO auto_increment_timestamp (`name`) VALUES (\'george\'), (\'henry\')');
+        $this->dataLoader->createAutoIncrementTable();
+        $this->dataLoader->addRow('auto_increment_timestamp', [['name' => 'charles'], ['name' => 'william']]);
     }
 
     protected function assertExtractedData(
@@ -1077,5 +1065,5 @@ abstract class AbstractExtractorTest extends ExtractorTest
         }
     }
 
-    abstract protected function getDataLoader(): AbstractDataLoader;
+    abstract protected function getDataLoader();
 }
