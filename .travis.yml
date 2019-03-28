@@ -6,9 +6,7 @@ services:
   - docker
 
 install:
-  - source ./generate-ssh-keys.sh
-  - docker-compose build tests
-  - docker-compose build sshproxy
+  - docker-compose build
 
 script:
   - docker-compose run --rm tests

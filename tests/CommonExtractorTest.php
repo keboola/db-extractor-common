@@ -165,7 +165,7 @@ class CommonExtractorTest extends ExtractorTest
             'enabled' => true,
             'keys' => [
                 '#private' => $this->getPrivateKey(self::DRIVER),
-                'public' => $this->getEnv(self::DRIVER, 'DB_SSH_KEY_PUBLIC'),
+                'public' => $this->getPublicKey(self::DRIVER),
             ],
             'sshHost' => 'sshproxy',
         ];
@@ -182,7 +182,7 @@ class CommonExtractorTest extends ExtractorTest
             'enabled' => true,
             'keys' => [
                 '#private' => $this->getPrivateKey(self::DRIVER),
-                'public' => $this->getEnv(self::DRIVER, 'DB_SSH_KEY_PUBLIC'),
+                'public' => $this->getPublicKey(self::DRIVER),
             ],
             'sshHost' => 'sshproxy',
             'localPort' => '33306',
@@ -205,7 +205,7 @@ class CommonExtractorTest extends ExtractorTest
             'enabled' => true,
             'keys' => [
                 '#private' => $this->getPrivateKey(self::DRIVER),
-                'public' => $this->getEnv(self::DRIVER, 'DB_SSH_KEY_PUBLIC'),
+                'public' => $this->getPublicKey(self::DRIVER),
             ],
             'sshHost' => 'wronghost',
             'localPort' => '33306',
@@ -961,7 +961,7 @@ class CommonExtractorTest extends ExtractorTest
             'enabled' => true,
             'keys' => [
                 '#private' => $this->getPrivateKey(self::DRIVER),
-                'public' => $this->getEnv(self::DRIVER, 'DB_SSH_KEY_PUBLIC'),
+                'public' => $this->getPublicKey(self::DRIVER),
             ],
             'sshHost' => 'sshproxy',
             'localPort' => '33056',
@@ -980,7 +980,7 @@ class CommonExtractorTest extends ExtractorTest
             'enabled' => true,
             'keys' => [
                 '#private' => $this->getPrivateKey(self::DRIVER),
-                'public' => $this->getEnv(self::DRIVER, 'DB_SSH_KEY_PUBLIC'),
+                'public' => $this->getPublicKey(self::DRIVER),
             ],
             'sshHost' => 'sshproxy',
             'localPort' => '33066',
