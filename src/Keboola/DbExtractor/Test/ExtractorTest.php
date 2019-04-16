@@ -83,9 +83,12 @@ class ExtractorTest extends TestCase
 
     public function getPrivateKey(string $driver): string
     {
-        // docker-compose .env file does not support new lines in variables
-        // so we have to modify the key https://github.com/moby/moby/issues/12997
-        return str_replace('"', '', str_replace('\n', "\n", $this->getEnv($driver, 'DB_SSH_KEY_PRIVATE')));
+        return file_get_contents('/root/.ssh/id_rsa');
+    }
+
+    public function getPublicKey(string $driver): string
+    {
+        return file_get_contents('/root/.ssh/id_rsa.pub');
     }
 
     protected function getApplication(string $appName, array $config, array $state = []): Application

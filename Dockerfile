@@ -1,4 +1,5 @@
 #VERSION 1.0.0
+FROM db-ex-common-sshproxy AS sshproxy
 FROM php:7.1-fpm
 
 ENV DEBIAN_FRONTEND noninteractive
@@ -37,3 +38,5 @@ RUN composer install $COMPOSER_FLAGS --no-scripts --no-autoloader
 COPY . /code/
 # run normal composer - all deps are cached already
 RUN composer install $COMPOSER_FLAGS
+
+COPY --from=sshproxy /root/.ssh /root/.ssh

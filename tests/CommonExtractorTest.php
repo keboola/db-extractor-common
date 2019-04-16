@@ -165,7 +165,7 @@ class CommonExtractorTest extends ExtractorTest
             'enabled' => true,
             'keys' => [
                 '#private' => $this->getPrivateKey(self::DRIVER),
-                'public' => $this->getEnv(self::DRIVER, 'DB_SSH_KEY_PUBLIC'),
+                'public' => $this->getPublicKey(self::DRIVER),
             ],
             'sshHost' => 'sshproxy',
         ];
@@ -182,7 +182,7 @@ class CommonExtractorTest extends ExtractorTest
             'enabled' => true,
             'keys' => [
                 '#private' => $this->getPrivateKey(self::DRIVER),
-                'public' => $this->getEnv(self::DRIVER, 'DB_SSH_KEY_PUBLIC'),
+                'public' => $this->getPublicKey(self::DRIVER),
             ],
             'sshHost' => 'sshproxy',
             'localPort' => '33306',
@@ -205,7 +205,7 @@ class CommonExtractorTest extends ExtractorTest
             'enabled' => true,
             'keys' => [
                 '#private' => $this->getPrivateKey(self::DRIVER),
-                'public' => $this->getEnv(self::DRIVER, 'DB_SSH_KEY_PUBLIC'),
+                'public' => $this->getPublicKey(self::DRIVER),
             ],
             'sshHost' => 'wronghost',
             'localPort' => '33306',
@@ -219,14 +219,11 @@ class CommonExtractorTest extends ExtractorTest
     public function testRunWithWrongCredentials(): void
     {
         $config = $this->getConfig(self::DRIVER);
-        $config['parameters']['db']['host'] = 'somebulshit';
         $config['parameters']['db']['#password'] = 'somecrap';
 
-        try {
-            ($this->getApp($config))->run();
-            $this->fail("Wrong credentials must raise error.");
-        } catch (\Keboola\DbExtractor\Exception\UserException $e) {
-        }
+        $this->expectExceptionMessage('Error connecting to DB: SQLSTATE[HY000] [1045] Access denied for user');
+        $this->expectException(UserException::class);
+        ($this->getApp($config))->run();
     }
 
     public function testRetries(): void
@@ -579,13 +576,10 @@ class CommonExtractorTest extends ExtractorTest
         $config['action'] = 'sample';
         $config['parameters']['tables'] = [];
 
-        try {
-            $app = $this->getApp($config);
-            $app->run();
-
-            $this->fail('Running non-existing actions should fail with UserException');
-        } catch (\Keboola\DbExtractor\Exception\UserException $e) {
-        }
+        $this->expectExceptionMessage("Action 'sample' does not exist.");
+        $this->expectException(UserException::class);
+        $app = $this->getApp($config);
+        $app->run();
     }
 
     public function testTableColumnsQuery(): void
@@ -961,7 +955,7 @@ class CommonExtractorTest extends ExtractorTest
             'enabled' => true,
             'keys' => [
                 '#private' => $this->getPrivateKey(self::DRIVER),
-                'public' => $this->getEnv(self::DRIVER, 'DB_SSH_KEY_PUBLIC'),
+                'public' => $this->getPublicKey(self::DRIVER),
             ],
             'sshHost' => 'sshproxy',
             'localPort' => '33056',
@@ -980,7 +974,7 @@ class CommonExtractorTest extends ExtractorTest
             'enabled' => true,
             'keys' => [
                 '#private' => $this->getPrivateKey(self::DRIVER),
-                'public' => $this->getEnv(self::DRIVER, 'DB_SSH_KEY_PUBLIC'),
+                'public' => $this->getPublicKey(self::DRIVER),
             ],
             'sshHost' => 'sshproxy',
             'localPort' => '33066',
