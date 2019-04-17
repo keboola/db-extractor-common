@@ -1023,7 +1023,7 @@ abstract class AbstractExtractorTest extends ExtractorTest
     protected function createAutoIncrementAndTimestampTable(): void
     {
         $this->dataLoader->createAutoIncrementTable();
-        $this->dataLoader->addRows('auto_increment_timestamp', [['name' => 'charles'], ['name' => 'william']]);
+        $this->dataLoader->addRows('auto_increment_timestamp', [['name' => 'george'], ['name' => 'henry']]);
     }
 
     protected function assertExtractedData(
