@@ -8,8 +8,6 @@ interface DataLoaderInterface
 {
     public function createAndUseDb(string $database): void;
 
-    public function createAutoIncrementTable(): void;
-
     public function createTable(string $name, array $columns = [], array $foreignKey = []): void;
 
     public function load(string $inputFile, string $destinationTable, int $ignoreLines = 1): int;

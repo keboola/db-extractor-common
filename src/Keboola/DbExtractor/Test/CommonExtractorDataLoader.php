@@ -202,20 +202,4 @@ QUERY;
     {
         return '`' . str_replace('`', '``', $identifier) . '`';
     }
-
-    public function createAutoIncrementTable(): void
-    {
-        $this->db->exec('DROP TABLE IF EXISTS auto_increment_timestamp');
-
-        $this->createTable('auto_increment_timestamp', )
-
-        $this->db->exec(
-            'CREATE TABLE auto_increment_timestamp (
-            `id` INT NOT NULL AUTO_INCREMENT,
-            `name` VARCHAR(30) NOT NULL DEFAULT \'pam\',
-            `timestamp` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            PRIMARY KEY (`id`)
-        )'
-        );
-    }
 }
