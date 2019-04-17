@@ -6,6 +6,7 @@ namespace Keboola\DbExtractor\Test;
 
 use Exception;
 use PDO;
+use UnexpectedValueException;
 
 class CommonExtractorDataLoader implements DataLoaderInterface
 {
@@ -45,11 +46,17 @@ class CommonExtractorDataLoader implements DataLoaderInterface
         $columns = array_map(function (array $column) {
             $result = $this->quoteIdentifier($column['name']) . ' ';
             switch ($column['type']) {
-                case AbstractExtractorTest::VARCHAR:
+                case AbstractExtractorTest::COLUMN_TYPE_VARCHAR:
                     $result .= 'VARCHAR';
                     break;
+                case AbstractExtractorTest::COLUMN_TYPE_INTEGER:
+                    $result .= 'INT';
+                    break;
+                case AbstractExtractorTest::COLUMN_TYPE_AUTOUPDATED_TIMESTAMP:
+                    $result .= 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP';
+                    return $result;
                 default:
-                    throw new Exception(sprintf('Unknown column type %s', $column['type']));
+                    throw new UnexpectedValueException(sprintf('Unknown column type %s', $column['type']));
             }
             if ($column['length'] > 0) {
                 $result .= '(' . $column['length'] . ')';
@@ -168,13 +175,13 @@ SQL;
         );
         $this->db->exec($query);
 
-        $sql = <<<SQL
+        $sql = <<<QUERY
 CREATE TABLE %s (
   %s
   %s
   %s
 )
-SQL;
+QUERY;
 
         $query = sprintf(
             $sql,
@@ -199,6 +206,8 @@ SQL;
     public function createAutoIncrementTable(): void
     {
         $this->db->exec('DROP TABLE IF EXISTS auto_increment_timestamp');
+
+        $this->createTable('auto_increment_timestamp', )
 
         $this->db->exec(
             'CREATE TABLE auto_increment_timestamp (

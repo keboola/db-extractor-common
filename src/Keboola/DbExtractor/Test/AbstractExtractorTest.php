@@ -16,8 +16,10 @@ use Symfony\Component\Yaml\Yaml;
 
 abstract class AbstractExtractorTest extends ExtractorTest
 {
+    public const COLUMN_TYPE_AUTOUPDATED_TIMESTAMP = 'autoupdated_timestamp';
+    public const COLUMN_TYPE_INTEGER = 'integer';
+    public const COLUMN_TYPE_VARCHAR = 'varchar';
     public const DRIVER = 'common';
-    public const VARCHAR = 'varchar';
 
     /** @var string */
     protected $appName = 'ex-db-common';
@@ -45,13 +47,13 @@ abstract class AbstractExtractorTest extends ExtractorTest
         $columns = [
             [
                 'name' => 'col1',
-                'type' => self::VARCHAR,
+                'type' => self::COLUMN_TYPE_VARCHAR,
                 'primaryKey' => true,
                 'length' => '155',
             ],
             [
                 'name' => 'col2',
-                'type' => self::VARCHAR,
+                'type' => self::COLUMN_TYPE_VARCHAR,
                 'primaryKey' => true,
                 'length' => '155',
             ],
@@ -61,7 +63,7 @@ abstract class AbstractExtractorTest extends ExtractorTest
         $columns = [
             [
                 'name' => 'col1',
-                'type' => self::VARCHAR,
+                'type' => self::COLUMN_TYPE_VARCHAR,
                 'primaryKey' => false,
                 'length' => '155',
                 'nullable' => false,
@@ -69,7 +71,7 @@ abstract class AbstractExtractorTest extends ExtractorTest
             ],
             [
                 'name' => 'col2',
-                'type' => self::VARCHAR,
+                'type' => self::COLUMN_TYPE_VARCHAR,
                 'primaryKey' => false,
                 'length' => '155',
                 'nullable' => false,
@@ -1022,7 +1024,28 @@ abstract class AbstractExtractorTest extends ExtractorTest
 
     protected function createAutoIncrementAndTimestampTable(): void
     {
-        $this->dataLoader->createAutoIncrementTable();
+        $columns = [
+            [
+                'name' => 'id',
+                'type' => self::COLUMN_TYPE_INTEGER,
+                'primaryKey' => true,
+                'nullable' => false,
+            ],
+            [
+                'name' => 'name',
+                'type' => self::COLUMN_TYPE_VARCHAR,
+                'length' => '30',
+                'nullable' => false,
+                'default' => 'pam',
+            ],
+            [
+                'name' => 'timestamp',
+                'type' => self::COLUMN_TYPE_AUTOUPDATED_TIMESTAMP,
+                'nullable' => false,
+            ],
+        ];
+
+        $this->dataLoader->createTable('auto_increment_timestamp', $columns);
         $this->dataLoader->addRows('auto_increment_timestamp', [['name' => 'george'], ['name' => 'henry']]);
     }
 
