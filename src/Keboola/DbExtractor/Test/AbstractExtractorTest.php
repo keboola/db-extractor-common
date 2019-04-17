@@ -2,20 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Keboola\DbExtractor\Tests;
+namespace Keboola\DbExtractor\Test;
 
-use Couchbase\Exception;
 use Keboola\Csv\CsvFile;
-use Keboola\Csv\InvalidArgumentException;
 use Keboola\DbExtractor\Application;
 use Keboola\DbExtractor\Exception\ApplicationException;
 use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractor\Logger;
-use Keboola\DbExtractor\Test\DataLoaderInterface;
-use Keboola\DbExtractor\Test\ExtractorTest;
 use Monolog\Handler\TestHandler;
 use Symfony\Component\Filesystem\Filesystem;
-use Symfony\Component\Filesystem\Tests\ExceptionTest;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\Yaml\Yaml;
 
@@ -1028,7 +1023,7 @@ abstract class AbstractExtractorTest extends ExtractorTest
     protected function createAutoIncrementAndTimestampTable(): void
     {
         $this->dataLoader->createAutoIncrementTable();
-        $this->dataLoader->addRows('auto_increment_timestamp', [['name' => 'charles'],['name' => 'william']]);
+        $this->dataLoader->addRows('auto_increment_timestamp', [['name' => 'charles'], ['name' => 'william']]);
     }
 
     protected function assertExtractedData(
@@ -1061,5 +1056,5 @@ abstract class AbstractExtractorTest extends ExtractorTest
         }
     }
 
-    abstract protected function getDataLoader();
+    abstract protected function getDataLoader(): DataLoaderInterface;
 }

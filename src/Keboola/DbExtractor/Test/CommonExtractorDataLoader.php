@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Keboola\DbExtractor\Test;
 
 use Exception;
-use Keboola\DbExtractor\Tests\AbstractExtractorTest;
 use PDO;
 
 class CommonExtractorDataLoader implements DataLoaderInterface
