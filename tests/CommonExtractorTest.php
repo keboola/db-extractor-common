@@ -2,18 +2,17 @@
 
 declare(strict_types=1);
 
-
-
 namespace Keboola\DbExtractor\Tests;
 require_once __DIR__ . '/../src/Keboola/DbExtractor/Test/AbstractExtractorTest.php';
 
-use Keboola\DbExtractor\Test\CommonDataLoader;
+use Keboola\DbExtractor\Test\CommonExtractorDataLoader;
+use Keboola\DbExtractor\Test\DataLoaderInterface;
 
 class CommonExtractorTest extends AbstractExtractorTest
 {
-    protected function getDataLoader()
+    protected function getDataLoader(): DataLoaderInterface
     {
-        return new CommonDataLoader(
+        return new CommonExtractorDataLoader(
             $this->getEnv(self::DRIVER, 'DB_HOST'),
             $this->getEnv(self::DRIVER, 'DB_PORT'),
             $this->getEnv(self::DRIVER, 'DB_DATABASE'),

@@ -4,15 +4,18 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Tests;
 
+use Couchbase\Exception;
 use Keboola\Csv\CsvFile;
+use Keboola\Csv\InvalidArgumentException;
 use Keboola\DbExtractor\Application;
 use Keboola\DbExtractor\Exception\ApplicationException;
 use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractor\Logger;
-use Keboola\DbExtractor\Test\AbstractDataLoader;
+use Keboola\DbExtractor\Test\DataLoaderInterface;
 use Keboola\DbExtractor\Test\ExtractorTest;
 use Monolog\Handler\TestHandler;
 use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\Filesystem\Tests\ExceptionTest;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\Yaml\Yaml;
 
@@ -24,7 +27,7 @@ abstract class AbstractExtractorTest extends ExtractorTest
     /** @var string */
     protected $appName = 'ex-db-common';
 
-    /** @var AbstractDataLoader */
+    /** @var DataLoaderInterface */
     private $dataLoader;
 
     public function setUp(): void
@@ -186,7 +189,7 @@ abstract class AbstractExtractorTest extends ExtractorTest
             'enabled' => true,
             'keys' => [
                 '#private' => $this->getPrivateKey(self::DRIVER),
-                'public' => $this->getEnv(self::DRIVER, 'DB_SSH_KEY_PUBLIC'),
+                'public' => $this->getPublicKey(self::DRIVER),
             ],
             'sshHost' => 'sshproxy',
         ];
@@ -203,7 +206,7 @@ abstract class AbstractExtractorTest extends ExtractorTest
             'enabled' => true,
             'keys' => [
                 '#private' => $this->getPrivateKey(self::DRIVER),
-                'public' => $this->getEnv(self::DRIVER, 'DB_SSH_KEY_PUBLIC'),
+                'public' => $this->getPublicKey(self::DRIVER),
             ],
             'sshHost' => 'sshproxy',
             'localPort' => '33306',
@@ -226,7 +229,7 @@ abstract class AbstractExtractorTest extends ExtractorTest
             'enabled' => true,
             'keys' => [
                 '#private' => $this->getPrivateKey(self::DRIVER),
-                'public' => $this->getEnv(self::DRIVER, 'DB_SSH_KEY_PUBLIC'),
+                'public' => $this->getPublicKey(self::DRIVER),
             ],
             'sshHost' => 'wronghost',
             'localPort' => '33306',
@@ -240,14 +243,11 @@ abstract class AbstractExtractorTest extends ExtractorTest
     public function testRunWithWrongCredentials(): void
     {
         $config = $this->getConfig(self::DRIVER);
-        $config['parameters']['db']['host'] = 'somebulshit';
         $config['parameters']['db']['#password'] = 'somecrap';
 
-        try {
-            ($this->getApp($config))->run();
-            $this->fail("Wrong credentials must raise error.");
-        } catch (\Keboola\DbExtractor\Exception\UserException $e) {
-        }
+        $this->expectException(UserException::class);
+        $this->expectExceptionMessage('Error connecting to DB: SQLSTATE[HY000] [1045] Access denied for user \'root\'@\'172.19.0.4\' (using password: YES)');
+        ($this->getApp($config))->run();
     }
 
     public function testRetries(): void
@@ -600,13 +600,10 @@ abstract class AbstractExtractorTest extends ExtractorTest
         $config['action'] = 'sample';
         $config['parameters']['tables'] = [];
 
-        try {
-            $app = $this->getApp($config);
-            $app->run();
-
-            $this->fail('Running non-existing actions should fail with UserException');
-        } catch (\Keboola\DbExtractor\Exception\UserException $e) {
-        }
+        $this->expectException(UserException::class);
+        $this->expectExceptionMessage('Action \'sample\' does not exist');
+        $app = $this->getApp($config);
+        $app->run();
     }
 
     public function testTableColumnsQuery(): void
@@ -694,7 +691,7 @@ abstract class AbstractExtractorTest extends ExtractorTest
 
         sleep(2);
         //now add a couple rows and run it again.
-        $this->getDataLoader()->addRow('auto_increment_timestamp', [['name' => 'charles'], ['name' => 'william']]);
+        $this->getDataLoader()->addRows('auto_increment_timestamp', [['name' => 'charles'], ['name' => 'william']]);
 
         $newResult = ($this->getApp($config, $result['state']))->run();
 
@@ -736,7 +733,7 @@ abstract class AbstractExtractorTest extends ExtractorTest
 
         sleep(2);
         //now add a couple rows and run it again.
-        $this->getDataLoader()->addRow('auto_increment_timestamp', [['name' => 'charles'], ['name' => 'william']]);
+        $this->getDataLoader()->addRows('auto_increment_timestamp', [['name' => 'charles'], ['name' => 'william']]);
 
         $newResult = ($this->getApp($config, $result['state']))->run();
 
@@ -982,7 +979,7 @@ abstract class AbstractExtractorTest extends ExtractorTest
             'enabled' => true,
             'keys' => [
                 '#private' => $this->getPrivateKey(self::DRIVER),
-                'public' => $this->getEnv(self::DRIVER, 'DB_SSH_KEY_PUBLIC'),
+                'public' => $this->getPublicKey(self::DRIVER),
             ],
             'sshHost' => 'sshproxy',
             'localPort' => '33056',
@@ -1001,7 +998,7 @@ abstract class AbstractExtractorTest extends ExtractorTest
             'enabled' => true,
             'keys' => [
                 '#private' => $this->getPrivateKey(self::DRIVER),
-                'public' => $this->getEnv(self::DRIVER, 'DB_SSH_KEY_PUBLIC'),
+                'public' => $this->getPublicKey(self::DRIVER),
             ],
             'sshHost' => 'sshproxy',
             'localPort' => '33066',
@@ -1030,9 +1027,8 @@ abstract class AbstractExtractorTest extends ExtractorTest
 
     protected function createAutoIncrementAndTimestampTable(): void
     {
-
         $this->dataLoader->createAutoIncrementTable();
-        $this->dataLoader->addRow('auto_increment_timestamp', [['name' => 'charles'], ['name' => 'william']]);
+        $this->dataLoader->addRows('auto_increment_timestamp', [['name' => 'charles'],['name' => 'william']]);
     }
 
     protected function assertExtractedData(

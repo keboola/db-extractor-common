@@ -8,7 +8,7 @@ use Exception;
 use Keboola\DbExtractor\Tests\AbstractExtractorTest;
 use PDO;
 
-class CommonDataLoader extends AbstractDataLoader
+class CommonExtractorDataLoader implements DataLoaderInterface
 {
     /** @var PDO */
     private $db;
@@ -94,15 +94,18 @@ class CommonDataLoader extends AbstractDataLoader
         );
     }
 
-    public function addRow(string $table, array $data): void
+    public function addRows(string $table, array $rows): void
     {
-        $columns = array_keys($data);
+        if (count($rows) === 0) {
+            return;
+        }
+        $columns = array_keys(reset($rows));
         $rowStrings = array_map(function ($row) {
             $quotedColumns = array_map(function ($column) {
                 return $this->quote($column);
             }, $row);
             return implode(', ', $quotedColumns);
-        }, $data);
+        }, $rows);
         $dataString = '(' . implode('),(', $rowStrings) . ')';
         $query = sprintf(
             'INSERT INTO %s (%s) VALUES %s',
