@@ -41,42 +41,48 @@ class CommonExtractorDataLoader implements DataLoaderInterface
         return '';
     }
 
-    private function getColumnsDefinition(array $columns): string
+    protected function generateColumnDefinition(array $column): string
     {
-        $columns = array_map(function (array $column) {
-            $result = $this->quoteIdentifier($column['name']) . ' ';
-            switch ($column['type']) {
-                case AbstractExtractorTest::COLUMN_TYPE_VARCHAR:
-                    $result .= 'VARCHAR';
-                    break;
-                case AbstractExtractorTest::COLUMN_TYPE_INTEGER:
-                    $result .= 'INT';
-                    break;
-                case AbstractExtractorTest::COLUMN_TYPE_AUTOUPDATED_TIMESTAMP:
-                    $result .= 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP';
-                    return $result;
-                default:
-                    throw new UnexpectedValueException(sprintf('Unknown column type %s', $column['type']));
+        $result = $this->quoteIdentifier($column['name']) . ' ';
+        switch ($column['type']) {
+            case AbstractExtractorTest::COLUMN_TYPE_VARCHAR:
+                $result .= 'VARCHAR';
+                break;
+            case AbstractExtractorTest::COLUMN_TYPE_INTEGER:
+                $result .= 'INT';
+                break;
+            case AbstractExtractorTest::COLUMN_TYPE_AUTOUPDATED_TIMESTAMP:
+                $result .= 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP';
+                return $result;
+            default:
+                throw new UnexpectedValueException(sprintf('Unknown column type %s', $column['type']));
+        }
+        if ($column['length'] > 0) {
+            $result .= '(' . $column['length'] . ')';
+        }
+        if (isset($column['nullable'])) {
+            $nullable = $column['nullable'];
+            if ($nullable === true) {
+                $result .= ' NULL ';
+            } elseif ($nullable === false) {
+                $result .= ' NOT NULL ';
             }
-            if ($column['length'] > 0) {
-                $result .= '(' . $column['length'] . ')';
+        }
+        if (isset($column['default'])) {
+            $default = $column['default'];
+            if ($default) {
+                $result .= 'DEFAULT ' . $this->quote($default);
             }
-            if (isset($column['nullable'])) {
-                $nullable = $column['nullable'];
-                if ($nullable === true) {
-                    $result .= ' NULL ';
-                } elseif ($nullable === false) {
-                    $result .= ' NOT NULL ';
-                }
-            }
-            if (isset($column['default'])) {
-                $default = $column['default'];
-                if ($default) {
-                    $result .= 'DEFAULT ' . $this->quote($default);
-                }
-            }
+        }
 
-            return $result;
+        return $result;
+    }
+
+    protected function getColumnsDefinition(array $columns): string
+    {
+
+        $columns = array_map(function (array $column): string {
+            return $this->generateColumnDefinition($column);
         }, $columns);
         return implode(',' . \PHP_EOL, $columns);
     }
