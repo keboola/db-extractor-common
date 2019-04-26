@@ -17,17 +17,14 @@ class CommonExtractorDataLoader extends AbstractPdoDataLoader
         }
         $columns = array_keys(reset($rows));
 
-        $rowStrings = $this->getOneRowValuesSqlString($rows);
-
-        $dataString = '(' . implode('),(', $rowStrings) . ')';
-
+        $quotedTableColumnsSqlString = implode(', ', array_map(function ($column) {
+            return $this->quoteIdentifier($column);
+        }, $columns));
         $query = sprintf(
             'INSERT INTO %s (%s) VALUES %s',
             $this->quoteIdentifier($table),
-            implode(', ', array_map(function ($column) {
-                return $this->quoteIdentifier($column);
-            }, $columns)),
-            $dataString
+            $quotedTableColumnsSqlString,
+            $this->mapRowValueStringsToAllRowsValueString($this->mapRowsToRowValuesSqlStrings($rows))
         );
 
         $this->executeQuery($query);
@@ -169,5 +166,14 @@ QUERY;
         );
 
         $this->executeQuery($query);
+    }
+
+    /**
+     * @param array $rowValuesSqlStrings
+     * @return string
+     */
+    private function mapRowValueStringsToAllRowsValueString(array $rowValuesSqlStrings): string
+    {
+        return '(' . implode('),(', $rowValuesSqlStrings) . ')';
     }
 }

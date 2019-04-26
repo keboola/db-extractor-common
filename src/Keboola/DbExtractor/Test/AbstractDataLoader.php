@@ -94,7 +94,7 @@ abstract class AbstractDataLoader implements DataLoaderInterface
      * @param array $rows
      * @return array
      */
-    protected function getOneRowValuesSqlString(array $rows): array
+    protected function mapRowsToRowValuesSqlStrings(array $rows): array
     {
         $rowStrings = array_map(function ($row) {
             $quotedColumns = array_map(function ($column) {
