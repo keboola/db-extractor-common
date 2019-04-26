@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Keboola\DbExtractor\Tests\CommonExtractor;
 
 use Keboola\DbExtractor\Test\AbstractExtractorTest;
-use Keboola\DbExtractor\Test\CommonExtractorDataLoader;
 use Keboola\DbExtractor\Test\DataLoaderInterface;
 
 class CommonExtractorTest extends AbstractExtractorTest
