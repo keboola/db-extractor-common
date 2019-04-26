@@ -30,5 +30,4 @@ abstract class AbstractPdoDataLoader extends AbstractDataLoader
     {
         return '`' . str_replace('`', '``', $identifier) . '`';
     }
-
 }
