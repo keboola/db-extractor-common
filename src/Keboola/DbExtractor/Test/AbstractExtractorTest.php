@@ -1076,5 +1076,5 @@ abstract class AbstractExtractorTest extends ExtractorTest
 
     abstract protected function getDataLoader(): DataLoaderInterface;
 
-    abstract protected function getDbNameFromEnv();
+    abstract protected function getDbNameFromEnv(): string;
 }
