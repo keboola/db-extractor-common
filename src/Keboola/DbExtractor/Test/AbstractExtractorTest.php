@@ -41,7 +41,7 @@ abstract class AbstractExtractorTest extends ExtractorTest
     {
         $this->dataLoader = $this->getDataLoader();
 
-        $this->dataLoader->createAndUseDb(getenv('COMMON_DB_DATABASE'));
+        $this->dataLoader->createAndUseDb($this->getDbNameFromEnv());
 
         $name = 'escapingPK';
         $columns = [
@@ -1080,4 +1080,6 @@ abstract class AbstractExtractorTest extends ExtractorTest
     }
 
     abstract protected function getDataLoader(): DataLoaderInterface;
+
+    abstract protected function getDbNameFromEnv();
 }
