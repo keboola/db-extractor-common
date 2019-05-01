@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Keboola\DbExtractor\Test;
 
 use PDO;
+use PDOException;
+use RuntimeException;
 
 abstract class AbstractPdoDataLoader extends AbstractDataLoader
 {
@@ -18,7 +20,11 @@ abstract class AbstractPdoDataLoader extends AbstractDataLoader
 
     protected function executeQuery(string $query): void
     {
-        $this->db->exec($query);
+        try {
+            $this->db->exec($query);
+        } catch (PDOException $e) {
+            throw new RuntimeException(sprintf('"%s" resulted in "%s"', $query, $e->getMessage()), 0, $e);
+        }
     }
 
     protected function quote(string $string): string
