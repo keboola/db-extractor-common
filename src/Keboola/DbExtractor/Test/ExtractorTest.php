@@ -10,13 +10,16 @@ use Keboola\DbExtractor\Logger;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Yaml\Yaml;
 
-class ExtractorTest extends TestCase
+abstract class ExtractorTest extends TestCase
 {
-    public const CONFIG_FORMAT_YAML = 'yaml';
     public const CONFIG_FORMAT_JSON = 'json';
+
+    public const CONFIG_FORMAT_YAML = 'yaml';
 
     /** @var string */
     protected $dataDir = __DIR__ . "/../../../../tests/data";
+
+    abstract protected function getDataDir(): string;
 
     protected function getConfigDbNode(string $driver): array
     {
@@ -33,26 +36,26 @@ class ExtractorTest extends TestCase
     {
         switch ($format) {
             case self::CONFIG_FORMAT_JSON:
-                $config = json_decode(file_get_contents($this->dataDir . '/' .$driver . '/config.json'), true);
+                $config = json_decode(file_get_contents($this->getDataDir() . '/' . $driver . '/config.json'), true);
                 break;
             case self::CONFIG_FORMAT_YAML:
-                $config = Yaml::parse(file_get_contents($this->dataDir . '/' .$driver . '/config.yml'));
+                $config = Yaml::parse(file_get_contents($this->getDataDir() . '/' . $driver . '/config.yml'));
                 break;
             default:
                 throw new UserException("Unsupported configuration format: " . $format);
         }
-        $config['parameters']['data_dir'] = $this->dataDir;
+        $config['parameters']['data_dir'] = $this->getDataDir();
         $config['parameters']['db'] = $this->getConfigDbNode($driver);
         $config['parameters']['extractor_class'] = ucfirst($driver);
-        
+
         return $config;
     }
 
     protected function getConfigRow(string $driver): array
     {
-        $config = json_decode(file_get_contents($this->dataDir . '/' .$driver . '/configRow.json'), true);
+        $config = json_decode(file_get_contents($this->getDataDir() . '/' . $driver . '/configRow.json'), true);
 
-        $config['parameters']['data_dir'] = $this->dataDir;
+        $config['parameters']['data_dir'] = $this->getDataDir();
         $config['parameters']['db'] = $this->getConfigDbNode($driver);
         $config['parameters']['extractor_class'] = ucfirst($driver);
 
@@ -61,9 +64,9 @@ class ExtractorTest extends TestCase
 
     protected function getConfigRowForCsvErr(string $driver): array
     {
-        $config = json_decode(file_get_contents($this->dataDir . '/' .$driver . '/configRowCsvErr.json'), true);
+        $config = json_decode(file_get_contents($this->getDataDir() . '/' . $driver . '/configRowCsvErr.json'), true);
 
-        $config['parameters']['data_dir'] = $this->dataDir;
+        $config['parameters']['data_dir'] = $this->getDataDir();
         $config['parameters']['db'] = $this->getConfigDbNode($driver);
         $config['parameters']['extractor_class'] = ucfirst($driver);
 

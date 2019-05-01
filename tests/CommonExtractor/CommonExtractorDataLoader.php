@@ -14,8 +14,9 @@ class CommonExtractorDataLoader extends AbstractPdoDataLoader
         string $columnName,
         string $columnType,
         ?string $columnLength,
-        ?string $columnNullable,
-        ?string $columnDefault
+        ?bool $columnNullable,
+        ?string $columnDefault,
+        ?bool $isPrimary
     ): string {
         $result = $this->quoteIdentifier($columnName) . ' ';
         switch ($columnType) {
@@ -41,6 +42,9 @@ class CommonExtractorDataLoader extends AbstractPdoDataLoader
             } elseif ($nullable === false) {
                 $result .= ' NOT NULL ';
             }
+        }
+        if ($isPrimary && $columnType === AbstractExtractorTest::COLUMN_TYPE_INTEGER) {
+            $result .= ' AUTO_INCREMENT';
         }
         if ($columnDefault !== null) {
             $default = $columnDefault;

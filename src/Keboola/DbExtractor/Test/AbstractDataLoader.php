@@ -18,8 +18,9 @@ abstract class AbstractDataLoader implements DataLoaderInterface
         string $columnName,
         string $columnType,
         ?string $columnLength,
-        ?string $columnNullable,
-        ?string $columnDefault
+        ?bool $columnNullable,
+        ?string $columnDefault,
+        ?bool $isPrimary
     ): string;
 
     abstract protected function getForeignKeySqlString(
@@ -55,9 +56,10 @@ abstract class AbstractDataLoader implements DataLoaderInterface
             return $this->generateColumnDefinition(
                 $column['name'],
                 $column['type'],
-                $column['length'] ? $column['length'] : null,
-                $column['nullable'] ? $column['nullable'] : null,
-                $column['default'] ? $column['default'] : null
+                isset($column['length']) ? $column['length'] : null,
+                isset($column['nullable']) ? $column['nullable'] : null,
+                isset($column['default']) ? (string) $column['default'] : null,
+                isset($column['primaryKey']) ? $column['primaryKey'] : null
             );
         }, $columns);
         return implode($this->getColumnDefintionSeparator() . PHP_EOL, $columns);
@@ -131,6 +133,9 @@ abstract class AbstractDataLoader implements DataLoaderInterface
     protected function getQuotedPkColumnNames(array $columns): array
     {
         $pkColumns = array_filter($columns, function ($column) {
+            if (!isset($column['primaryKey'])) {
+                return false;
+            }
             return $column['primaryKey'] === true;
         });
         $quotedPkColumnNames = array_map(function ($column) {

@@ -14,12 +14,18 @@ use Keboola\Temp\Temp;
 use Monolog\Handler\TestHandler;
 use PDO;
 use Symfony\Component\Debug\ErrorHandler;
+use Symfony\Component\Yaml\Yaml;
 
 class RetryTest extends ExtractorTest
 {
+    public const CONFIG_FORMAT_JSON = 'json';
+    public const CONFIG_FORMAT_YAML = 'yaml';
     private const ROW_COUNT = 1000000;
 
     private const SERVER_KILLER_EXECUTABLE =  'php ' . __DIR__ . '/killerRabbit.php';
+
+    /** @var string */
+    protected $dataDir = __DIR__ . "/../../../../tests/data";
 
     /**
      * @var array
@@ -60,7 +66,7 @@ class RetryTest extends ExtractorTest
             `SQLSTATE[HY000]: General error: 2014 Cannot execute queries while other unbuffered queries are active`. */
         $this->serviceConnection = $this->getConnection();
         // unlink the output file if any
-        @unlink($this->dataDir . '/out/tables/in.c-main.sales.csv');
+        @unlink($this->getDataDir() . '/out/tables/in.c-main.sales.csv');
     }
 
     private function waitForConnection(): void
@@ -386,7 +392,7 @@ class RetryTest extends ExtractorTest
         exec(self::SERVER_KILLER_EXECUTABLE . ' 2 > /dev/null &');
 
         $result = $app->run();
-        $outputCsvFile = $this->dataDir . '/out/tables/' . $result['imported'][0]['outputTable'] . '.csv';
+        $outputCsvFile = $this->getDataDir() . '/out/tables/' . $result['imported'][0]['outputTable'] . '.csv';
 
         self::assertEquals('success', $result['status']);
         self::assertFileExists($outputCsvFile);
@@ -439,7 +445,7 @@ class RetryTest extends ExtractorTest
         // This will cause interrupt before PDO::prepare(), see testNetworkKillerPrepare
         $this->killerEnabled = 'prepare';
         $result = $extractor->export($config['parameters']['tables'][0]);
-        $outputCsvFile = $this->dataDir . '/out/tables/' . $result['outputTable'] . '.csv';
+        $outputCsvFile = $this->getDataDir() . '/out/tables/' . $result['outputTable'] . '.csv';
 
         self::assertFileExists($outputCsvFile);
         self::assertFileExists($outputCsvFile . '.manifest');
@@ -475,7 +481,7 @@ class RetryTest extends ExtractorTest
         // This will cause interrupt before PDO::prepare(), see testNetworkKillerPrepare
         $this->killerEnabled = 'prepare';
         $result = $extractor->export($config['parameters']['tables'][0]);
-        $outputCsvFile = $this->dataDir . '/out/tables/' . $result['outputTable'] . '.csv';
+        $outputCsvFile = $this->getDataDir() . '/out/tables/' . $result['outputTable'] . '.csv';
 
         self::assertFileExists($outputCsvFile);
         self::assertFileExists($outputCsvFile . '.manifest');
@@ -511,7 +517,7 @@ class RetryTest extends ExtractorTest
         // This will cause interrupt before PDO::prepare(), see testNetworkKillerPrepare
         $this->killerEnabled = 'fetch';
         $result = $extractor->export($config['parameters']['tables'][0]);
-        $outputCsvFile = $this->dataDir . '/out/tables/' . $result['outputTable'] . '.csv';
+        $outputCsvFile = $this->getDataDir() . '/out/tables/' . $result['outputTable'] . '.csv';
 
         self::assertFileExists($outputCsvFile);
         self::assertFileExists($outputCsvFile . '.manifest');
@@ -607,5 +613,88 @@ class RetryTest extends ExtractorTest
                 'non_existent_table\' doesn\'t exist. Retrying... [9x]'
             ));
         }
+    }
+
+    protected function getConfigRow(string $driver): array
+    {
+        $config = json_decode(file_get_contents($this->getDataDir() . '/' . $driver . '/configRow.json'), true);
+
+        $config['parameters']['data_dir'] = $this->getDataDir();
+        $config['parameters']['db'] = $this->getConfigDbNode($driver);
+        $config['parameters']['extractor_class'] = ucfirst($driver);
+
+        return $config;
+    }
+
+    protected function getConfig(string $driver, string $format = self::CONFIG_FORMAT_YAML): array
+    {
+        switch ($format) {
+            case self::CONFIG_FORMAT_JSON:
+                $config = json_decode(file_get_contents($this->getDataDir() . '/' . $driver . '/config.json'), true);
+                break;
+            case self::CONFIG_FORMAT_YAML:
+                $config = Yaml::parse(file_get_contents($this->getDataDir() . '/' . $driver . '/config.yml'));
+                break;
+            default:
+                throw new UserException("Unsupported configuration format: " . $format);
+        }
+        $config['parameters']['data_dir'] = $this->getDataDir();
+        $config['parameters']['db'] = $this->getConfigDbNode($driver);
+        $config['parameters']['extractor_class'] = ucfirst($driver);
+
+        return $config;
+    }
+
+    public function getPublicKey(string $driver): string
+    {
+        return file_get_contents('/root/.ssh/id_rsa.pub');
+    }
+
+    protected function getConfigDbNode(string $driver): array
+    {
+        return [
+            'user' => $this->getEnv($driver, 'DB_USER', true),
+            '#password' => $this->getEnv($driver, 'DB_PASSWORD', true),
+            'host' => $this->getEnv($driver, 'DB_HOST'),
+            'port' => $this->getEnv($driver, 'DB_PORT'),
+            'database' => $this->getEnv($driver, 'DB_DATABASE'),
+        ];
+    }
+
+    protected function getApplication(string $appName, array $config, array $state = []): Application
+    {
+        return new Application($config, new Logger($appName), $state);
+    }
+
+    public function getPrivateKey(string $driver): string
+    {
+        return file_get_contents('/root/.ssh/id_rsa');
+    }
+
+    protected function getEnv(string $driver, string $suffix, bool $required = false): string
+    {
+        $env = strtoupper($driver) . '_' . $suffix;
+        if ($required) {
+            if (false === getenv($env)) {
+                throw new \Exception($env . " environment variable must be set.");
+            }
+        }
+        return getenv($env);
+    }
+
+    protected function getConfigRowForCsvErr(string $driver): array
+    {
+        $config = json_decode(file_get_contents($this->getDataDir() . '/' . $driver . '/configRowCsvErr.json'), true);
+
+        $config['parameters']['data_dir'] = $this->getDataDir();
+        $config['parameters']['db'] = $this->getConfigDbNode($driver);
+        $config['parameters']['extractor_class'] = ucfirst($driver);
+
+        return $config;
+    }
+
+    protected function getDataDir(): string
+    {
+        return $this->dataDir;
     }
 }

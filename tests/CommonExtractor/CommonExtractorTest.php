@@ -32,8 +32,13 @@ class CommonExtractorTest extends AbstractExtractorTest
         return new CommonExtractorDataLoader($pdo);
     }
 
-    protected function getDbNameFromEnv()
+    protected function getDbNameFromEnv(): string
     {
         return getenv('COMMON_DB_DATABASE');
+    }
+
+    protected function getDataDir(): string
+    {
+        return __DIR__ . '/../data';
     }
 }
