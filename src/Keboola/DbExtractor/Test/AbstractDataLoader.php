@@ -17,9 +17,9 @@ abstract class AbstractDataLoader implements DataLoaderInterface
     abstract protected function generateColumnDefinition(
         string $columnName,
         string $columnType,
-        string $columnLength,
-        string $columnNullable,
-        string $columnDefault
+        ?string $columnLength,
+        ?string $columnNullable,
+        ?string $columnDefault
     ): string;
 
     abstract protected function getForeignKeySqlString(
@@ -55,9 +55,9 @@ abstract class AbstractDataLoader implements DataLoaderInterface
             return $this->generateColumnDefinition(
                 $column['name'],
                 $column['type'],
-                $column['length'],
-                $column['nullable'],
-                $column['default']
+                $column['length'] ? $column['length'] : null,
+                $column['nullable'] ? $column['nullable'] : null,
+                $column['default'] ? $column['default'] : null
             );
         }, $columns);
         return implode($this->getColumnDefintionSeparator() . PHP_EOL, $columns);

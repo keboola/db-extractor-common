@@ -13,9 +13,9 @@ class CommonExtractorDataLoader extends AbstractPdoDataLoader
     protected function generateColumnDefinition(
         string $columnName,
         string $columnType,
-        string $columnLength,
-        string $columnNullable,
-        string $columnDefault
+        ?string $columnLength,
+        ?string $columnNullable,
+        ?string $columnDefault
     ): string {
         $result = $this->quoteIdentifier($columnName) . ' ';
         switch ($columnType) {
@@ -34,7 +34,7 @@ class CommonExtractorDataLoader extends AbstractPdoDataLoader
         if ($columnLength > 0) {
             $result .= '(' . $columnLength . ')';
         }
-        if (isset($columnNullable)) {
+        if ($columnNullable !== null) {
             $nullable = $columnNullable;
             if ($nullable === true) {
                 $result .= ' NULL ';
@@ -42,7 +42,7 @@ class CommonExtractorDataLoader extends AbstractPdoDataLoader
                 $result .= ' NOT NULL ';
             }
         }
-        if (isset($columnDefault)) {
+        if ($columnDefault !== null) {
             $default = $columnDefault;
             if ($default) {
                 $result .= 'DEFAULT ' . $this->quote($default);
