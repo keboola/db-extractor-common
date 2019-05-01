@@ -102,8 +102,8 @@ abstract class AbstractExtractorTest extends ExtractorTest
         ];
         $this->dataLoader->createTable('simple', $columns);
 
-        $inputFile = $this->dataDir . '/escaping.csv';
-        $simpleFile = $this->dataDir . '/simple.csv';
+        $inputFile = $this->getDataDir() . '/escaping.csv';
+        $simpleFile = $this->getDataDir() . '/simple.csv';
         $this->dataLoader->load($inputFile, 'escapingPK');
         $this->dataLoader->load($inputFile, 'escaping');
         $this->dataLoader->load($simpleFile, 'simple', 0);
@@ -112,8 +112,8 @@ abstract class AbstractExtractorTest extends ExtractorTest
     private function cleanOutputDirectory(): void
     {
         $finder = new Finder();
-        if (file_exists($this->dataDir . '/out/tables')) {
-            $finder->files()->in($this->dataDir . '/out/tables');
+        if (file_exists($this->getDataDir() . '/out/tables')) {
+            $finder->files()->in($this->getDataDir() . '/out/tables');
             $fs = new Filesystem();
             foreach ($finder as $file) {
                 $fs->remove((string) $file);
@@ -125,10 +125,10 @@ abstract class AbstractExtractorTest extends ExtractorTest
     {
         $this->cleanOutputDirectory();
         $result = ($this->getApplication($this->getConfig(static::DRIVER)))->run();
-        $this->assertExtractedData($this->dataDir . '/escaping.csv', $result['imported'][0]['outputTable']);
-        $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][1]['outputTable']);
+        $this->assertExtractedData($this->getDataDir() . '/escaping.csv', $result['imported'][0]['outputTable']);
+        $this->assertExtractedData($this->getDataDir() . '/simple.csv', $result['imported'][1]['outputTable']);
         $manifest = json_decode(
-            file_get_contents($this->dataDir . '/out/tables/' . $result['imported'][1]['outputTable'] . ".csv.manifest"),
+            file_get_contents($this->getDataDir() . '/out/tables/' . $result['imported'][1]['outputTable'] . ".csv.manifest"),
             true
         );
         $this->assertEquals(["weird_I_d", 'S_oPaulo'], $manifest['columns']);
@@ -140,17 +140,17 @@ abstract class AbstractExtractorTest extends ExtractorTest
         $this->cleanOutputDirectory();
         $result = ($this->getApplication($this->getConfig(static::DRIVER, parent::CONFIG_FORMAT_JSON)))->run();
 
-        $this->assertExtractedData($this->dataDir . '/escaping.csv', $result['imported'][0]['outputTable']);
+        $this->assertExtractedData($this->getDataDir() . '/escaping.csv', $result['imported'][0]['outputTable']);
         $manifest = json_decode(
-            file_get_contents($this->dataDir . '/out/tables/' . $result['imported'][0]['outputTable'] . ".csv.manifest"),
+            file_get_contents($this->getDataDir() . '/out/tables/' . $result['imported'][0]['outputTable'] . ".csv.manifest"),
             true
         );
         $this->assertArrayNotHasKey('columns', $manifest);
         $this->assertArrayNotHasKey('primary_key', $manifest);
 
-        $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][1]['outputTable']);
+        $this->assertExtractedData($this->getDataDir() . '/simple.csv', $result['imported'][1]['outputTable']);
         $manifest = json_decode(
-            file_get_contents($this->dataDir . '/out/tables/' . $result['imported'][1]['outputTable'] . ".csv.manifest"),
+            file_get_contents($this->getDataDir() . '/out/tables/' . $result['imported'][1]['outputTable'] . ".csv.manifest"),
             true
         );
         $this->assertEquals(["weird_I_d", 'S_oPaulo'], $manifest['columns']);
@@ -164,9 +164,9 @@ abstract class AbstractExtractorTest extends ExtractorTest
         $this->assertEquals('success', $result['status']);
         $this->assertEquals('in.c-main.simple', $result['imported']['outputTable']);
         $this->assertEquals(2, $result['imported']['rows']);
-        $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported']['outputTable']);
+        $this->assertExtractedData($this->getDataDir() . '/simple.csv', $result['imported']['outputTable']);
         $manifest = json_decode(
-            file_get_contents($this->dataDir . '/out/tables/' . $result['imported']['outputTable'] . ".csv.manifest"),
+            file_get_contents($this->getDataDir() . '/out/tables/' . $result['imported']['outputTable'] . ".csv.manifest"),
             true
         );
         $this->assertEquals(["weird_I_d", 'S_oPaulo'], $manifest['columns']);
@@ -186,8 +186,8 @@ abstract class AbstractExtractorTest extends ExtractorTest
             'sshHost' => 'sshproxy',
         ];
         $result = ($this->getApplication($config))->run();
-        $this->assertExtractedData($this->dataDir . '/escaping.csv', $result['imported'][0]['outputTable']);
-        $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][1]['outputTable']);
+        $this->assertExtractedData($this->getDataDir() . '/escaping.csv', $result['imported'][0]['outputTable']);
+        $this->assertExtractedData($this->getDataDir() . '/simple.csv', $result['imported'][1]['outputTable']);
     }
 
     public function testRunWithSSHDeprecated(): void
@@ -207,8 +207,8 @@ abstract class AbstractExtractorTest extends ExtractorTest
         ];
 
         $result = ($this->getApplication($config))->run();
-        $this->assertExtractedData($this->dataDir . '/escaping.csv', $result['imported'][0]['outputTable']);
-        $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][1]['outputTable']);
+        $this->assertExtractedData($this->getDataDir() . '/escaping.csv', $result['imported'][0]['outputTable']);
+        $this->assertExtractedData($this->getDataDir() . '/simple.csv', $result['imported'][1]['outputTable']);
     }
 
     public function testRunWithSSHUserException(): void
@@ -257,8 +257,8 @@ abstract class AbstractExtractorTest extends ExtractorTest
 
     public function testRunEmptyQuery(): void
     {
-        $outputCsvFile = $this->dataDir . '/out/tables/in.c-main.escaping.csv';
-        $outputManifestFile = $this->dataDir . '/out/tables/in.c-main.escaping.csv.manifest';
+        $outputCsvFile = $this->getDataDir() . '/out/tables/in.c-main.escaping.csv';
+        $outputManifestFile = $this->getDataDir() . '/out/tables/in.c-main.escaping.csv.manifest';
 
         $config = $this->getConfig(static::DRIVER);
         $config['parameters']['tables'][0]['query'] = "SELECT * FROM escaping WHERE col1 = '123'";
@@ -442,12 +442,12 @@ abstract class AbstractExtractorTest extends ExtractorTest
         $config = $this->getConfig(static::DRIVER);
         unset($config['parameters']['tables'][0]);
 
-        $manifestFile = $this->dataDir . '/out/tables/in.c-main.simple.csv.manifest';
+        $manifestFile = $this->getDataDir() . '/out/tables/in.c-main.simple.csv.manifest';
 
         $app = $this->getApplication($config);
 
         $result = $app->run();
-        $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][0]['outputTable']);
+        $this->assertExtractedData($this->getDataDir() . '/simple.csv', $result['imported'][0]['outputTable']);
 
         $outputManifest = Yaml::parse(
             file_get_contents($manifestFile)
@@ -607,9 +607,9 @@ abstract class AbstractExtractorTest extends ExtractorTest
         $result = $app->run();
 
         $outputTableName = $result['imported'][0]['outputTable'];
-        $this->assertExtractedData($this->dataDir . '/simple.csv', $outputTableName);
+        $this->assertExtractedData($this->getDataDir() . '/simple.csv', $outputTableName);
         $manifest = json_decode(
-            file_get_contents($this->dataDir . '/out/tables/' . $outputTableName . ".csv.manifest"),
+            file_get_contents($this->getDataDir() . '/out/tables/' . $outputTableName . ".csv.manifest"),
             true
         );
         $this->assertEquals(["weird_I_d", 'S_oPaulo'], $manifest['columns']);
@@ -650,8 +650,8 @@ abstract class AbstractExtractorTest extends ExtractorTest
         $result = ($this->getApplication($config))->run();
 
         $this->assertEquals('success', $result['status']);
-        $this->assertFileExists($this->dataDir . '/out/tables/in.c-main.something-weird.csv');
-        $this->assertFileExists($this->dataDir . '/out/tables/in.c-main.something-weird.csv.manifest');
+        $this->assertFileExists($this->getDataDir() . '/out/tables/in.c-main.something-weird.csv');
+        $this->assertFileExists($this->getDataDir() . '/out/tables/in.c-main.something-weird.csv.manifest');
     }
 
     public function testIncrementalFetchingByTimestamp(): void
@@ -841,15 +841,15 @@ abstract class AbstractExtractorTest extends ExtractorTest
         $config['parameters']['outputTable'] = 'in.c-main.columnsCheck';
         $result = $this->getApplication($config)->run();
         $this->assertEquals('success', $result['status']);
-        $outputManifestFile = $this->dataDir . '/out/tables/in.c-main.columnscheck.csv.manifest';
+        $outputManifestFile = $this->getDataDir() . '/out/tables/in.c-main.columnscheck.csv.manifest';
 
         $outputManifest = json_decode(file_get_contents($outputManifestFile), true);
 
         // check that the manifest has the correct column ordering
         $this->assertEquals($config['parameters']['columns'], $outputManifest['columns']);
         // check the data
-        $expectedData = iterator_to_array(new CsvFile($this->dataDir . '/columnsOrderCheck.csv'));
-        $outputData = iterator_to_array(new CsvFile($this->dataDir . '/out/tables/in.c-main.columnscheck.csv'));
+        $expectedData = iterator_to_array(new CsvFile($this->getDataDir() . '/columnsOrderCheck.csv'));
+        $outputData = iterator_to_array(new CsvFile($this->getDataDir() . '/out/tables/in.c-main.columnscheck.csv'));
         $this->assertCount(2, $outputData);
         foreach ($outputData as $rowNum => $line) {
             // assert timestamp
@@ -947,8 +947,8 @@ abstract class AbstractExtractorTest extends ExtractorTest
     {
         $config = $this->getConfigRowForCsvErr(static::DRIVER);
 
-        (new Filesystem)->remove($this->dataDir . '/out/tables/in.c-main.simple-csv-err.csv');
-        (new Filesystem)->symlink('/dev/full', $this->dataDir . '/out/tables/in.c-main.simple-csv-err.csv');
+        (new Filesystem)->remove($this->getDataDir() . '/out/tables/in.c-main.simple-csv-err.csv');
+        (new Filesystem)->symlink('/dev/full', $this->getDataDir() . '/out/tables/in.c-main.simple-csv-err.csv');
 
         $handler = new TestHandler();
         $logger = new Logger($this->appName);
@@ -978,8 +978,8 @@ abstract class AbstractExtractorTest extends ExtractorTest
             'compression' => true,
         ];
         $result = ($this->getApplication($config))->run();
-        $this->assertExtractedData($this->dataDir . '/escaping.csv', $result['imported'][0]['outputTable']);
-        $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][1]['outputTable']);
+        $this->assertExtractedData($this->getDataDir() . '/escaping.csv', $result['imported'][0]['outputTable']);
+        $this->assertExtractedData($this->getDataDir() . '/simple.csv', $result['imported'][1]['outputTable']);
     }
 
     public function testSshWithCompressionConfigRow(): void
@@ -997,7 +997,7 @@ abstract class AbstractExtractorTest extends ExtractorTest
             'compression' => true,
         ];
         $result = ($this->getApplication($config))->run();
-        $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported']['outputTable']);
+        $this->assertExtractedData($this->getDataDir() . '/simple.csv', $result['imported']['outputTable']);
     }
 
     private function getIncrementalFetchingConfig(): array
@@ -1049,8 +1049,8 @@ abstract class AbstractExtractorTest extends ExtractorTest
         string $outputName,
         bool $headerExpected = true
     ): void {
-        $outputCsvFile = $this->dataDir . '/out/tables/' . $outputName . '.csv';
-        $outputManifestFile = $this->dataDir . '/out/tables/' . $outputName . '.csv.manifest';
+        $outputCsvFile = $this->getDataDir() . '/out/tables/' . $outputName . '.csv';
+        $outputManifestFile = $this->getDataDir() . '/out/tables/' . $outputName . '.csv.manifest';
 
         $this->assertFileExists($outputCsvFile);
         $this->assertFileExists($outputManifestFile);
