@@ -386,7 +386,7 @@ class RetryTest extends ExtractorTest
             was retried, and the partial result was discarded. */
         $this->setupLargeTable();
         $config = $this->getRetryConfig();
-        $app = $this->getApplication('ex-db-common', $config);
+        $app = $this->getApplication($config);
 
         // execute asynchronously the script to reboot the server
         exec(self::SERVER_KILLER_EXECUTABLE . ' 2 > /dev/null &');
@@ -661,9 +661,9 @@ class RetryTest extends ExtractorTest
         ];
     }
 
-    protected function getApplication(string $appName, array $config, array $state = []): Application
+    protected function getApplication(array $config, array $state = []): Application
     {
-        return new Application($config, new Logger($appName), $state);
+        return new Application($config, new Logger(), $state);
     }
 
     public function getPrivateKey(string $driver): string

@@ -44,8 +44,8 @@ class CommonExtractorTest extends AbstractExtractorTest
         return __DIR__ . '/../data';
     }
 
-    protected function getApplication(string $appName, array $config, array $state = []): Application
+    protected function getApplication(array $config, array $state = []): Application
     {
-        return new Application($config, new Logger($appName), $state);
+        return new Application($config, new Logger(), $state);
     }
 }
