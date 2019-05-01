@@ -140,9 +140,9 @@ QUERY;
         string $valuesString
     ): string {
         $query = sprintf(
-            'INSERT INTO %s (%s) VALUES %s',
+            'INSERT INTO %s %s VALUES %s',
             $quotedTableName,
-            $quotedTableColumnsSqlString,
+            $quotedTableColumnsSqlString === null ? '' : '(' . $quotedTableColumnsSqlString . ')',
             $valuesString
         );
         return $query;

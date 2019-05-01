@@ -163,15 +163,16 @@ abstract class AbstractDataLoader implements DataLoaderInterface
             return;
         }
         $firstRow = reset($rows);
-        $columns = array_keys($firstRow);
+        $columns = null;
+        $quotedTableColumnsSqlString = null;
 
-        if ($firstRow === array_values($firstRow)) {
-            $columns = null;
+        if ($firstRow !== array_values($firstRow)) {
+            $columns = array_keys($firstRow);
+            $quotedTableColumnsSqlString = implode(', ', array_map(function ($column) {
+                return $this->quoteIdentifier($column);
+            }, $columns));
         }
 
-        $quotedTableColumnsSqlString = implode(', ', array_map(function ($column) {
-            return $this->quoteIdentifier($column);
-        }, $columns));
         $quotedTableName = $this->quoteIdentifier($table);
         $valuesString = $this->mapRowValueStringsToAllRowsValueString($this->mapRowsToRowValuesSqlStrings($rows));
         $query = $this->getInsertSqlQuery($quotedTableName, $quotedTableColumnsSqlString, $valuesString);
