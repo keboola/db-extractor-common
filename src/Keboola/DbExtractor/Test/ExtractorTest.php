@@ -94,8 +94,5 @@ abstract class ExtractorTest extends TestCase
         return file_get_contents('/root/.ssh/id_rsa.pub');
     }
 
-    protected function getApplication(string $appName, array $config, array $state = []): Application
-    {
-        return new Application($config, new Logger($appName), $state);
-    }
+    abstract protected function getApplication(string $appName, array $config, array $state = []): Application;
 }

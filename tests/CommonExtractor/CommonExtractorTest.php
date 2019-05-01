@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Tests\CommonExtractor;
 
+use Keboola\DbExtractor\Application;
+use Keboola\DbExtractor\Logger;
 use Keboola\DbExtractor\Test\AbstractExtractorTest;
 use Keboola\DbExtractor\Test\DataLoaderInterface;
 use PDO;
@@ -40,5 +42,10 @@ class CommonExtractorTest extends AbstractExtractorTest
     protected function getDataDir(): string
     {
         return __DIR__ . '/../data';
+    }
+
+    protected function getApplication(string $appName, array $config, array $state = []): Application
+    {
+        return new Application($config, new Logger($appName), $state);
     }
 }
