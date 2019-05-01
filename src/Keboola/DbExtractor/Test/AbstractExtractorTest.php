@@ -1078,7 +1078,7 @@ abstract class AbstractExtractorTest extends ExtractorTest
 
     abstract protected function getDbNameFromEnv(): string;
 
-    protected function getFixturesDir()
+    protected function getFixturesDir(): string
     {
         return __DIR__ . '/fixtures';
     }
