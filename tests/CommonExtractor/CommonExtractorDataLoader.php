@@ -10,38 +10,6 @@ use UnexpectedValueException;
 
 class CommonExtractorDataLoader extends AbstractPdoDataLoader
 {
-    public function addRows(string $table, array $rows): void
-    {
-        if (count($rows) === 0) {
-            return;
-        }
-        $columns = array_keys(reset($rows));
-
-        $quotedTableColumnsSqlString = implode(', ', array_map(function ($column) {
-            return $this->quoteIdentifier($column);
-        }, $columns));
-        $query = sprintf(
-            'INSERT INTO %s (%s) VALUES %s',
-            $this->quoteIdentifier($table),
-            $quotedTableColumnsSqlString,
-            $this->mapRowValueStringsToAllRowsValueString($this->mapRowsToRowValuesSqlStrings($rows))
-        );
-
-        $this->executeQuery($query);
-    }
-
-    public function dropTable(string $tableName): void
-    {
-        $drop = <<<SQL
-DROP TABLE IF EXISTS %s
-SQL;
-        $query = sprintf(
-            $drop,
-            $this->quoteIdentifier($tableName)
-        );
-        $this->executeQuery($query);
-    }
-
     protected function generateColumnDefinition(
         string $columnName,
         string $columnType,
@@ -85,24 +53,21 @@ SQL;
     }
 
     protected function getForeignKeySqlString(
-        string $table,
+        string $quotedTableName,
         string $quotedColumnsString,
         string $quotedReferenceColumnsString
     ): string {
         return sprintf(
             'FOREIGN KEY (%s) REFERENCES %s(%s)',
             $quotedColumnsString,
-            $this->quoteIdentifier($table),
+            $quotedTableName,
             $quotedReferenceColumnsString
         );
     }
 
-    /**
-     * @param string[] $quotedPkColumnNames
-     */
-    protected function getPrimaryKeySqlString(array $quotedPkColumnNames): string
+    protected function getPrimaryKeySqlString(string $primaryKeyColumnsString): string
     {
-        return sprintf('PRIMARY KEY (%s)', implode($this->getColumnInKeyDefinitionSeparator(), $quotedPkColumnNames));
+        return sprintf('PRIMARY KEY (%s)', $primaryKeyColumnsString);
     }
 
     public function load(string $inputFile, string $destinationTable, int $ignoreLines = 1): void
@@ -141,14 +106,12 @@ SQL;
         $this->executeQuery('SET NAMES utf8;');
     }
 
-    public function createTable(string $name, array $columns = [], array $foreignKey = []): void
-    {
-        $this->dropTable($name);
-
-        $columnsDefinition = $this->getColumnsDefinition($columns);
-        $primaryKeyDefinition = $this->getPrimaryKeyDefintion($columns);
-        $foreignKeyDefintion = $this->getForeignKeyDefintion($foreignKey);
-
+    protected function getCreateTableQuery(
+        string $quotedTableName,
+        string $columnsDefinition,
+        string $primaryKeyDefinition,
+        string $foreignKeyDefintion
+    ): string {
         $sql = <<<QUERY
 CREATE TABLE %s (
   %s
@@ -159,21 +122,34 @@ QUERY;
 
         $query = sprintf(
             $sql,
-            $this->quoteIdentifier($name),
+            $quotedTableName,
             $columnsDefinition,
             $primaryKeyDefinition,
             $foreignKeyDefintion
         );
-
-        $this->executeQuery($query);
+        return $query;
     }
 
-    /**
-     * @param array $rowValuesSqlStrings
-     * @return string
-     */
-    private function mapRowValueStringsToAllRowsValueString(array $rowValuesSqlStrings): string
+    protected function getInsertSqlQuery(
+        string $quotedTableName,
+        string $quotedTableColumnsSqlString,
+        string $valuesString
+    ): string {
+        $query = sprintf(
+            'INSERT INTO %s (%s) VALUES %s',
+            $quotedTableName,
+            $quotedTableColumnsSqlString,
+            $valuesString
+        );
+        return $query;
+    }
+
+    protected function getDropTableSqlQuery(string $quotedTableName): string
     {
-        return '(' . implode('),(', $rowValuesSqlStrings) . ')';
+        $query = sprintf(
+            'DROP TABLE IF EXISTS %s',
+            $quotedTableName
+        );
+        return $query;
     }
 }
