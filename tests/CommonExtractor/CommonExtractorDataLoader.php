@@ -136,7 +136,7 @@ QUERY;
 
     protected function getInsertSqlQuery(
         string $quotedTableName,
-        string $quotedTableColumnsSqlString,
+        ?string $quotedTableColumnsSqlString,
         string $valuesString
     ): string {
         $query = sprintf(

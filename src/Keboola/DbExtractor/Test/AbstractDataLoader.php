@@ -44,7 +44,7 @@ abstract class AbstractDataLoader implements DataLoaderInterface
 
     abstract protected function getInsertSqlQuery(
         string $quotedTableName,
-        string $quotedTableColumnsSqlString,
+        ?string $quotedTableColumnsSqlString,
         string $valuesString
     ): string;
 
@@ -162,7 +162,12 @@ abstract class AbstractDataLoader implements DataLoaderInterface
         if (count($rows) === 0) {
             return;
         }
-        $columns = array_keys(reset($rows));
+        $firstRow = reset($rows);
+        $columns = array_keys($firstRow);
+
+        if ($firstRow === array_values($firstRow)) {
+            $columns = null;
+        }
 
         $quotedTableColumnsSqlString = implode(', ', array_map(function ($column) {
             return $this->quoteIdentifier($column);
