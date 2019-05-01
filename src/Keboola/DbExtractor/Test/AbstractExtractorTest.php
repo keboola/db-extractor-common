@@ -125,8 +125,8 @@ abstract class AbstractExtractorTest extends ExtractorTest
     {
         $this->cleanOutputDirectory();
         $result = ($this->getApplication($this->getConfig(static::DRIVER)))->run();
-        $this->assertExtractedData($this->getDataDir() . '/escaping.csv', $result['imported'][0]['outputTable']);
-        $this->assertExtractedData($this->getDataDir() . '/simple.csv', $result['imported'][1]['outputTable']);
+        $this->assertExtractedData($this->getFixturesDir() . '/escaping.csv', $result['imported'][0]['outputTable']);
+        $this->assertExtractedData($this->getFixturesDir() . '/simple.csv', $result['imported'][1]['outputTable']);
         $manifest = json_decode(
             file_get_contents($this->getDataDir() . '/out/tables/' . $result['imported'][1]['outputTable'] . ".csv.manifest"),
             true
