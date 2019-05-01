@@ -47,13 +47,13 @@ abstract class AbstractExtractorTest extends ExtractorTest
         $columns = [
             [
                 'name' => 'col1',
-                'type' => self::COLUMN_TYPE_VARCHAR,
+                'type' => static::COLUMN_TYPE_VARCHAR,
                 'primaryKey' => true,
                 'length' => '155',
             ],
             [
                 'name' => 'col2',
-                'type' => self::COLUMN_TYPE_VARCHAR,
+                'type' => static::COLUMN_TYPE_VARCHAR,
                 'primaryKey' => true,
                 'length' => '155',
             ],
@@ -63,7 +63,7 @@ abstract class AbstractExtractorTest extends ExtractorTest
         $columns = [
             [
                 'name' => 'col1',
-                'type' => self::COLUMN_TYPE_VARCHAR,
+                'type' => static::COLUMN_TYPE_VARCHAR,
                 'primaryKey' => false,
                 'length' => '155',
                 'nullable' => false,
@@ -71,7 +71,7 @@ abstract class AbstractExtractorTest extends ExtractorTest
             ],
             [
                 'name' => 'col2',
-                'type' => self::COLUMN_TYPE_VARCHAR,
+                'type' => static::COLUMN_TYPE_VARCHAR,
                 'primaryKey' => false,
                 'length' => '155',
                 'nullable' => false,
@@ -129,7 +129,7 @@ abstract class AbstractExtractorTest extends ExtractorTest
     public function testRunSimple(): void
     {
         $this->cleanOutputDirectory();
-        $result = ($this->getApp($this->getConfig(self::DRIVER)))->run();
+        $result = ($this->getApp($this->getConfig(static::DRIVER)))->run();
         $this->assertExtractedData($this->dataDir . '/escaping.csv', $result['imported'][0]['outputTable']);
         $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][1]['outputTable']);
         $manifest = json_decode(
@@ -143,7 +143,7 @@ abstract class AbstractExtractorTest extends ExtractorTest
     public function testRunJsonConfig(): void
     {
         $this->cleanOutputDirectory();
-        $result = ($this->getApp($this->getConfig(self::DRIVER, parent::CONFIG_FORMAT_JSON)))->run();
+        $result = ($this->getApp($this->getConfig(static::DRIVER, parent::CONFIG_FORMAT_JSON)))->run();
 
         $this->assertExtractedData($this->dataDir . '/escaping.csv', $result['imported'][0]['outputTable']);
         $manifest = json_decode(
@@ -165,7 +165,7 @@ abstract class AbstractExtractorTest extends ExtractorTest
     public function testRunConfigRow(): void
     {
         $this->cleanOutputDirectory();
-        $result = ($this->getApp($this->getConfigRow(self::DRIVER)))->run();
+        $result = ($this->getApp($this->getConfigRow(static::DRIVER)))->run();
         $this->assertEquals('success', $result['status']);
         $this->assertEquals('in.c-main.simple', $result['imported']['outputTable']);
         $this->assertEquals(2, $result['imported']['rows']);
@@ -181,12 +181,12 @@ abstract class AbstractExtractorTest extends ExtractorTest
     public function testRunWithSSH(): void
     {
         $this->cleanOutputDirectory();
-        $config = $this->getConfig(self::DRIVER);
+        $config = $this->getConfig(static::DRIVER);
         $config['parameters']['db']['ssh'] = [
             'enabled' => true,
             'keys' => [
-                '#private' => $this->getPrivateKey(self::DRIVER),
-                'public' => $this->getPublicKey(self::DRIVER),
+                '#private' => $this->getPrivateKey(static::DRIVER),
+                'public' => $this->getPublicKey(static::DRIVER),
             ],
             'sshHost' => 'sshproxy',
         ];
@@ -198,12 +198,12 @@ abstract class AbstractExtractorTest extends ExtractorTest
     public function testRunWithSSHDeprecated(): void
     {
         $this->cleanOutputDirectory();
-        $config = $this->getConfig(self::DRIVER);
+        $config = $this->getConfig(static::DRIVER);
         $config['parameters']['db']['ssh'] = [
             'enabled' => true,
             'keys' => [
-                '#private' => $this->getPrivateKey(self::DRIVER),
-                'public' => $this->getPublicKey(self::DRIVER),
+                '#private' => $this->getPrivateKey(static::DRIVER),
+                'public' => $this->getPublicKey(static::DRIVER),
             ],
             'sshHost' => 'sshproxy',
             'localPort' => '33306',
@@ -221,12 +221,12 @@ abstract class AbstractExtractorTest extends ExtractorTest
         $this->cleanOutputDirectory();
         $this->expectException(UserException::class);
 
-        $config = $this->getConfig(self::DRIVER);
+        $config = $this->getConfig(static::DRIVER);
         $config['parameters']['db']['ssh'] = [
             'enabled' => true,
             'keys' => [
-                '#private' => $this->getPrivateKey(self::DRIVER),
-                'public' => $this->getPublicKey(self::DRIVER),
+                '#private' => $this->getPrivateKey(static::DRIVER),
+                'public' => $this->getPublicKey(static::DRIVER),
             ],
             'sshHost' => 'wronghost',
             'localPort' => '33306',
@@ -239,7 +239,7 @@ abstract class AbstractExtractorTest extends ExtractorTest
 
     public function testRunWithWrongCredentials(): void
     {
-        $config = $this->getConfig(self::DRIVER);
+        $config = $this->getConfig(static::DRIVER);
         $config['parameters']['db']['#password'] = 'somecrap';
 
         $this->expectException(UserException::class);
@@ -249,7 +249,7 @@ abstract class AbstractExtractorTest extends ExtractorTest
 
     public function testRetries(): void
     {
-        $config = $this->getConfig(self::DRIVER);
+        $config = $this->getConfig(static::DRIVER);
         $config['parameters']['tables'][0]['query'] = "SELECT * FROM `table_that_does_not_exist`";
         $config['parameters']['tables'][0]['retries'] = 3;
 
@@ -265,7 +265,7 @@ abstract class AbstractExtractorTest extends ExtractorTest
         $outputCsvFile = $this->dataDir . '/out/tables/in.c-main.escaping.csv';
         $outputManifestFile = $this->dataDir . '/out/tables/in.c-main.escaping.csv.manifest';
 
-        $config = $this->getConfig(self::DRIVER);
+        $config = $this->getConfig(static::DRIVER);
         $config['parameters']['tables'][0]['query'] = "SELECT * FROM escaping WHERE col1 = '123'";
 
         $result = ($this->getApp($config))->run();
@@ -277,7 +277,7 @@ abstract class AbstractExtractorTest extends ExtractorTest
 
     public function testTestConnection(): void
     {
-        $config = $this->getConfig(self::DRIVER);
+        $config = $this->getConfig(static::DRIVER);
         $config['action'] = 'testConnection';
         $config['parameters']['tables'] = [];
         $app = $this->getApp($config);
@@ -288,7 +288,7 @@ abstract class AbstractExtractorTest extends ExtractorTest
 
     public function testTestConnectionFailInTheMiddle(): void
     {
-        $config = $this->getConfig(self::DRIVER);
+        $config = $this->getConfig(static::DRIVER);
         $config['parameters']['tables'][] = [
             'id' => 10,
             'name' => 'bad',
@@ -306,7 +306,7 @@ abstract class AbstractExtractorTest extends ExtractorTest
 
     public function testTestConnectionFailure(): void
     {
-        $config = $this->getConfig(self::DRIVER);
+        $config = $this->getConfig(static::DRIVER);
         $config['action'] = 'testConnection';
         $config['parameters']['tables'] = [];
         $config['parameters']['db']['#password'] = 'bullshit';
@@ -323,7 +323,7 @@ abstract class AbstractExtractorTest extends ExtractorTest
 
     public function testGetTablesAction(): void
     {
-        $config = $this->getConfig(self::DRIVER);
+        $config = $this->getConfig(static::DRIVER);
         $config['action'] = 'getTables';
 
         $app = $this->getApp($config);
@@ -444,7 +444,7 @@ abstract class AbstractExtractorTest extends ExtractorTest
 
     public function testMetadataManifest(): void
     {
-        $config = $this->getConfig(self::DRIVER);
+        $config = $this->getConfig(static::DRIVER);
         unset($config['parameters']['tables'][0]);
 
         $manifestFile = $this->dataDir . '/out/tables/in.c-main.simple.csv.manifest';
@@ -593,7 +593,7 @@ abstract class AbstractExtractorTest extends ExtractorTest
 
     public function testNonExistingAction(): void
     {
-        $config = $this->getConfig(self::DRIVER);
+        $config = $this->getConfig(static::DRIVER);
         $config['action'] = 'sample';
         $config['parameters']['tables'] = [];
 
@@ -605,7 +605,7 @@ abstract class AbstractExtractorTest extends ExtractorTest
 
     public function testTableColumnsQuery(): void
     {
-        $config = $this->getConfig(self::DRIVER);
+        $config = $this->getConfig(static::DRIVER);
         unset($config['parameters']['tables'][0]);
 
         $app = $this->getApp($config);
@@ -623,7 +623,7 @@ abstract class AbstractExtractorTest extends ExtractorTest
 
     public function testInvalidConfigurationQueryAndTable(): void
     {
-        $config = $this->getConfig(self::DRIVER);
+        $config = $this->getConfig(static::DRIVER);
         $config['parameters']['tables'][0]['table'] = ['schema' => 'testdb', 'tableName' => 'escaping'];
         try {
             $app = $this->getApp($config);
@@ -636,7 +636,7 @@ abstract class AbstractExtractorTest extends ExtractorTest
 
     public function testInvalidConfigurationQueryNorTable(): void
     {
-        $config = $this->getConfig(self::DRIVER);
+        $config = $this->getConfig(static::DRIVER);
         unset($config['parameters']['tables'][0]['query']);
         try {
             $app = $this->getApp($config);
@@ -649,7 +649,7 @@ abstract class AbstractExtractorTest extends ExtractorTest
 
     public function testStrangeTableName(): void
     {
-        $config = $this->getConfig(self::DRIVER);
+        $config = $this->getConfig(static::DRIVER);
         $config['parameters']['tables'][0]['outputTable'] = "in.c-main.something/ weird";
         unset($config['parameters']['tables'][1]);
         $result = ($this->getApp($config))->run();
@@ -869,9 +869,9 @@ abstract class AbstractExtractorTest extends ExtractorTest
         $config = [
             'action' => 'testConnection',
             'parameters' => [
-                'db' => $this->getConfigDbNode(self::DRIVER),
+                'db' => $this->getConfigDbNode(static::DRIVER),
                 'data_dir' => $this->dataDir,
-                'extractor_class' => ucfirst(self::DRIVER),
+                'extractor_class' => ucfirst(static::DRIVER),
             ],
         ];
 
@@ -883,7 +883,7 @@ abstract class AbstractExtractorTest extends ExtractorTest
 
     public function testConfigWithNoName(): void
     {
-        $config = $this->getConfigRow(self::DRIVER);
+        $config = $this->getConfigRow(static::DRIVER);
         unset($config['parameters']['name']);
         unset($config['parameters']['table']);
         // we want to test the no results case
@@ -896,7 +896,7 @@ abstract class AbstractExtractorTest extends ExtractorTest
 
     public function testInvalidConfigsBothTableAndQueryWithNoName(): void
     {
-        $config = $this->getConfigRow(self::DRIVER);
+        $config = $this->getConfigRow(static::DRIVER);
         unset($config['parameters']['name']);
 
         // we want to test the no results case
@@ -910,7 +910,7 @@ abstract class AbstractExtractorTest extends ExtractorTest
 
     public function testInvalidConfigsBothIncrFetchAndQueryWithNoName(): void
     {
-        $config = $this->getConfigRow(self::DRIVER);
+        $config = $this->getConfigRow(static::DRIVER);
         unset($config['parameters']['name']);
         unset($config['parameters']['table']);
         $config['parameters']['incrementalFetchingColumn'] = 'abc';
@@ -926,7 +926,7 @@ abstract class AbstractExtractorTest extends ExtractorTest
 
     public function testInvalidConfigsNeitherTableNorQueryWithNoName(): void
     {
-        $config = $this->getConfigRow(self::DRIVER);
+        $config = $this->getConfigRow(static::DRIVER);
         unset($config['parameters']['name']);
         unset($config['parameters']['table']);
 
@@ -938,7 +938,7 @@ abstract class AbstractExtractorTest extends ExtractorTest
 
     public function testInvalidConfigsInvalidTableWithNoName(): void
     {
-        $config = $this->getConfigRow(self::DRIVER);
+        $config = $this->getConfigRow(static::DRIVER);
         unset($config['parameters']['name']);
         $config['parameters']['table'] = ['tableName' => 'sales'];
 
@@ -950,7 +950,7 @@ abstract class AbstractExtractorTest extends ExtractorTest
 
     public function testNoRetryOnCsvError(): void
     {
-        $config = $this->getConfigRowForCsvErr(self::DRIVER);
+        $config = $this->getConfigRowForCsvErr(static::DRIVER);
 
         (new Filesystem)->remove($this->dataDir . '/out/tables/in.c-main.simple-csv-err.csv');
         (new Filesystem)->symlink('/dev/full', $this->dataDir . '/out/tables/in.c-main.simple-csv-err.csv');
@@ -961,22 +961,22 @@ abstract class AbstractExtractorTest extends ExtractorTest
         $app = new Application($config, $logger, []);
         try {
             $app->run();
-            self::fail('Must raise exception');
+            static::fail('Must raise exception');
         } catch (ApplicationException $e) {
-            self::assertContains('Failed writing CSV File', $e->getMessage());
-            self::assertFalse($handler->hasInfoThatContains('Retrying'));
+            static::assertContains('Failed writing CSV File', $e->getMessage());
+            static::assertFalse($handler->hasInfoThatContains('Retrying'));
         }
     }
 
     public function testSshWithCompression(): void
     {
         $this->cleanOutputDirectory();
-        $config = $this->getConfig(self::DRIVER);
+        $config = $this->getConfig(static::DRIVER);
         $config['parameters']['db']['ssh'] = [
             'enabled' => true,
             'keys' => [
-                '#private' => $this->getPrivateKey(self::DRIVER),
-                'public' => $this->getPublicKey(self::DRIVER),
+                '#private' => $this->getPrivateKey(static::DRIVER),
+                'public' => $this->getPublicKey(static::DRIVER),
             ],
             'sshHost' => 'sshproxy',
             'localPort' => '33056',
@@ -990,12 +990,12 @@ abstract class AbstractExtractorTest extends ExtractorTest
     public function testSshWithCompressionConfigRow(): void
     {
         $this->cleanOutputDirectory();
-        $config = $this->getConfigRow(self::DRIVER);
+        $config = $this->getConfigRow(static::DRIVER);
         $config['parameters']['db']['ssh'] = [
             'enabled' => true,
             'keys' => [
-                '#private' => $this->getPrivateKey(self::DRIVER),
-                'public' => $this->getPublicKey(self::DRIVER),
+                '#private' => $this->getPrivateKey(static::DRIVER),
+                'public' => $this->getPublicKey(static::DRIVER),
             ],
             'sshHost' => 'sshproxy',
             'localPort' => '33066',
@@ -1007,7 +1007,7 @@ abstract class AbstractExtractorTest extends ExtractorTest
 
     private function getIncrementalFetchingConfig(): array
     {
-        $config = $this->getConfigRow(self::DRIVER);
+        $config = $this->getConfigRow(static::DRIVER);
         unset($config['parameters']['query']);
         unset($config['parameters']['columns']);
         $config['parameters']['table'] = [
@@ -1027,20 +1027,20 @@ abstract class AbstractExtractorTest extends ExtractorTest
         $columns = [
             [
                 'name' => 'id',
-                'type' => self::COLUMN_TYPE_INTEGER,
+                'type' => static::COLUMN_TYPE_INTEGER,
                 'primaryKey' => true,
                 'nullable' => false,
             ],
             [
                 'name' => 'name',
-                'type' => self::COLUMN_TYPE_VARCHAR,
+                'type' => static::COLUMN_TYPE_VARCHAR,
                 'length' => '30',
                 'nullable' => false,
                 'default' => 'pam',
             ],
             [
                 'name' => 'timestamp',
-                'type' => self::COLUMN_TYPE_AUTOUPDATED_TIMESTAMP,
+                'type' => static::COLUMN_TYPE_AUTOUPDATED_TIMESTAMP,
                 'nullable' => false,
             ],
         ];
@@ -1067,15 +1067,15 @@ abstract class AbstractExtractorTest extends ExtractorTest
         $handler = new TestHandler();
         $logger = new Logger('test');
         $logger->pushHandler($handler);
-        $config = $this->getConfigRow(self::DRIVER);
+        $config = $this->getConfigRow(static::DRIVER);
         $config['parameters']['db']['host'] = 'nonexistenthost.example';
         $app = new Application($config, $logger, []);
         try {
             $app->run();
-            self::fail('Must raise exception.');
+            static::fail('Must raise exception.');
         } catch (UserException $e) {
-            self::assertTrue($handler->hasInfoThatContains('Retrying...'));
-            self::assertContains('Error connecting to DB: SQLSTATE[HY000] [2002] php_network_getaddresses: getaddrinfo failed: Name or service not known', $e->getMessage());
+            static::assertTrue($handler->hasInfoThatContains('Retrying...'));
+            static::assertContains('Error connecting to DB: SQLSTATE[HY000] [2002] php_network_getaddresses: getaddrinfo failed: Name or service not known', $e->getMessage());
         }
     }
 
