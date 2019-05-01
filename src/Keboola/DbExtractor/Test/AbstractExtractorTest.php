@@ -102,8 +102,8 @@ abstract class AbstractExtractorTest extends ExtractorTest
         ];
         $this->dataLoader->createTable('simple', $columns);
 
-        $inputFile = $this->getDataDir() . '/escaping.csv';
-        $simpleFile = $this->getDataDir() . '/simple.csv';
+        $inputFile = $this->getFixturesDir() . '/escaping.csv';
+        $simpleFile = $this->getFixturesDir() . '/simple.csv';
         $this->dataLoader->load($inputFile, 'escapingPK');
         $this->dataLoader->load($inputFile, 'escaping');
         $this->dataLoader->load($simpleFile, 'simple', 0);
@@ -1077,4 +1077,9 @@ abstract class AbstractExtractorTest extends ExtractorTest
     abstract protected function getDataLoader(): DataLoaderInterface;
 
     abstract protected function getDbNameFromEnv(): string;
+
+    protected function getFixturesDir()
+    {
+        return __DIR__ . '/fixtures';
+    }
 }
