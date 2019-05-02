@@ -25,7 +25,7 @@ class RetryTest extends ExtractorTest
     private const SERVER_KILLER_EXECUTABLE =  'php ' . __DIR__ . '/killerRabbit.php';
 
     /** @var string */
-    protected $dataDir = __DIR__ . "/../../../../tests/data";
+    protected $dataDir = __DIR__ . "/data";
 
     /**
      * @var array
