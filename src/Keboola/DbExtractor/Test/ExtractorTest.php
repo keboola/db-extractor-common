@@ -53,7 +53,7 @@ abstract class ExtractorTest extends TestCase
 
     protected function getConfigRow(string $driver): array
     {
-        $config = json_decode(file_get_contents($this->getDataDir() . '/' . $driver . '/configRow.json'), true);
+        $config = json_decode(file_get_contents($this->getFixturesDir() . '/' . $driver . '/configRow.json'), true);
 
         $config['parameters']['data_dir'] = $this->getDataDir();
         $config['parameters']['db'] = $this->getConfigDbNode($driver);
@@ -64,7 +64,7 @@ abstract class ExtractorTest extends TestCase
 
     protected function getConfigRowForCsvErr(string $driver): array
     {
-        $config = json_decode(file_get_contents($this->getDataDir() . '/' . $driver . '/configRowCsvErr.json'), true);
+        $config = json_decode(file_get_contents($this->getFixturesDir() . '/' . $driver . '/configRowCsvErr.json'), true);
 
         $config['parameters']['data_dir'] = $this->getDataDir();
         $config['parameters']['db'] = $this->getConfigDbNode($driver);
@@ -95,4 +95,9 @@ abstract class ExtractorTest extends TestCase
     }
 
     abstract protected function getApplication(array $config, array $state = []): Application;
+
+    protected function getFixturesDir(): string
+    {
+        return __DIR__ . '/fixtures';
+    }
 }
