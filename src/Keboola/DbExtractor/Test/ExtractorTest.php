@@ -36,10 +36,10 @@ abstract class ExtractorTest extends TestCase
     {
         switch ($format) {
             case self::CONFIG_FORMAT_JSON:
-                $config = json_decode(file_get_contents($this->getDataDir() . '/' . $driver . '/config.json'), true);
+                $config = json_decode(file_get_contents($this->getDataDir() . '/config.json'), true);
                 break;
             case self::CONFIG_FORMAT_YAML:
-                $config = Yaml::parse(file_get_contents($this->getDataDir() . '/' . $driver . '/config.yml'));
+                $config = Yaml::parse(file_get_contents($this->getDataDir() . '/config.yml'));
                 break;
             default:
                 throw new UserException("Unsupported configuration format: " . $format);
@@ -53,7 +53,7 @@ abstract class ExtractorTest extends TestCase
 
     protected function getConfigRow(string $driver): array
     {
-        $config = json_decode(file_get_contents($this->getFixturesDir() . '/' . $driver . '/configRow.json'), true);
+        $config = json_decode(file_get_contents($this->getFixturesDir() . '/configRow.json'), true);
 
         $config['parameters']['data_dir'] = $this->getDataDir();
         $config['parameters']['db'] = $this->getConfigDbNode($driver);
@@ -64,7 +64,7 @@ abstract class ExtractorTest extends TestCase
 
     protected function getConfigRowForCsvErr(string $driver): array
     {
-        $config = json_decode(file_get_contents($this->getFixturesDir() . '/' . $driver . '/configRowCsvErr.json'), true);
+        $config = json_decode(file_get_contents($this->getFixturesDir() . '/configRowCsvErr.json'), true);
 
         $config['parameters']['data_dir'] = $this->getDataDir();
         $config['parameters']['db'] = $this->getConfigDbNode($driver);
