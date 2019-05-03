@@ -140,7 +140,7 @@ abstract class AbstractExtractorTest extends ExtractorTest
         $this->cleanOutputDirectory();
         $result = ($this->getApplication($this->getConfig(static::DRIVER, parent::CONFIG_FORMAT_JSON)))->run();
 
-        $this->assertExtractedData($this->getDataDir() . '/escaping.csv', $result['imported'][0]['outputTable']);
+        $this->assertExtractedData($this->getFixturesDir() . '/escaping.csv', $result['imported'][0]['outputTable']);
         $manifest = json_decode(
             file_get_contents($this->getDataDir() . '/out/tables/' . $result['imported'][0]['outputTable'] . ".csv.manifest"),
             true
@@ -148,7 +148,7 @@ abstract class AbstractExtractorTest extends ExtractorTest
         $this->assertArrayNotHasKey('columns', $manifest);
         $this->assertArrayNotHasKey('primary_key', $manifest);
 
-        $this->assertExtractedData($this->getDataDir() . '/simple.csv', $result['imported'][1]['outputTable']);
+        $this->assertExtractedData($this->getFixturesDir() . '/simple.csv', $result['imported'][1]['outputTable']);
         $manifest = json_decode(
             file_get_contents($this->getDataDir() . '/out/tables/' . $result['imported'][1]['outputTable'] . ".csv.manifest"),
             true
@@ -164,7 +164,7 @@ abstract class AbstractExtractorTest extends ExtractorTest
         $this->assertEquals('success', $result['status']);
         $this->assertEquals('in.c-main.simple', $result['imported']['outputTable']);
         $this->assertEquals(2, $result['imported']['rows']);
-        $this->assertExtractedData($this->getDataDir() . '/simple.csv', $result['imported']['outputTable']);
+        $this->assertExtractedData($this->getFixturesDir() . '/simple.csv', $result['imported']['outputTable']);
         $manifest = json_decode(
             file_get_contents($this->getDataDir() . '/out/tables/' . $result['imported']['outputTable'] . ".csv.manifest"),
             true
@@ -186,8 +186,8 @@ abstract class AbstractExtractorTest extends ExtractorTest
             'sshHost' => 'sshproxy',
         ];
         $result = ($this->getApplication($config))->run();
-        $this->assertExtractedData($this->getDataDir() . '/escaping.csv', $result['imported'][0]['outputTable']);
-        $this->assertExtractedData($this->getDataDir() . '/simple.csv', $result['imported'][1]['outputTable']);
+        $this->assertExtractedData($this->getFixturesDir() . '/escaping.csv', $result['imported'][0]['outputTable']);
+        $this->assertExtractedData($this->getFixturesDir() . '/simple.csv', $result['imported'][1]['outputTable']);
     }
 
     public function testRunWithSSHDeprecated(): void
@@ -207,8 +207,8 @@ abstract class AbstractExtractorTest extends ExtractorTest
         ];
 
         $result = ($this->getApplication($config))->run();
-        $this->assertExtractedData($this->getDataDir() . '/escaping.csv', $result['imported'][0]['outputTable']);
-        $this->assertExtractedData($this->getDataDir() . '/simple.csv', $result['imported'][1]['outputTable']);
+        $this->assertExtractedData($this->getFixturesDir() . '/escaping.csv', $result['imported'][0]['outputTable']);
+        $this->assertExtractedData($this->getFixturesDir() . '/simple.csv', $result['imported'][1]['outputTable']);
     }
 
     public function testRunWithSSHUserException(): void
@@ -447,7 +447,7 @@ abstract class AbstractExtractorTest extends ExtractorTest
         $app = $this->getApplication($config);
 
         $result = $app->run();
-        $this->assertExtractedData($this->getDataDir() . '/simple.csv', $result['imported'][0]['outputTable']);
+        $this->assertExtractedData($this->getFixturesDir() . '/simple.csv', $result['imported'][0]['outputTable']);
 
         $outputManifest = Yaml::parse(
             file_get_contents($manifestFile)
@@ -607,7 +607,7 @@ abstract class AbstractExtractorTest extends ExtractorTest
         $result = $app->run();
 
         $outputTableName = $result['imported'][0]['outputTable'];
-        $this->assertExtractedData($this->getDataDir() . '/simple.csv', $outputTableName);
+        $this->assertExtractedData($this->getFixturesDir() . '/simple.csv', $outputTableName);
         $manifest = json_decode(
             file_get_contents($this->getDataDir() . '/out/tables/' . $outputTableName . ".csv.manifest"),
             true
@@ -978,8 +978,8 @@ abstract class AbstractExtractorTest extends ExtractorTest
             'compression' => true,
         ];
         $result = ($this->getApplication($config))->run();
-        $this->assertExtractedData($this->getDataDir() . '/escaping.csv', $result['imported'][0]['outputTable']);
-        $this->assertExtractedData($this->getDataDir() . '/simple.csv', $result['imported'][1]['outputTable']);
+        $this->assertExtractedData($this->getFixturesDir() . '/escaping.csv', $result['imported'][0]['outputTable']);
+        $this->assertExtractedData($this->getFixturesDir() . '/simple.csv', $result['imported'][1]['outputTable']);
     }
 
     public function testSshWithCompressionConfigRow(): void
@@ -997,7 +997,7 @@ abstract class AbstractExtractorTest extends ExtractorTest
             'compression' => true,
         ];
         $result = ($this->getApplication($config))->run();
-        $this->assertExtractedData($this->getDataDir() . '/simple.csv', $result['imported']['outputTable']);
+        $this->assertExtractedData($this->getFixturesDir() . '/simple.csv', $result['imported']['outputTable']);
     }
 
     private function getIncrementalFetchingConfig(): array
