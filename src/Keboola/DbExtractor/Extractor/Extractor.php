@@ -12,8 +12,7 @@ use Keboola\DbExtractor\Exception\DeadConnectionException;
 use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractor\Logger;
 use Keboola\DbExtractor\RetryProxy;
-use Keboola\SSHTunnel\SSH;
-use Keboola\SSHTunnel\SSHException;
+use Keboola\DbExtractor\SSHTunnel;
 use Nette\Utils;
 
 use PDOException;
@@ -47,14 +46,16 @@ abstract class Extractor
 
     public function __construct(array $parameters, array $state = [], ?Logger $logger = null)
     {
-        if ($logger) {
-            $this->logger = $logger;
+        if (is_null($logger)) {
+            $logger = new Logger('db-ex-common');
         }
+        $this->logger = $logger;
         $this->dataDir = $parameters['data_dir'];
         $this->state = $state;
 
         if (isset($parameters['db']['ssh']['enabled']) && $parameters['db']['ssh']['enabled']) {
-            $parameters['db'] = $this->createSshTunnel($parameters['db']);
+            $sshTunnel = new SSHTunnel($logger);
+            $parameters['db'] = $sshTunnel->createSshTunnel($parameters['db']);
         }
         $this->dbParameters = $parameters['db'];
 
@@ -83,61 +84,6 @@ abstract class Extractor
                 isset($parameters['incrementalFetchingLimit']) ? $parameters['incrementalFetchingLimit'] : null
             );
         }
-    }
-
-    public function createSshTunnel(array $dbConfig): array
-    {
-        $sshConfig = $dbConfig['ssh'];
-        // check params
-        foreach (['keys', 'sshHost'] as $k) {
-            if (empty($sshConfig[$k])) {
-                throw new UserException(sprintf('Parameter "%s" is missing.', $k));
-            }
-        }
-
-        $sshConfig['remoteHost'] = $dbConfig['host'];
-        $sshConfig['remotePort'] = $dbConfig['port'];
-
-        if (empty($sshConfig['user'])) {
-            $sshConfig['user'] = $dbConfig['user'];
-        }
-        if (empty($sshConfig['localPort'])) {
-            $sshConfig['localPort'] = 33006;
-        }
-        if (empty($sshConfig['sshPort'])) {
-            $sshConfig['sshPort'] = 22;
-        }
-        $sshConfig['privateKey'] = isset($sshConfig['keys']['#private'])
-            ?$sshConfig['keys']['#private']
-            :$sshConfig['keys']['private'];
-        $tunnelParams = array_intersect_key(
-            $sshConfig,
-            array_flip(
-                [
-                'user', 'sshHost', 'sshPort', 'localPort', 'remoteHost', 'remotePort', 'privateKey', 'compression',
-                ]
-            )
-        );
-        $this->logger->info('Creating SSH tunnel to \'' . $tunnelParams['sshHost'] . '\'');
-        $proxy = new RetryProxy(
-            $this->logger,
-            RetryProxy::DEFAULT_MAX_TRIES,
-            RetryProxy::DEFAULT_BACKOFF_INTERVAL,
-            ['SSHException', 'Exception']
-        );
-        try {
-            $proxy->call(function () use ($tunnelParams): void {
-                $ssh = new SSH();
-                $ssh->openTunnel($tunnelParams);
-            });
-        } catch (SSHException $e) {
-            throw new UserException($e->getMessage(), 0, $e);
-        }
-
-        $dbConfig['host'] = '127.0.0.1';
-        $dbConfig['port'] = $sshConfig['localPort'];
-
-        return $dbConfig;
     }
 
     /**
