@@ -8,7 +8,7 @@ use Keboola\Csv\CsvFile;
 use Keboola\DbExtractor\Application;
 use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractor\Extractor\Common;
-use Keboola\DbExtractor\Logger;
+use Keboola\DbExtractor\Logger\Logger;
 use Keboola\DbExtractor\Test\ExtractorTest;
 use Keboola\Temp\Temp;
 use Monolog\Handler\TestHandler;

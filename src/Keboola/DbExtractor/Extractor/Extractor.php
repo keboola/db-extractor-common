@@ -10,7 +10,7 @@ use Keboola\Datatype\Definition\GenericStorage;
 use Keboola\DbExtractor\Exception\ApplicationException;
 use Keboola\DbExtractor\Exception\DeadConnectionException;
 use Keboola\DbExtractor\Exception\UserException;
-use Keboola\DbExtractor\Logger;
+use Keboola\DbExtractor\Logger\Logger;
 use Keboola\DbExtractor\RetryProxy;
 use Keboola\DbExtractor\SSHTunnel;
 use Nette\Utils;
