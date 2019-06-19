@@ -6,7 +6,7 @@ namespace Keboola\DbExtractor\Test;
 
 use Keboola\DbExtractor\Application;
 use Keboola\DbExtractor\Exception\UserException;
-use Keboola\DbExtractor\Logger\Logger;
+use Keboola\DbExtractorLogger\Logger;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Yaml\Yaml;
 
