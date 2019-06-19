@@ -6,7 +6,7 @@ namespace Keboola\DbExtractor;
 
 use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractor\Extractor\Extractor;
-use Keboola\DbExtractor\Logger\Logger;
+use Keboola\DbExtractorLogger\Logger;
 
 class ExtractorFactory
 {
