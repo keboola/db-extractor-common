@@ -11,8 +11,8 @@ use Keboola\DbExtractor\Exception\ApplicationException;
 use Keboola\DbExtractor\Exception\DeadConnectionException;
 use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractorLogger\Logger;
-use Keboola\DbExtractor\RetryProxy;
-use Keboola\DbExtractor\SSHTunnel;
+use Keboola\DbExtractorRetryProxy\RetryProxy;
+use Keboola\DbExtractorSSHTunnel\SSHTunnel;
 use Nette\Utils;
 
 use PDOException;
