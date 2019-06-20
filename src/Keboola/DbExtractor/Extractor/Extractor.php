@@ -61,9 +61,15 @@ abstract class Extractor
         }
         $this->dbParameters = $parameters['db'];
 
+        $simplyRetryPolicy = new SimpleRetryPolicy(
+            self::DEFAULT_MAX_TRIES,
+            [PDOException::class]
+        );
+        $exponentialBackOffPolicy = new ExponentialBackOffPolicy();
+
         $proxy = new RetryProxy(
-            new SimpleRetryPolicy(5),
-            new ExponentialBackOffPolicy(),
+            $simplyRetryPolicy,
+            $exponentialBackOffPolicy,
             $this->logger
         );
 
@@ -132,10 +138,15 @@ abstract class Extractor
         }
         $maxTries = isset($table['retries']) ? (int) $table['retries'] : self::DEFAULT_MAX_TRIES;
 
-        // this will retry on CsvException
+        $simplyRetryPolicy = new SimpleRetryPolicy(
+            $maxTries,
+            [DeadConnectionException::class, \ErrorException::class]
+        );
+        $exponentialBackOffPolicy = new ExponentialBackOffPolicy();
+
         $proxy = new RetryProxy(
-            new SimpleRetryPolicy($maxTries),
-            new ExponentialBackOffPolicy(),
+            $simplyRetryPolicy,
+            $exponentialBackOffPolicy,
             $this->logger
         );
 
@@ -203,12 +214,15 @@ abstract class Extractor
 
     protected function executeQuery(string $query, ?int $maxTries): PDOStatement
     {
+        $simplyRetryPolicy = new SimpleRetryPolicy($maxTries);
+        $exponentialBackOffPolicy = new ExponentialBackOffPolicy();
+
         $proxy = new RetryProxy(
-            new SimpleRetryPolicy($maxTries),
-            new ExponentialBackOffPolicy(),
+            $simplyRetryPolicy,
+            $exponentialBackOffPolicy,
             $this->logger
         );
-        /** @var PDOStatement $stmt */
+
         $stmt = $proxy->call(function () use ($query) {
             try {
                 /** @var \PDOStatement $stmt */
