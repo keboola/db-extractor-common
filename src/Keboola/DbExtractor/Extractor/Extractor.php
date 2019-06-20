@@ -11,11 +11,13 @@ use Keboola\DbExtractor\Exception\ApplicationException;
 use Keboola\DbExtractor\Exception\DeadConnectionException;
 use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractorLogger\Logger;
-use Keboola\DbExtractorRetryProxy\RetryProxy;
 use Keboola\DbExtractorSSHTunnel\SSHTunnel;
 use Nette\Utils;
 
 use PDOException;
+use Retry\BackOff\ExponentialBackOffPolicy;
+use Retry\Policy\SimpleRetryPolicy;
+use Retry\RetryProxy;
 use Throwable;
 use PDO;
 use PDOStatement;
@@ -60,11 +62,11 @@ abstract class Extractor
         $this->dbParameters = $parameters['db'];
 
         $proxy = new RetryProxy(
-            $this->logger,
-            RetryProxy::DEFAULT_MAX_TRIES,
-            RetryProxy::DEFAULT_BACKOFF_INTERVAL,
-            [PDOException::class]
+            new SimpleRetryPolicy(5),
+            new ExponentialBackOffPolicy(),
+            $this->logger
         );
+
         try {
             $proxy->call(function (): void {
                 $this->db = $this->createConnection($this->dbParameters);
@@ -132,11 +134,11 @@ abstract class Extractor
 
         // this will retry on CsvException
         $proxy = new RetryProxy(
-            $this->logger,
-            $maxTries,
-            RetryProxy::DEFAULT_BACKOFF_INTERVAL,
-            [DeadConnectionException::class, \ErrorException::class]
+            new SimpleRetryPolicy($maxTries),
+            new ExponentialBackOffPolicy(),
+            $this->logger
         );
+
         try {
             $result = $proxy->call(function () use ($query, $maxTries, $outputTable, $isAdvancedQuery) {
                 /** @var PDOStatement $stmt */
@@ -201,7 +203,12 @@ abstract class Extractor
 
     protected function executeQuery(string $query, ?int $maxTries): PDOStatement
     {
-        $proxy = new RetryProxy($this->logger, $maxTries);
+        $proxy = new RetryProxy(
+            new SimpleRetryPolicy($maxTries),
+            new ExponentialBackOffPolicy(),
+            $this->logger
+        );
+        /** @var PDOStatement $stmt */
         $stmt = $proxy->call(function () use ($query) {
             try {
                 /** @var \PDOStatement $stmt */
