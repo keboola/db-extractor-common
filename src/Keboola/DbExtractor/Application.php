@@ -123,6 +123,62 @@ class Application extends Container
         }
     }
 
+    private function runAction(): array
+    {
+        $imported = [];
+        $outputState = [];
+        if (isset($this['parameters']['tables'])) {
+            $tables = array_filter(
+                $this['parameters']['tables'],
+                function ($table) {
+                    return ($table['enabled']);
+                }
+            );
+            foreach ($tables as $table) {
+                $exportResults = $this['extractor']->export($table);
+                $imported[] = $exportResults;
+            }
+        } else {
+            $exportResults = $this['extractor']->export($this['parameters']);
+            if (isset($exportResults['state'])) {
+                $outputState = $exportResults['state'];
+                unset($exportResults['state']);
+            }
+            $imported = $exportResults;
+        }
+
+        return [
+            'status' => 'success',
+            'imported' => $imported,
+            'state' => $outputState,
+        ];
+    }
+
+    private function testConnectionAction(): array
+    {
+        try {
+            $this['extractor']->testConnection();
+        } catch (\Throwable $e) {
+            throw new UserException(sprintf("Connection failed: '%s'", $e->getMessage()), 0, $e);
+        }
+
+        return [
+            'status' => 'success',
+        ];
+    }
+
+    private function getTablesAction(): array
+    {
+        try {
+            $output = [];
+            $output['tables'] = $this['extractor']->getTables();
+            $output['status'] = 'success';
+        } catch (\Throwable $e) {
+            throw new UserException(sprintf("Failed to get tables: '%s'", $e->getMessage()), 0, $e);
+        }
+        return $output;
+    }
+
     private function validateParameters(array $parameters): array
     {
         try {
