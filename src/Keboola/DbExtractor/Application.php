@@ -28,7 +28,7 @@ class Application extends Container
 
         $app = $this;
 
-        $this['action'] = isset($config['action'])?$config['action']:'run';
+        $this['action'] = isset($config['action']) ? $config['action'] : 'run';
 
         $this['parameters'] = $config['parameters'];
 
