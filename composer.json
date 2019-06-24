@@ -23,7 +23,7 @@
     "php": ">=7.1",
     "ext-pdo": "*",
     "keboola/csv": "^1.1",
-    "keboola/db-extractor-logger": "dev-ondra-init-repo as 1.0",
+    "keboola/db-extractor-logger": "dev-ondra-init-repo",
     "keboola/db-extractor-ssh-tunnel": "dev-ondra-init-repo",
     "keboola/php-datatypes": "^4.0",
     "keboola/php-utils": "^2.3",
