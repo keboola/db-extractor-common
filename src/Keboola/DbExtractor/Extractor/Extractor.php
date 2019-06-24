@@ -12,6 +12,7 @@ use Keboola\DbExtractor\Exception\DeadConnectionException;
 use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractorLogger\Logger;
 use Keboola\DbExtractorSSHTunnel\SSHTunnel;
+use Keboola\DbExtractorSSHTunnel\Exception\UserException as SSHTunnelUserException;
 use Nette\Utils;
 
 use PDOException;
@@ -56,8 +57,12 @@ abstract class Extractor
         $this->state = $state;
 
         if (isset($parameters['db']['ssh']['enabled']) && $parameters['db']['ssh']['enabled']) {
-            $sshTunnel = new SSHTunnel($logger);
-            $parameters['db'] = $sshTunnel->createSshTunnel($parameters['db']);
+            try {
+                $sshTunnel = new SSHTunnel($logger);
+                $parameters['db'] = $sshTunnel->createSshTunnel($parameters['db']);
+            } catch (SSHTunnelUserException $e) {
+                throw new UserException($e->getMessage());
+            }
         }
         $this->dbParameters = $parameters['db'];
 
