@@ -11,11 +11,11 @@
   ],
   "repositories": [
     {
-      "url": "https://github.com/keboola/db-extractor-ssh-tunnel.git",
+      "url": "https://github.com/keboola/db-extractor-ssh-tunnel",
       "type": "vcs"
     },
     {
-      "url": "https://github.com/keboola/db-extractor-logger.git",
+      "url": "https://github.com/keboola/db-extractor-logger",
       "type": "vcs"
     }
   ],
