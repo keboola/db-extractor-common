@@ -25,7 +25,7 @@ use PDOStatement;
 
 abstract class Extractor
 {
-    public const DEFAULT_MAX_TRIES = 5;
+    public const DEFAULT_MAX_TRIES = 25;
 
     public const DATATYPE_KEYS = ['type', 'length', 'nullable', 'default', 'format'];
 
