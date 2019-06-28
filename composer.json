@@ -9,16 +9,6 @@
       "email": "devel@keboola.com"
     }
   ],
-  "repositories": [
-    {
-      "url": "https://github.com/keboola/db-extractor-ssh-tunnel",
-      "type": "vcs"
-    },
-    {
-      "url": "https://github.com/keboola/db-extractor-logger",
-      "type": "vcs"
-    }
-  ],
   "require": {
     "php": ">=7.1",
     "ext-pdo": "*",
