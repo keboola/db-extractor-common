@@ -174,8 +174,8 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['db']['ssh'] = [
             'enabled' => true,
             'keys' => [
-                '#private' => $this->getPrivateKey(self::DRIVER),
-                'public' => $this->getPublicKey(self::DRIVER),
+                '#private' => $this->getPrivateKey(),
+                'public' => $this->getPublicKey(),
             ],
             'sshHost' => 'sshproxy',
         ];
@@ -191,8 +191,8 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['db']['ssh'] = [
             'enabled' => true,
             'keys' => [
-                '#private' => $this->getPrivateKey(self::DRIVER),
-                'public' => $this->getPublicKey(self::DRIVER),
+                '#private' => $this->getPrivateKey(),
+                'public' => $this->getPublicKey(),
             ],
             'sshHost' => 'sshproxy',
             'localPort' => '33306',
@@ -214,8 +214,8 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['db']['ssh'] = [
             'enabled' => true,
             'keys' => [
-                '#private' => $this->getPrivateKey(self::DRIVER),
-                'public' => $this->getPublicKey(self::DRIVER),
+                '#private' => $this->getPrivateKey(),
+                'public' => $this->getPublicKey(),
             ],
             'sshHost' => 'wronghost',
             'localPort' => '33306',
@@ -967,8 +967,8 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['db']['ssh'] = [
             'enabled' => true,
             'keys' => [
-                '#private' => $this->getPrivateKey(self::DRIVER),
-                'public' => $this->getPublicKey(self::DRIVER),
+                '#private' => $this->getPrivateKey(),
+                'public' => $this->getPublicKey(),
             ],
             'sshHost' => 'sshproxy',
             'localPort' => '33056',
@@ -986,8 +986,8 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['db']['ssh'] = [
             'enabled' => true,
             'keys' => [
-                '#private' => $this->getPrivateKey(self::DRIVER),
-                'public' => $this->getPublicKey(self::DRIVER),
+                '#private' => $this->getPrivateKey(),
+                'public' => $this->getPublicKey(),
             ],
             'sshHost' => 'sshproxy',
             'localPort' => '33066',

@@ -92,12 +92,12 @@ class ExtractorTest extends TestCase
         return (string) getenv($env);
     }
 
-    public function getPrivateKey(string $driver): string
+    public function getPrivateKey(): string
     {
         return (string) file_get_contents('/root/.ssh/id_rsa');
     }
 
-    public function getPublicKey(string $driver): string
+    public function getPublicKey(): string
     {
         return (string) file_get_contents('/root/.ssh/id_rsa.pub');
     }
