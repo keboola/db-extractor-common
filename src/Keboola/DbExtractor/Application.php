@@ -4,19 +4,12 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor;
 
-use Keboola\DbExtractor\Configuration\ActionConfigRowDefinition;
-use Keboola\DbExtractor\Configuration\ConfigDefinition;
-use Keboola\DbExtractor\Configuration\ConfigRowDefinition;
 use Keboola\DbExtractor\Exception\UserException;
-use Keboola\DbExtractorConfig\Config;
 use Pimple\Container;
 use ErrorException;
 
 class Application extends Container
 {
-    /** @var Config $config */
-    protected $config;
-
     public function __construct(array $config, Logger $logger, array $state = [])
     {
         static::setEnvironment();
@@ -40,17 +33,6 @@ class Application extends Container
         $this['extractor'] = function () use ($app) {
             return $app['extractor_factory']->create($app['logger']);
         };
-        if (isset($this['parameters']['tables'])) {
-            $this->config = new Config(new ConfigDefinition());
-        } else {
-            if ($this['action'] === 'run') {
-                // @TODO - dodělat do Config repa RowDefinition
-                $this->config = new Config(new ConfigRowDefinition());
-            } else {
-                // @TODO - dodělat do Config repa RowActionDefinition
-                $this->config = new Config(new ActionConfigRowDefinition());
-            }
-        }
     }
 
     public function run(): array
