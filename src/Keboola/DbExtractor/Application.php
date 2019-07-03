@@ -10,21 +10,6 @@ use ErrorException;
 
 class Application extends Container
 {
-    /** @var mixed|string $action */
-    public $action;
-
-    /** @var Logger $logger */
-    public $logger;
-
-    /** @var mixed $parameters */
-    protected $parameters;
-
-    /** @var array $state */
-    protected $state;
-
-    /** @var Extractor\Extractor $extractor */
-    protected $extractor;
-
     public function __construct(array $config, Logger $logger, array $state = [])
     {
         static::setEnvironment();
@@ -35,21 +20,26 @@ class Application extends Container
 
         $this['action'] = isset($config['action']) ? $config['action'] : 'run';
 
-        $this->parameters = $config['parameters'];
+        $this['parameters'] = $config['parameters'];
 
-        $this->state = $state;
+        $this['state'] = $state;
 
-        $this->logger = $logger;
+        $this['logger'] = $logger;
 
-        $extractorFactory = new ExtractorFactory($this->parameters, $this->state);
-        $this->extractor = $extractorFactory->create($this->logger);
+        $this['extractor_factory'] = function () use ($app) {
+            return new ExtractorFactory($app['parameters'], $app['state']);
+        };
+
+        $this['extractor'] = function () use ($app) {
+            return $app['extractor_factory']->create($app['logger']);
+        };
     }
 
     public function run(): array
     {
-        $actionMethod = $this->action . 'Action';
+        $actionMethod = $this['action'] . 'Action';
         if (!method_exists($this, $actionMethod)) {
-            throw new UserException(sprintf('Action "%s" does not exist.', $this->action));
+            throw new UserException(sprintf('Action "%s" does not exist.', $this['action']));
         }
 
         return $this->$actionMethod();
@@ -59,19 +49,19 @@ class Application extends Container
     {
         $imported = [];
         $outputState = [];
-        if (isset($this->parameters['tables'])) {
+        if (isset($this['parameters']['tables'])) {
             $tables = (array) array_filter(
-                $this->parameters['tables'],
+                $this['parameters']['tables'],
                 function ($table) {
                     return ($table['enabled']);
                 }
             );
             foreach ($tables as $table) {
-                $exportResults = $this->extractor->export($table);
+                $exportResults = $this['extractor']->export($table);
                 $imported[] = $exportResults;
             }
         } else {
-            $exportResults = $this->extractor->export($this->parameters);
+            $exportResults = $this['extractor']->export($this['parameters']);
             if (isset($exportResults['state'])) {
                 $outputState = $exportResults['state'];
                 unset($exportResults['state']);
@@ -89,7 +79,7 @@ class Application extends Container
     private function testConnectionAction(): array
     {
         try {
-            $this->extractor->testConnection();
+            $this['extractor']->testConnection();
         } catch (\Throwable $e) {
             throw new UserException(sprintf("Connection failed: '%s'", $e->getMessage()), 0, $e);
         }
@@ -103,7 +93,7 @@ class Application extends Container
     {
         try {
             $output = [];
-            $output['tables'] = $this->extractor->getTables();
+            $output['tables'] = $this['extractor']->getTables();
             $output['status'] = 'success';
         } catch (\Throwable $e) {
             throw new UserException(sprintf("Failed to get tables: '%s'", $e->getMessage()), 0, $e);
