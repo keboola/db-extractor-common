@@ -11,16 +11,16 @@ use ErrorException;
 class Application extends Container
 {
     /** @var mixed|string $action */
-    protected $action;
+    public $action;
+
+    /** @var Logger $logger */
+    public $logger;
 
     /** @var mixed $parameters */
     protected $parameters;
 
     /** @var array $state */
     protected $state;
-
-    /** @var Logger $logger */
-    protected $logger;
 
     /** @var Extractor\Extractor $extractor */
     protected $extractor;
