@@ -16,6 +16,7 @@
     "keboola/csv": "^1.1",
     "keboola/db-extractor-logger": "^1.0",
     "keboola/db-extractor-ssh-tunnel": "^1.1",
+    "keboola/db-extractor-config": "dev-ondra-init-repo",
     "keboola/php-datatypes": "^4.0",
     "keboola/php-utils": "^2.3||^3.0||^4.0",
     "keboola/retry": "^0.4",

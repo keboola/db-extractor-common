@@ -4,12 +4,19 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor;
 
+use Keboola\DbExtractor\Configuration\ActionConfigRowDefinition;
+use Keboola\DbExtractor\Configuration\ConfigDefinition;
+use Keboola\DbExtractor\Configuration\ConfigRowDefinition;
 use Keboola\DbExtractor\Exception\UserException;
+use Keboola\DbExtractorConfig\Config;
 use Pimple\Container;
 use ErrorException;
 
 class Application extends Container
 {
+    /** @var Config $config */
+    private $config;
+
     public function __construct(array $config, Logger $logger, array $state = [])
     {
         static::setEnvironment();
@@ -33,10 +40,22 @@ class Application extends Container
         $this['extractor'] = function () use ($app) {
             return $app['extractor_factory']->create($app['logger']);
         };
+
+        if (isset($this['parameters']['tables'])) {
+            $this->config = new Config((new ConfigDefinition()), Config::CONFIG_DEFINITION);
+        } else {
+            if ($this['action'] === 'run') {
+                $this->config = new Config(new ConfigRowDefinition(), Config::CONFIG_ROW_DEFINITION);
+            } else {
+                $this->config = new Config(new ActionConfigRowDefinition(), Config::CONFIG_ROW_ACTION_DEFINITION);
+            }
+        }
     }
 
     public function run(): array
     {
+        $this['parameters'] = $this->config->validateParameters($this['parameters'], $this['action']);
+
         $actionMethod = $this['action'] . 'Action';
         if (!method_exists($this, $actionMethod)) {
             throw new UserException(sprintf('Action "%s" does not exist.', $this['action']));
