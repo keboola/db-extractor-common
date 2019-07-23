@@ -74,7 +74,7 @@ class ExtractorTest extends TestCase
             true
         );
 
-        $config['parameters']['d$arrata_dir'] = $this->dataDir;
+        $config['parameters']['data_dir'] = $this->dataDir;
         $config['parameters']['db'] = $this->getConfigDbNode($driver);
         $config['parameters']['extractor_class'] = ucfirst($driver);
 
