@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 require __DIR__ . '/../vendor/autoload.php';
 
-if (!isset($argv[1]) || (intval($argv[1]) !== $argv[1])) {
+if (!isset($argv[1]) || ((string) intval($argv[1]) !== $argv[1])) {
     exit('Enter number of seconds to sleep as the first argument.');
 }
 
