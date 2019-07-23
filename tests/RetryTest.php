@@ -306,8 +306,7 @@ class RetryTest extends ExtractorTest
         $this->killerEnabled = 'query';
         self::expectException(\ErrorException::class);
         self::expectExceptionMessage('Warning: PDO::query(): MySQL server has gone away');
-        $stmt = $this->taintedPdo->prepare('SELECT NOW();');
-        $stmt->execute();
+        $this->taintedPdo->query('SELECT NOW();');
     }
 
     public function testNetworkKillerPrepare(): void
