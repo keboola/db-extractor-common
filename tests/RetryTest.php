@@ -199,7 +199,7 @@ class RetryTest extends ExtractorTest
         $temp->initRunFolder();
         $sourceFileName = $temp->getTmpFolder() . '/large.csv';
 
-        $res = $this->serviceConnection->prepare(sprintf(
+        $res = $this->serviceConnection->query(sprintf(
             "SELECT * 
             FROM information_schema.tables
             WHERE table_schema = '%s' 
@@ -209,7 +209,7 @@ class RetryTest extends ExtractorTest
             $tableName
         ));
 
-        $tableExists = count((array) $res->fetchAll()) > 0;
+        $tableExists = $res === false ? false : count((array) $res->fetchAll()) > 0;
 
         // Set up the data table
         if (!$tableExists) {
