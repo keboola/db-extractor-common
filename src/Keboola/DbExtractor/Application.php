@@ -156,7 +156,7 @@ class Application extends Container
         $imported = [];
         $outputState = [];
         if (isset($this['parameters']['tables'])) {
-            $tables = array_filter(
+            $tables = (array) array_filter(
                 $this['parameters']['tables'],
                 function ($table) {
                     return ($table['enabled']);

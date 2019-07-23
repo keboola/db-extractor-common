@@ -33,10 +33,15 @@ class ExtractorTest extends TestCase
     {
         switch ($format) {
             case self::CONFIG_FORMAT_JSON:
-                $config = json_decode(file_get_contents($this->dataDir . '/' .$driver . '/config.json'), true);
+                $config = json_decode(
+                    (string) file_get_contents($this->dataDir . '/' .$driver . '/config.json'),
+                    true
+                );
                 break;
             case self::CONFIG_FORMAT_YAML:
-                $config = Yaml::parse(file_get_contents($this->dataDir . '/' .$driver . '/config.yml'));
+                $config = Yaml::parse(
+                    (string) file_get_contents($this->dataDir . '/' .$driver . '/config.yml')
+                );
                 break;
             default:
                 throw new UserException('Unsupported configuration format: ' . $format);
@@ -50,7 +55,10 @@ class ExtractorTest extends TestCase
 
     protected function getConfigRow(string $driver): array
     {
-        $config = json_decode(file_get_contents($this->dataDir . '/' .$driver . '/configRow.json'), true);
+        $config = json_decode(
+            (string) file_get_contents($this->dataDir . '/' .$driver . '/configRow.json'),
+            true
+        );
 
         $config['parameters']['data_dir'] = $this->dataDir;
         $config['parameters']['db'] = $this->getConfigDbNode($driver);
@@ -61,9 +69,12 @@ class ExtractorTest extends TestCase
 
     protected function getConfigRowForCsvErr(string $driver): array
     {
-        $config = json_decode(file_get_contents($this->dataDir . '/' .$driver . '/configRowCsvErr.json'), true);
+        $config = json_decode(
+            (string) file_get_contents($this->dataDir . '/' .$driver . '/configRowCsvErr.json'),
+            true
+        );
 
-        $config['parameters']['data_dir'] = $this->dataDir;
+        $config['parameters']['d$arrata_dir'] = $this->dataDir;
         $config['parameters']['db'] = $this->getConfigDbNode($driver);
         $config['parameters']['extractor_class'] = ucfirst($driver);
 
@@ -74,21 +85,21 @@ class ExtractorTest extends TestCase
     {
         $env = strtoupper($driver) . '_' . $suffix;
         if ($required) {
-            if (false === getenv($env)) {
+            if (false === (bool) getenv($env)) {
                 throw new \Exception($env . ' environment variable must be set.');
             }
         }
-        return getenv($env);
+        return (string) getenv($env);
     }
 
     public function getPrivateKey(string $driver): string
     {
-        return file_get_contents('/root/.ssh/id_rsa');
+        return (string) file_get_contents('/root/.ssh/id_rsa');
     }
 
     public function getPublicKey(string $driver): string
     {
-        return file_get_contents('/root/.ssh/id_rsa.pub');
+        return (string) file_get_contents('/root/.ssh/id_rsa.pub');
     }
 
     protected function getApplication(string $appName, array $config, array $state = []): Application

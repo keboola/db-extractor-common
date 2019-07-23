@@ -119,7 +119,7 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][1]['outputTable']);
         $filename = $this->dataDir . '/out/tables/' . $result['imported'][1]['outputTable'] . '.csv.manifest';
         $manifest = json_decode(
-            file_get_contents($filename),
+            (string) file_get_contents($filename),
             true
         );
         $this->assertEquals(['weird_I_d', 'S_oPaulo'], $manifest['columns']);
@@ -134,7 +134,7 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertExtractedData($this->dataDir . '/escaping.csv', $result['imported'][0]['outputTable']);
         $filename = $this->dataDir . '/out/tables/' . $result['imported'][0]['outputTable'] . '.csv.manifest';
         $manifest = json_decode(
-            file_get_contents($filename),
+            (string) file_get_contents($filename),
             true
         );
         $this->assertArrayNotHasKey('columns', $manifest);
@@ -143,7 +143,7 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][1]['outputTable']);
         $filename = $this->dataDir . '/out/tables/' . $result['imported'][1]['outputTable'] . '.csv.manifest';
         $manifest = json_decode(
-            file_get_contents($filename),
+            (string) file_get_contents($filename),
             true
         );
         $this->assertEquals(['weird_I_d', 'S_oPaulo'], $manifest['columns']);
@@ -158,8 +158,9 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertEquals('in.c-main.simple', $result['imported']['outputTable']);
         $this->assertEquals(2, $result['imported']['rows']);
         $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported']['outputTable']);
+        $filename = $this->dataDir . '/out/tables/' . $result['imported']['outputTable'] . '.csv.manifest';
         $manifest = json_decode(
-            file_get_contents($this->dataDir . '/out/tables/' . $result['imported']['outputTable'] . '.csv.manifest'),
+            (string) file_get_contents($filename),
             true
         );
         $this->assertEquals(['weird_I_d', 'S_oPaulo'], $manifest['columns']);
@@ -443,7 +444,7 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][0]['outputTable']);
 
         $outputManifest = Yaml::parse(
-            file_get_contents($manifestFile)
+            (string) file_get_contents($manifestFile)
         );
 
         $this->assertArrayHasKey('destination', $outputManifest);
@@ -602,7 +603,7 @@ class CommonExtractorTest extends ExtractorTest
         $outputTableName = $result['imported'][0]['outputTable'];
         $this->assertExtractedData($this->dataDir . '/simple.csv', $outputTableName);
         $manifest = json_decode(
-            file_get_contents($this->dataDir . '/out/tables/' . $outputTableName . '.csv.manifest'),
+            (string) file_get_contents($this->dataDir . '/out/tables/' . $outputTableName . '.csv.manifest'),
             true
         );
         $this->assertEquals(['weird_I_d', 'S_oPaulo'], $manifest['columns']);
@@ -836,7 +837,10 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertEquals('success', $result['status']);
         $outputManifestFile = $this->dataDir . '/out/tables/in.c-main.columnscheck.csv.manifest';
 
-        $outputManifest = json_decode(file_get_contents($outputManifestFile), true);
+        $outputManifest = json_decode(
+            (string) file_get_contents($outputManifestFile),
+            true
+        );
 
         // check that the manifest has the correct column ordering
         $this->assertEquals($config['parameters']['columns'], $outputManifest['columns']);
