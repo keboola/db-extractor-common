@@ -65,18 +65,18 @@ abstract class Extractor
             [PDOException::class]
         );
         try {
-            $proxy->call(function ():void {
+            $proxy->call(function (): void {
                 $this->db = $this->createConnection($this->dbParameters);
             });
         } catch (PDOException $e) {
-            throw new UserException("Error connecting to DB: " . $e->getMessage(), 0, $e);
+            throw new UserException('Error connecting to DB: ' . $e->getMessage(), 0, $e);
         } catch (Throwable $e) {
             if (strstr(strtolower($e->getMessage()), 'could not find driver')) {
-                throw new ApplicationException("Missing driver: " . $e->getMessage());
+                throw new ApplicationException('Missing driver: ' . $e->getMessage());
             }
-            throw new UserException("Error connecting to DB: " . $e->getMessage(), 0, $e);
+            throw new UserException('Error connecting to DB: ' . $e->getMessage(), 0, $e);
         }
-        if (isset($parameters['incrementalFetchingColumn']) && $parameters['incrementalFetchingColumn'] !== "") {
+        if (isset($parameters['incrementalFetchingColumn']) && $parameters['incrementalFetchingColumn'] !== '') {
             $this->validateIncrementalFetching(
                 $parameters['table'],
                 $parameters['incrementalFetchingColumn'],
@@ -91,7 +91,7 @@ abstract class Extractor
         // check params
         foreach (['keys', 'sshHost'] as $k) {
             if (empty($sshConfig[$k])) {
-                throw new UserException(sprintf("Parameter '%s' is missing.", $k));
+                throw new UserException(sprintf('Parameter \'%s\' is missing.', $k));
             }
         }
 
@@ -118,7 +118,7 @@ abstract class Extractor
                 ]
             )
         );
-        $this->logger->info("Creating SSH tunnel to '" . $tunnelParams['sshHost'] . "'");
+        $this->logger->info('Creating SSH tunnel to \'' . $tunnelParams['sshHost'] . '\'');
         $proxy = new RetryProxy(
             $this->logger,
             RetryProxy::DEFAULT_MAX_TRIES,
@@ -126,7 +126,7 @@ abstract class Extractor
             ['SSHException', 'Exception']
         );
         try {
-            $proxy->call(function () use ($tunnelParams):void {
+            $proxy->call(function () use ($tunnelParams): void {
                 $ssh = new SSH();
                 $ssh->openTunnel($tunnelParams);
             });
@@ -174,7 +174,7 @@ abstract class Extractor
     {
         $outputTable = $table['outputTable'];
 
-        $this->logger->info("Exporting to " . $outputTable);
+        $this->logger->info('Exporting to ' . $outputTable);
 
         $isAdvancedQuery = true;
         if (array_key_exists('table', $table) && !array_key_exists('query', $table)) {
@@ -202,7 +202,7 @@ abstract class Extractor
                 return $result;
             });
         } catch (CsvException $e) {
-            throw new ApplicationException("Failed writing CSV File: " . $e->getMessage(), $e->getCode(), $e);
+            throw new ApplicationException('Failed writing CSV File: ' . $e->getMessage(), $e->getCode(), $e);
         } catch (\PDOException $e) {
             throw $this->handleDbError($e, $table, $maxTries);
         } catch (\ErrorException $e) {
@@ -215,19 +215,19 @@ abstract class Extractor
         } else {
             $this->logger->warn(
                 sprintf(
-                    "Query returned empty result. Nothing was imported to [%s]",
+                    'Query returned empty result. Nothing was imported to [%s]',
                     $table['outputTable']
                 )
             );
         }
 
         $output = [
-            "outputTable"=> $outputTable,
-            "rows" => $result['rows'],
+            'outputTable' => $outputTable,
+            'rows' => $result['rows'],
         ];
         // output state
         if (!empty($result['lastFetchedRow'])) {
-            $output["state"]['lastFetchedRow'] = $result['lastFetchedRow'];
+            $output['state']['lastFetchedRow'] = $result['lastFetchedRow'];
         }
         return $output;
     }
@@ -237,15 +237,15 @@ abstract class Extractor
         try {
             $this->testConnection();
         } catch (\Throwable $e) {
-            throw new DeadConnectionException("Dead connection: " . $e->getMessage());
+            throw new DeadConnectionException('Dead connection: ' . $e->getMessage());
         }
     }
 
     protected function handleDbError(Throwable $e, ?array $table = null, ?int $counter = null): UserException
     {
-        $message = "";
+        $message = '';
         if ($table) {
-            $message = sprintf("[%s]: ", $table['outputTable']);
+            $message = sprintf('[%s]: ', $table['outputTable']);
         }
         $message .= sprintf('DB query failed: %s', $e->getMessage());
         if ($counter) {
@@ -308,7 +308,7 @@ abstract class Extractor
                 if (!array_key_exists($this->incrementalFetching['column'], $lastRow)) {
                     throw new UserException(
                         sprintf(
-                            "The specified incremental fetching column %s not found in the table",
+                            'The specified incremental fetching column %s not found in the table',
                             $this->incrementalFetching['column']
                         )
                     );
@@ -375,7 +375,7 @@ abstract class Extractor
                     }
                     if (!$column) {
                         throw new UserException(
-                            sprintf("The given column '%s' was not found in the table.", $columnName)
+                            sprintf('The given column \'%s\' was not found in the table.', $columnName)
                         );
                     }
                     // use sanitized name for primary key if available
@@ -412,12 +412,12 @@ abstract class Extractor
         foreach ($nonDatatypeKeys as $key => $value) {
             if ($key === 'name') {
                 $columnMetadata[] = [
-                    'key' => "KBC.sourceName",
+                    'key' => 'KBC.sourceName',
                     'value' => $value,
                 ];
             } else {
                 $columnMetadata[] = [
-                    'key' => "KBC." . $key,
+                    'key' => 'KBC.' . $key,
                     'value' => $value,
                 ];
             }
@@ -433,8 +433,8 @@ abstract class Extractor
                 continue;
             }
             $metadata[] = [
-                "key" => "KBC." . $key,
-                "value" => $value,
+                'key' => 'KBC.' . $key,
+                'value' => $value,
             ];
         }
         return $metadata;

@@ -13,7 +13,7 @@ class DataLoader
 
     public function __construct(string $host, string $port, string $dbname, string $user, string $pass)
     {
-        $dsn = sprintf("mysql:host=%s;port=%s;dbname=%s;charset=utf8", $host, $port, $dbname);
+        $dsn = sprintf('mysql:host=%s;port=%s;dbname=%s;charset=utf8', $host, $port, $dbname);
         $this->pdo = new PDO(
             $dsn,
             $user,

@@ -48,26 +48,32 @@ class CommonExtractorTest extends ExtractorTest
             $this->getEnv(self::DRIVER, 'DB_PASSWORD')
         );
 
-        $dataLoader->getPdo()->exec(sprintf("DROP DATABASE IF EXISTS `%s`", $this->getEnv(self::DRIVER, 'DB_DATABASE')));
         $dataLoader->getPdo()->exec(
             sprintf(
-                "
-            CREATE DATABASE `%s`
-            DEFAULT CHARACTER SET utf8
-            DEFAULT COLLATE utf8_general_ci
-        ",
+                'DROP DATABASE IF EXISTS `%s`',
+                $this->getEnv(self::DRIVER, 'DB_DATABASE')
+            )
+        )
+        ;
+        $dataLoader->getPdo()->exec(
+            sprintf(
+                '
+                    CREATE DATABASE `%s`
+                    DEFAULT CHARACTER SET utf8
+                    DEFAULT COLLATE utf8_general_ci
+                ',
                 $this->getEnv(self::DRIVER, 'DB_DATABASE')
             )
         );
 
-        $dataLoader->getPdo()->exec("USE " . $this->getEnv(self::DRIVER, 'DB_DATABASE'));
+        $dataLoader->getPdo()->exec('USE ' . $this->getEnv(self::DRIVER, 'DB_DATABASE'));
 
-        $dataLoader->getPdo()->exec("SET NAMES utf8;");
+        $dataLoader->getPdo()->exec('SET NAMES utf8;');
         $dataLoader->getPdo()->exec(
-            "CREATE TABLE escapingPK (
+            'CREATE TABLE escapingPK (
                                     col1 VARCHAR(155),
                                     col2 VARCHAR(155),
-                                    PRIMARY KEY (col1, col2))"
+                                    PRIMARY KEY (col1, col2))'
         );
 
         $dataLoader->getPdo()->exec(
@@ -111,12 +117,13 @@ class CommonExtractorTest extends ExtractorTest
         $result = ($this->getApp($this->getConfig(self::DRIVER)))->run();
         $this->assertExtractedData($this->dataDir . '/escaping.csv', $result['imported'][0]['outputTable']);
         $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][1]['outputTable']);
+        $filename = $this->dataDir . '/out/tables/' . $result['imported'][1]['outputTable'] . '.csv.manifest';
         $manifest = json_decode(
-            file_get_contents($this->dataDir . '/out/tables/' . $result['imported'][1]['outputTable'] . ".csv.manifest"),
+            file_get_contents($filename),
             true
         );
-        $this->assertEquals(["weird_I_d", 'S_oPaulo'], $manifest['columns']);
-        $this->assertEquals(["weird_I_d"], $manifest['primary_key']);
+        $this->assertEquals(['weird_I_d', 'S_oPaulo'], $manifest['columns']);
+        $this->assertEquals(['weird_I_d'], $manifest['primary_key']);
     }
 
     public function testRunJsonConfig(): void
@@ -125,20 +132,22 @@ class CommonExtractorTest extends ExtractorTest
         $result = ($this->getApp($this->getConfig(self::DRIVER, parent::CONFIG_FORMAT_JSON)))->run();
 
         $this->assertExtractedData($this->dataDir . '/escaping.csv', $result['imported'][0]['outputTable']);
+        $filename = $this->dataDir . '/out/tables/' . $result['imported'][0]['outputTable'] . '.csv.manifest';
         $manifest = json_decode(
-            file_get_contents($this->dataDir . '/out/tables/' . $result['imported'][0]['outputTable'] . ".csv.manifest"),
+            file_get_contents($filename),
             true
         );
         $this->assertArrayNotHasKey('columns', $manifest);
         $this->assertArrayNotHasKey('primary_key', $manifest);
 
         $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][1]['outputTable']);
+        $filename = $this->dataDir . '/out/tables/' . $result['imported'][1]['outputTable'] . '.csv.manifest';
         $manifest = json_decode(
-            file_get_contents($this->dataDir . '/out/tables/' . $result['imported'][1]['outputTable'] . ".csv.manifest"),
+            file_get_contents($filename),
             true
         );
-        $this->assertEquals(["weird_I_d", 'S_oPaulo'], $manifest['columns']);
-        $this->assertEquals(["weird_I_d"], $manifest['primary_key']);
+        $this->assertEquals(['weird_I_d', 'S_oPaulo'], $manifest['columns']);
+        $this->assertEquals(['weird_I_d'], $manifest['primary_key']);
     }
 
     public function testRunConfigRow(): void
@@ -150,11 +159,11 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertEquals(2, $result['imported']['rows']);
         $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported']['outputTable']);
         $manifest = json_decode(
-            file_get_contents($this->dataDir . '/out/tables/' . $result['imported']['outputTable'] . ".csv.manifest"),
+            file_get_contents($this->dataDir . '/out/tables/' . $result['imported']['outputTable'] . '.csv.manifest'),
             true
         );
-        $this->assertEquals(["weird_I_d", 'S_oPaulo'], $manifest['columns']);
-        $this->assertEquals(["weird_I_d"], $manifest['primary_key']);
+        $this->assertEquals(['weird_I_d', 'S_oPaulo'], $manifest['columns']);
+        $this->assertEquals(['weird_I_d'], $manifest['primary_key']);
     }
 
     public function testRunWithSSH(): void
@@ -229,7 +238,7 @@ class CommonExtractorTest extends ExtractorTest
     public function testRetries(): void
     {
         $config = $this->getConfig(self::DRIVER);
-        $config['parameters']['tables'][0]['query'] = "SELECT * FROM `table_that_does_not_exist`";
+        $config['parameters']['tables'][0]['query'] = 'SELECT * FROM `table_that_does_not_exist`';
         $config['parameters']['tables'][0]['retries'] = 3;
 
         try {
@@ -245,7 +254,7 @@ class CommonExtractorTest extends ExtractorTest
         $outputManifestFile = $this->dataDir . '/out/tables/in.c-main.escaping.csv.manifest';
 
         $config = $this->getConfig(self::DRIVER);
-        $config['parameters']['tables'][0]['query'] = "SELECT * FROM escaping WHERE col1 = '123'";
+        $config['parameters']['tables'][0]['query'] = 'SELECT * FROM escaping WHERE col1 = \'123\'';
 
         $result = ($this->getApp($config))->run();
 
@@ -276,7 +285,7 @@ class CommonExtractorTest extends ExtractorTest
         ];
         try {
             ($this->getApp($config))->run();
-            $this->fail("Failing query must raise exception.");
+            $this->fail('Failing query must raise exception.');
         } catch (\Keboola\DbExtractor\Exception\UserException $e) {
             // test that the error message contains the query name
             $this->assertContains('[dummy]', $e->getMessage());
@@ -576,7 +585,7 @@ class CommonExtractorTest extends ExtractorTest
         $config['action'] = 'sample';
         $config['parameters']['tables'] = [];
 
-        $this->expectExceptionMessage("Action 'sample' does not exist.");
+        $this->expectExceptionMessage('Action \'sample\' does not exist.');
         $this->expectException(UserException::class);
         $app = $this->getApp($config);
         $app->run();
@@ -593,11 +602,11 @@ class CommonExtractorTest extends ExtractorTest
         $outputTableName = $result['imported'][0]['outputTable'];
         $this->assertExtractedData($this->dataDir . '/simple.csv', $outputTableName);
         $manifest = json_decode(
-            file_get_contents($this->dataDir . '/out/tables/' . $outputTableName . ".csv.manifest"),
+            file_get_contents($this->dataDir . '/out/tables/' . $outputTableName . '.csv.manifest'),
             true
         );
-        $this->assertEquals(["weird_I_d", 'S_oPaulo'], $manifest['columns']);
-        $this->assertEquals(["weird_I_d"], $manifest['primary_key']);
+        $this->assertEquals(['weird_I_d', 'S_oPaulo'], $manifest['columns']);
+        $this->assertEquals(['weird_I_d'], $manifest['primary_key']);
     }
 
     public function testInvalidConfigurationQueryAndTable(): void
@@ -609,7 +618,7 @@ class CommonExtractorTest extends ExtractorTest
             $app->run();
             $this->fail('table and query parameters cannot both be present');
         } catch (\Keboola\DbExtractor\Exception\UserException $e) {
-            $this->assertStringStartsWith("Invalid Configuration", $e->getMessage());
+            $this->assertStringStartsWith('Invalid Configuration', $e->getMessage());
         }
     }
 
@@ -622,14 +631,14 @@ class CommonExtractorTest extends ExtractorTest
             $app->run();
             $this->fail('one of table or query is required');
         } catch (\Keboola\DbExtractor\Exception\UserException $e) {
-            $this->assertStringStartsWith("Invalid Configuration", $e->getMessage());
+            $this->assertStringStartsWith('Invalid Configuration', $e->getMessage());
         }
     }
 
     public function testStrangeTableName(): void
     {
         $config = $this->getConfig(self::DRIVER);
-        $config['parameters']['tables'][0]['outputTable'] = "in.c-main.something/ weird";
+        $config['parameters']['tables'][0]['outputTable'] = 'in.c-main.something/ weird';
         unset($config['parameters']['tables'][1]);
         $result = ($this->getApp($config))->run();
 
@@ -789,7 +798,7 @@ class CommonExtractorTest extends ExtractorTest
             $result = ($this->getApp($config))->run();
             $this->fail('specified autoIncrement column does not exist, should fail.');
         } catch (UserException $e) {
-            $this->assertStringStartsWith("Column [fakeCol]", $e->getMessage());
+            $this->assertStringStartsWith('Column [fakeCol]', $e->getMessage());
         }
 
         // column exists but is not auto-increment nor updating timestamp so should fail
@@ -798,7 +807,7 @@ class CommonExtractorTest extends ExtractorTest
             $result = ($this->getApp($config))->run();
             $this->fail('specified column is not auto increment nor timestamp, should fail.');
         } catch (UserException $e) {
-            $this->assertStringStartsWith("Column [name] specified for incremental fetching", $e->getMessage());
+            $this->assertStringStartsWith('Column [name] specified for incremental fetching', $e->getMessage());
         }
     }
 
@@ -813,7 +822,7 @@ class CommonExtractorTest extends ExtractorTest
             $result = ($this->getApp($config))->run();
             $this->fail('cannot use incremental fetching with advanced query, should fail.');
         } catch (UserException $e) {
-            $this->assertStringStartsWith("Invalid Configuration", $e->getMessage());
+            $this->assertStringStartsWith('Invalid Configuration', $e->getMessage());
         }
     }
 
@@ -866,7 +875,7 @@ class CommonExtractorTest extends ExtractorTest
         unset($config['parameters']['name']);
         unset($config['parameters']['table']);
         // we want to test the no results case
-        $config['parameters']['query'] = "SELECT 1 LIMIT 0";
+        $config['parameters']['query'] = 'SELECT 1 LIMIT 0';
         $result = ($this->getApp($config))->run();
 
         $this->assertArrayHasKey('status', $result);
@@ -879,7 +888,7 @@ class CommonExtractorTest extends ExtractorTest
         unset($config['parameters']['name']);
 
         // we want to test the no results case
-        $config['parameters']['query'] = "SELECT 1 LIMIT 0";
+        $config['parameters']['query'] = 'SELECT 1 LIMIT 0';
 
         $this->expectException(UserException::class);
         $this->expectExceptionMessageRegExp('(.*Both table and query cannot be set together.*)');
@@ -895,7 +904,7 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['incrementalFetchingColumn'] = 'abc';
 
         // we want to test the no results case
-        $config['parameters']['query'] = "SELECT 1 LIMIT 0";
+        $config['parameters']['query'] = 'SELECT 1 LIMIT 0';
 
         $this->expectException(UserException::class);
         $this->expectExceptionMessageRegExp('(.*Incremental fetching is not supported for advanced queries.*)');
@@ -1043,7 +1052,10 @@ class CommonExtractorTest extends ExtractorTest
             self::fail('Must raise exception.');
         } catch (UserException $e) {
             self::assertTrue($handler->hasInfoThatContains('Retrying...'));
-            self::assertContains('Error connecting to DB: SQLSTATE[HY000] [2002] php_network_getaddresses: getaddrinfo failed: Name or service not known', $e->getMessage());
+            self::assertContains('Error connecting to '.
+                'DB: SQLSTATE[HY000] [2002] '.
+                'php_network_getaddresses: getaddrinfo '.
+                'failed: Name or service not known', $e->getMessage());
         }
     }
 }
