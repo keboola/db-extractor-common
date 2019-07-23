@@ -25,11 +25,12 @@
     "symfony/serializer": "^3.1"
   },
   "require-dev": {
-    "aws/aws-sdk-php": "^3.67",
-    "phpunit/phpunit": "^7.0",
-    "keboola/coding-standard": "^2.0",
-    "symfony/finder": "*",
-    "phpstan/phpstan": "^0.8"
+    "aws/aws-sdk-php": "^3.107",
+    "keboola/coding-standard": "^8.0",
+    "phpstan/phpstan-shim": "^0.11.12",
+    "phpunit/phpunit": "^7.5",
+    "symfony/debug": "^4.3",
+    "symfony/finder": "^4.3"
   },
   "autoload": {
     "psr-4": {
