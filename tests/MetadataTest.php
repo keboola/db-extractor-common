@@ -20,20 +20,20 @@ class MetadataTest extends TestCase
         ];
         $expectedOutput = [
             [
-                "key" => "KBC.name",
-                "value" =>"simple",
+                'key' => 'KBC.name',
+                'value' =>'simple',
             ],[
-                "key" => "KBC.sanitizedName",
-                "value" => "simple",
+                'key' => 'KBC.sanitizedName',
+                'value' => 'simple',
             ],[
-                "key" => "KBC.schema",
-                "value" => "testdb",
+                'key' => 'KBC.schema',
+                'value' => 'testdb',
             ],[
-                "key" => "KBC.type",
-                "value" => "BASE TABLE",
+                'key' => 'KBC.type',
+                'value' => 'BASE TABLE',
             ],[
-                "key" => "KBC.rowCount",
-                "value" => "2",
+                'key' => 'KBC.rowCount',
+                'value' => '2',
             ],
         ];
         $outputMetadata = Extractor::getTableLevelMetadata($sourceData);

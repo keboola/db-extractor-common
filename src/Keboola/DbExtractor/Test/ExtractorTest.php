@@ -16,7 +16,7 @@ class ExtractorTest extends TestCase
     public const CONFIG_FORMAT_JSON = 'json';
 
     /** @var string */
-    protected $dataDir = __DIR__ . "/../../../../tests/data";
+    protected $dataDir = __DIR__ . '/../../../../tests/data';
 
     protected function getConfigDbNode(string $driver): array
     {
@@ -39,12 +39,12 @@ class ExtractorTest extends TestCase
                 $config = Yaml::parse(file_get_contents($this->dataDir . '/' .$driver . '/config.yml'));
                 break;
             default:
-                throw new UserException("Unsupported configuration format: " . $format);
+                throw new UserException('Unsupported configuration format: ' . $format);
         }
         $config['parameters']['data_dir'] = $this->dataDir;
         $config['parameters']['db'] = $this->getConfigDbNode($driver);
         $config['parameters']['extractor_class'] = ucfirst($driver);
-        
+
         return $config;
     }
 
@@ -75,7 +75,7 @@ class ExtractorTest extends TestCase
         $env = strtoupper($driver) . '_' . $suffix;
         if ($required) {
             if (false === getenv($env)) {
-                throw new \Exception($env . " environment variable must be set.");
+                throw new \Exception($env . ' environment variable must be set.');
             }
         }
         return getenv($env);

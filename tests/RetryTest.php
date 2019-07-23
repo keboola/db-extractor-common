@@ -116,7 +116,7 @@ class RetryTest extends ExtractorTest
             'port' => getenv('TEST_RDS_PORT'),
         ];
         $dsn = sprintf(
-            "mysql:host=%s;port=%s;dbname=%s;charset=utf8",
+            'mysql:host=%s;port=%s;dbname=%s;charset=utf8',
             $this->dbParams['host'],
             $this->dbParams['port'],
             $this->dbParams['database']
@@ -214,16 +214,24 @@ class RetryTest extends ExtractorTest
         // Set up the data table
         if (!$tableExists) {
             $csv = new CsvFile($sourceFileName);
-            $header = ["usergender", "usercity", "usersentiment", "zipcode", "sku", "createdat", "category"];
+            $header = [
+                'usergender',
+                'usercity',
+                'usersentiment',
+                'zipcode',
+                'sku',
+                'createdat',
+                'category',
+            ];
             $csv->writeRow($header);
             for ($i = 0; $i < self::ROW_COUNT - 1; $i++) { // -1 for the header
                 $csv->writeRow(
-                    [uniqid('g'), "The Lakes", "1", "89124", "ZD111402", "2013-09-23 22:38:30", uniqid('c')]
+                    [uniqid('g'), 'The Lakes', '1', '89124', 'ZD111402', '2013-09-23 22:38:30', uniqid('c')]
                 );
             }
 
             $createTableSql = sprintf(
-                "CREATE TABLE %s.%s (%s) DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;",
+                'CREATE TABLE %s.%s (%s) DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;',
                 getenv('TEST_RDS_DATABASE'),
                 $tableName,
                 implode(
@@ -254,7 +262,7 @@ class RetryTest extends ExtractorTest
     private function getLineCount(string $fileName): int
     {
         $lineCount = 0;
-        $handle = fopen($fileName, "r");
+        $handle = fopen($fileName, 'r');
         while (fgets($handle) !== false) {
             $lineCount++;
         }
@@ -417,7 +425,7 @@ class RetryTest extends ExtractorTest
 
     public function testRetryNetworkErrorPrepare(): void
     {
-        $this->markTestSkipped("unstable");
+        $this->markTestSkipped('unstable');
         $rowCount = 100;
         $this->setupLargeTable();
         $handler = new TestHandler();

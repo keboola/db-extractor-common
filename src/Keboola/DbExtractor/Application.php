@@ -118,7 +118,7 @@ class Application extends Container
                 )
             );
         } else if (isset($table['incrementalFetching']['autoIncrementColumn']) && empty($table['primaryKey'])) {
-            $this['logger']->warn("An import autoIncrement column is being used but output primary key is not set.");
+            $this['logger']->warn('An import autoIncrement column is being used but output primary key is not set.');
         }
     }
 
