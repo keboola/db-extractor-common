@@ -70,7 +70,7 @@ class RetryTest extends ExtractorTest
             try {
                 $this->taintedPdo = null;
                 $conn = $this->getConnection();
-                $conn->query('SELECT NOW();')->execute();
+                $conn->prepare('SELECT NOW();')->execute();
                 $this->taintedPdo = $conn;
                 break;
             } catch (\Throwable $e) {
@@ -83,8 +83,7 @@ class RetryTest extends ExtractorTest
             }
         }
         // save the PID of the current connection
-        $stmt = $this->taintedPdo->query('SELECT CONNECTION_ID() AS pid;');
-        $stmt->execute();
+        $stmt = $this->taintedPdo->prepare('SELECT CONNECTION_ID() AS pid;');
         $this->pid = $stmt->fetch()['pid'];
     }
 
@@ -94,7 +93,7 @@ class RetryTest extends ExtractorTest
         $cnt = 0;
         while (true) {
             try {
-                $this->taintedPdo->query('SELECT NOW();')->execute();
+                $this->taintedPdo->prepare('SELECT NOW();')->execute();
                 $cnt++;
                 if ($cnt > 50) {
                     self::fail('Failed to kill the server');
@@ -109,11 +108,11 @@ class RetryTest extends ExtractorTest
     private function getConnection(): PDO
     {
         $this->dbParams = [
-            'user' => getenv('TEST_RDS_USERNAME'),
-            '#password' => getenv('TEST_RDS_PASSWORD'),
-            'host' => getenv('TEST_RDS_HOST'),
-            'database' => getenv('TEST_RDS_DATABASE'),
-            'port' => getenv('TEST_RDS_PORT'),
+            'user' => getenv('TEST_RDS_USERNAME') === false ? null : getenv('TEST_RDS_USERNAME'),
+            '#password' => getenv('TEST_RDS_PASSWORD') === false ? null : getenv('TEST_RDS_PASSWORD'),
+            'host' => getenv('TEST_RDS_HOST') === false ? null : getenv('TEST_RDS_HOST'),
+            'database' => getenv('TEST_RDS_DATABASE') === false ? null : getenv('TEST_RDS_DATABASE'),
+            'port' => getenv('TEST_RDS_PORT') === false ? null : getenv('TEST_RDS_PORT'),
         ];
         $dsn = sprintf(
             'mysql:host=%s;port=%s;dbname=%s;charset=utf8',
@@ -199,7 +198,7 @@ class RetryTest extends ExtractorTest
         $temp->initRunFolder();
         $sourceFileName = $temp->getTmpFolder() . '/large.csv';
 
-        $res = $this->serviceConnection->query(sprintf(
+        $res = $this->serviceConnection->prepare(sprintf(
             "SELECT * 
             FROM information_schema.tables
             WHERE table_schema = '%s' 
@@ -209,7 +208,7 @@ class RetryTest extends ExtractorTest
             $tableName
         ));
 
-        $tableExists = count($res->fetchAll()) > 0;
+        $tableExists = count((array) $res->fetchAll()) > 0;
 
         // Set up the data table
         if (!$tableExists) {
@@ -263,10 +262,12 @@ class RetryTest extends ExtractorTest
     {
         $lineCount = 0;
         $handle = fopen($fileName, 'r');
-        while (fgets($handle) !== false) {
-            $lineCount++;
+        if ($handle) {
+            while (fgets($handle) !== false) {
+                $lineCount++;
+            }
+            fclose($handle);
         }
-        fclose($handle);
         return $lineCount;
     }
 
@@ -281,7 +282,7 @@ class RetryTest extends ExtractorTest
         // wait for the reboot to start (otherwise waitForConnection() would pass with the old connection
         $this->waitForDeadConnection();
         try {
-            $this->taintedPdo->query('SELECT NOW();')->execute();
+            $this->taintedPdo->prepare('SELECT NOW();')->execute();
             self::fail('Connection must be dead now.');
         } catch (\Throwable $e) {
         }
@@ -304,7 +305,8 @@ class RetryTest extends ExtractorTest
         $this->killerEnabled = 'query';
         self::expectException(\ErrorException::class);
         self::expectExceptionMessage('Warning: PDO::query(): MySQL server has gone away');
-        $this->taintedPdo->query('SELECT NOW();');
+        $stmt = $this->taintedPdo->prepare('SELECT NOW();');
+        $stmt->execute();
     }
 
     public function testNetworkKillerPrepare(): void
@@ -354,7 +356,7 @@ class RetryTest extends ExtractorTest
             will convert the warnings to PHPUnit\Framework\Error\Warning */
         ErrorHandler::register(null, true);
 
-        $stmt = $this->taintedPdo->query('SELECT NOW();');
+        $stmt = $this->taintedPdo->prepare('SELECT NOW();');
         $this->killerEnabled = 'execute';
         self::expectException(\ErrorException::class);
         self::expectExceptionMessage('Warning: PDOStatement::execute(): MySQL server has gone away');
@@ -372,7 +374,7 @@ class RetryTest extends ExtractorTest
             will convert the warnings to PHPUnit\Framework\Error\Warning */
         ErrorHandler::register(null, true);
 
-        $stmt = $this->taintedPdo->query('SELECT * FROM sales LIMIT 100000');
+        $stmt = $this->taintedPdo->prepare('SELECT * FROM sales LIMIT 100000');
         $stmt->execute();
         self::expectException(\ErrorException::class);
         self::expectExceptionMessage('Warning: Empty row packet body');
