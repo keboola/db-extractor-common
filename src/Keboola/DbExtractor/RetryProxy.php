@@ -89,7 +89,7 @@ class RetryProxy implements RetryProxyInterface
         } while ($this->retryPolicy->canRetry($retryContext));
 
         $lastException = $retryContext->getLastException();
-        if ($lastException instanceof \Exception) {
+        if ($lastException instanceof \Throwable) {
             throw $lastException;
         }
         throw new RetryException('Action call is failed.');
