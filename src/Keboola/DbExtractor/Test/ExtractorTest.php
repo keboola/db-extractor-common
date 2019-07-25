@@ -86,7 +86,7 @@ class ExtractorTest extends TestCase
         $env = strtoupper($driver) . '_' . $suffix;
         if ($required) {
             if (!getenv($env)) {
-                throw new \Exception(sprintf('The environment variable "%s" must be set.', $env));
+                throw new \Exception($env . ' environment variable must be set.');
             }
         }
         return (string) getenv($env);
