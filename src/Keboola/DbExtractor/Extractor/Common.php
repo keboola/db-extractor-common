@@ -27,7 +27,7 @@ class Common extends Extractor
         // check params
         foreach (['host', 'database', 'user', 'password'] as $r) {
             if (!isset($params[$r])) {
-                throw new UserException(sprintf('Parameter %s is missing.', $r));
+                throw new UserException(sprintf('Parameter "%s" is missing.', $r));
             }
         }
 
