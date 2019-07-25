@@ -215,9 +215,8 @@ class Common extends Extractor
                 'rowCount' => (isset($table['TABLE_ROWS'])) ? $table['TABLE_ROWS'] : '',
             ];
             if ($table['AUTO_INCREMENT']) {
-                $tableDefs
-                [$table['TABLE_SCHEMA'] . '.' . $table['TABLE_NAME']]
-                ['autoIncrement'] = $table['AUTO_INCREMENT'];
+                $currentTableId = $table['TABLE_SCHEMA'] . '.' . $table['TABLE_NAME'];
+                $tableDefs[$currentTableId]['autoIncrement'] = $table['AUTO_INCREMENT'];
             }
         }
 
