@@ -72,7 +72,7 @@ class RetryProxy implements RetryProxyInterface
             } catch (\Exception $thrownException) {
                 try {
                     $this->retryPolicy->registerException($retryContext, $thrownException);
-                } catch (\Exception $policyException) {
+                } catch (\Throwable $policyException) {
                     throw new TerminatedRetryException('Terminated retry after error in policy.');
                 }
             }
