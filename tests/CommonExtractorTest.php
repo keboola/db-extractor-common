@@ -586,7 +586,7 @@ class CommonExtractorTest extends ExtractorTest
         $config['action'] = 'sample';
         $config['parameters']['tables'] = [];
 
-        $this->expectExceptionMessage('Action \'sample\' does not exist.');
+        $this->expectExceptionMessage('Action "sample" does not exist.');
         $this->expectException(UserException::class);
         $app = $this->getApp($config);
         $app->run();
