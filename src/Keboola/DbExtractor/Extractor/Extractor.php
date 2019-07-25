@@ -91,7 +91,7 @@ abstract class Extractor
         // check params
         foreach (['keys', 'sshHost'] as $k) {
             if (empty($sshConfig[$k])) {
-                throw new UserException(sprintf('Parameter \'%s\' is missing.', $k));
+                throw new UserException(sprintf('Parameter "%s" is missing.', $k));
             }
         }
 
