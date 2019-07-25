@@ -109,11 +109,11 @@ class RetryTest extends ExtractorTest
     private function getConnection(): PDO
     {
         $this->dbParams = [
-            'user' => getenv('TEST_RDS_USERNAME') === false ? null : getenv('TEST_RDS_USERNAME'),
-            '#password' => getenv('TEST_RDS_PASSWORD') === false ? null : getenv('TEST_RDS_PASSWORD'),
-            'host' => getenv('TEST_RDS_HOST') === false ? null : getenv('TEST_RDS_HOST'),
-            'database' => getenv('TEST_RDS_DATABASE') === false ? null : getenv('TEST_RDS_DATABASE'),
-            'port' => getenv('TEST_RDS_PORT') === false ? null : getenv('TEST_RDS_PORT'),
+            'user' => (string) getenv('TEST_RDS_USERNAME'),
+            '#password' => (string) getenv('TEST_RDS_PASSWORD'),
+            'host' => (string) getenv('TEST_RDS_HOST'),
+            'database' => (string) getenv('TEST_RDS_DATABASE'),
+            'port' => (string) getenv('TEST_RDS_PORT'),
         ];
         $dsn = sprintf(
             'mysql:host=%s;port=%s;dbname=%s;charset=utf8',
