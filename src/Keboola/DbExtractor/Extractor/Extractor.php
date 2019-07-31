@@ -61,7 +61,7 @@ abstract class Extractor
                 $sshTunnel = new SSHTunnel($logger);
                 $parameters['db'] = $sshTunnel->createSshTunnel($parameters['db']);
             } catch (SSHTunnelUserException $e) {
-                throw new UserException($e->getMessage());
+                throw new UserException($e->getMessage(), 0, $e);
             }
         }
         $this->dbParameters = $parameters['db'];
