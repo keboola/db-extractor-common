@@ -911,10 +911,12 @@ class CommonExtractorTest extends ExtractorTest
         // we want to test the no results case
         $config['parameters']['query'] = 'SELECT 1 LIMIT 0';
 
-        $this->expectException(ConfigUserException::class);
-        $this->expectExceptionMessage('Invalid configuration for path "parameters": Incremental fetching is not supported for advanced queries.');
-
-        ($this->getApp($config))->run();
+        try {
+            $this->getApp($config)->run();
+            $this->fail('Incremental fetching is not supported for advanced queries.');
+        } catch (ConfigUserException $e) {
+            $this->assertStringStartsWith('Invalid configuration', $e->getMessage());
+        }
     }
 
     public function testInvalidConfigsNeitherTableNorQueryWithNoName(): void
