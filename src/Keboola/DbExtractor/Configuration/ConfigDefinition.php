@@ -45,6 +45,23 @@ class ConfigDefinition implements ConfigurationInterface
                 ->end()
                 ->arrayNode('tables')
                     ->prototype('array')
+                        ->validate()
+                            ->ifTrue(function ($v) {
+                                if (!isset($v['table']) && !isset($v['query'])) {
+                                    return true;
+                                }
+                                return false;
+                            })->thenInvalid('One of table or query is required')
+                        ->end()
+                        ->validate()
+                            ->ifTrue(function ($v) {
+                                if (isset($v['query']) && $v['query'] !== '' && isset($v['table'])) {
+                                    return true;
+                                }
+                                return false;
+                            })
+                            ->thenInvalid('Both table and query cannot be set together.')
+                        ->end()
                         ->children()
                             ->integerNode('id')
                                 ->isRequired()
@@ -57,8 +74,8 @@ class ConfigDefinition implements ConfigurationInterface
                             ->scalarNode('query')->end()
                             ->arrayNode('table')
                                 ->children()
-                                    ->scalarNode('schema')->end()
-                                    ->scalarNode('tableName')->end()
+                                    ->scalarNode('schema')->isRequired()->end()
+                                    ->scalarNode('tableName')->isRequired()->end()
                                 ->end()
                             ->end()
                             ->arrayNode('columns')

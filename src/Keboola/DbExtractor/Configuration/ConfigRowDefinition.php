@@ -15,7 +15,33 @@ class ConfigRowDefinition implements ConfigurationInterface
     {
         $treeBuilder = new TreeBuilder();
         $rootNode = $treeBuilder->root('parameters');
-
+        $rootNode
+            ->validate()
+                ->ifTrue(function ($v) {
+                    if (isset($v['query']) && $v['query'] !== '' && isset($v['table'])) {
+                        return true;
+                    }
+                    return false;
+                })
+                ->thenInvalid('Both table and query cannot be set together.')
+                ->end()
+            ->validate()
+                ->ifTrue(function ($v) {
+                    if (isset($v['query']) && $v['query'] !== '' && isset($v['incrementalFetchingColumn'])) {
+                        return true;
+                    }
+                    return false;
+                })->thenInvalid('Incremental fetching is not supported for advanced queries.')
+                ->end()
+            ->validate()
+                ->ifTrue(function ($v) {
+                    if (!isset($v['table']) && !isset($v['query'])) {
+                        return true;
+                    }
+                    return false;
+                })->thenInvalid('One of table or query is required')
+            ->end()
+        ;
         // @formatter:off
         $rootNode
             ->children()
@@ -53,8 +79,8 @@ class ConfigRowDefinition implements ConfigurationInterface
                 ->scalarNode('query')->end()
                 ->arrayNode('table')
                     ->children()
-                        ->scalarNode('schema')->end()
-                        ->scalarNode('tableName')->end()
+                        ->scalarNode('schema')->isRequired()->end()
+                        ->scalarNode('tableName')->isRequired()->end()
                     ->end()
                 ->end()
                 ->arrayNode('columns')

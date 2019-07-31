@@ -15,6 +15,7 @@ use Symfony\Component\Finder\Finder;
 use Symfony\Component\Yaml\Yaml;
 use Keboola\DbExtractor\Test\ExtractorTest;
 use Keboola\DbExtractor\Test\DataLoader;
+use \Keboola\DbExtractorConfig\Exception\UserException as ConfigUserException;
 
 class CommonExtractorTest extends ExtractorTest
 {
@@ -618,8 +619,8 @@ class CommonExtractorTest extends ExtractorTest
             $app = $this->getApp($config);
             $app->run();
             $this->fail('table and query parameters cannot both be present');
-        } catch (\Keboola\DbExtractor\Exception\UserException $e) {
-            $this->assertStringStartsWith('Invalid Configuration', $e->getMessage());
+        } catch (\Keboola\DbExtractorConfig\Exception\UserException $e) {
+            $this->assertStringStartsWith('Invalid configuration', $e->getMessage());
         }
     }
 
@@ -631,8 +632,8 @@ class CommonExtractorTest extends ExtractorTest
             $app = $this->getApp($config);
             $app->run();
             $this->fail('one of table or query is required');
-        } catch (\Keboola\DbExtractor\Exception\UserException $e) {
-            $this->assertStringStartsWith('Invalid Configuration', $e->getMessage());
+        } catch (\Keboola\DbExtractorConfig\Exception\UserException $e) {
+            $this->assertStringStartsWith('Invalid configuration', $e->getMessage());
         }
     }
 
@@ -822,8 +823,8 @@ class CommonExtractorTest extends ExtractorTest
         try {
             $result = ($this->getApp($config))->run();
             $this->fail('cannot use incremental fetching with advanced query, should fail.');
-        } catch (UserException $e) {
-            $this->assertStringStartsWith('Invalid Configuration', $e->getMessage());
+        } catch (\Keboola\DbExtractorConfig\Exception\UserException $e) {
+            $this->assertStringStartsWith('Invalid configuration', $e->getMessage());
         }
     }
 
@@ -894,8 +895,8 @@ class CommonExtractorTest extends ExtractorTest
         // we want to test the no results case
         $config['parameters']['query'] = 'SELECT 1 LIMIT 0';
 
-        $this->expectException(UserException::class);
-        $this->expectExceptionMessageRegExp('(.*Both table and query cannot be set together.*)');
+        $this->expectException(ConfigUserException::class);
+        $this->expectExceptionMessage('Both table and query cannot be set together.');
 
         ($this->getApp($config))->run();
     }
@@ -910,8 +911,8 @@ class CommonExtractorTest extends ExtractorTest
         // we want to test the no results case
         $config['parameters']['query'] = 'SELECT 1 LIMIT 0';
 
-        $this->expectException(UserException::class);
-        $this->expectExceptionMessageRegExp('(.*Incremental fetching is not supported for advanced queries.*)');
+        $this->expectException(ConfigUserException::class);
+        $this->expectExceptionMessage('Invalid configuration for path "parameters": Incremental fetching is not supported for advanced queries.');
 
         ($this->getApp($config))->run();
     }
@@ -922,8 +923,8 @@ class CommonExtractorTest extends ExtractorTest
         unset($config['parameters']['name']);
         unset($config['parameters']['table']);
 
-        $this->expectException(UserException::class);
-        $this->expectExceptionMessageRegExp('(.*One of table or query is required.*)');
+        $this->expectException(ConfigUserException::class);
+        $this->expectExceptionMessage('Invalid configuration for path "parameters": One of table or query is required');
 
         ($this->getApp($config))->run();
     }
@@ -934,8 +935,8 @@ class CommonExtractorTest extends ExtractorTest
         unset($config['parameters']['name']);
         $config['parameters']['table'] = ['tableName' => 'sales'];
 
-        $this->expectException(UserException::class);
-        $this->expectExceptionMessageRegExp('(.*The table property requires "tableName" and "schema".*)');
+        $this->expectException(ConfigUserException::class);
+        $this->expectExceptionMessage('The child node "schema" at path "parameters.table" must be configured.');
 
         ($this->getApp($config))->run();
     }
