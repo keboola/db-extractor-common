@@ -62,7 +62,6 @@
     ]
   },
   "config": {
-    "sort-packages": true,
-    "github-protocols": ["https"]
+    "sort-packages": true
   }
 }
