@@ -15,7 +15,6 @@ use Symfony\Component\Finder\Finder;
 use Symfony\Component\Yaml\Yaml;
 use Keboola\DbExtractor\Test\ExtractorTest;
 use Keboola\DbExtractor\Test\DataLoader;
-use \Keboola\DbExtractorConfig\Exception\UserException as ConfigUserException;
 
 class CommonExtractorTest extends ExtractorTest
 {
@@ -885,62 +884,6 @@ class CommonExtractorTest extends ExtractorTest
 
         $this->assertArrayHasKey('status', $result);
         $this->assertEquals('success', $result['status']);
-    }
-
-    public function testInvalidConfigsBothTableAndQueryWithNoName(): void
-    {
-        $config = $this->getConfigRow(self::DRIVER);
-        unset($config['parameters']['name']);
-
-        // we want to test the no results case
-        $config['parameters']['query'] = 'SELECT 1 LIMIT 0';
-
-        $this->expectException(ConfigUserException::class);
-        $this->expectExceptionMessage('Both table and query cannot be set together.');
-
-        ($this->getApp($config))->run();
-    }
-
-    public function testInvalidConfigsBothIncrFetchAndQueryWithNoName(): void
-    {
-        $config = $this->getConfigRow(self::DRIVER);
-        unset($config['parameters']['name']);
-        unset($config['parameters']['table']);
-        $config['parameters']['incrementalFetchingColumn'] = 'abc';
-
-        // we want to test the no results case
-        $config['parameters']['query'] = 'SELECT 1 LIMIT 0';
-
-        try {
-            $this->getApp($config)->run();
-            $this->fail('Incremental fetching is not supported for advanced queries.');
-        } catch (ConfigUserException $e) {
-            $this->assertStringStartsWith('Invalid configuration', $e->getMessage());
-        }
-    }
-
-    public function testInvalidConfigsNeitherTableNorQueryWithNoName(): void
-    {
-        $config = $this->getConfigRow(self::DRIVER);
-        unset($config['parameters']['name']);
-        unset($config['parameters']['table']);
-
-        $this->expectException(ConfigUserException::class);
-        $this->expectExceptionMessage('Invalid configuration for path "parameters": One of table or query is required');
-
-        ($this->getApp($config))->run();
-    }
-
-    public function testInvalidConfigsInvalidTableWithNoName(): void
-    {
-        $config = $this->getConfigRow(self::DRIVER);
-        unset($config['parameters']['name']);
-        $config['parameters']['table'] = ['tableName' => 'sales'];
-
-        $this->expectException(ConfigUserException::class);
-        $this->expectExceptionMessage('The child node "schema" at path "parameters.table" must be configured.');
-
-        ($this->getApp($config))->run();
     }
 
     public function testNoRetryOnCsvError(): void

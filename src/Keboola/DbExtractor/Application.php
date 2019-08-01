@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor;
 
-use Keboola\DbExtractor\Configuration\ActionConfigRowDefinition;
-use Keboola\DbExtractor\Configuration\ConfigDefinition;
-use Keboola\DbExtractor\Configuration\ConfigRowDefinition;
 use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractorConfig\Config;
+use Keboola\DbExtractorConfig\Configuration\ActionConfigRowDefinition;
+use Keboola\DbExtractorConfig\Configuration\ConfigDefinition;
+use Keboola\DbExtractorConfig\Configuration\ConfigRowDefinition;
 use Pimple\Container;
 use ErrorException;
 
