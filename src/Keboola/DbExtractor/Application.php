@@ -42,12 +42,12 @@ class Application extends Container
         };
 
         if (isset($this['parameters']['tables'])) {
-            $this->config = new Config((new ConfigDefinition()), Config::CONFIG_DEFINITION);
+            $this->config = new Config((new ConfigDefinition()));
         } else {
             if ($this['action'] === 'run') {
-                $this->config = new Config(new ConfigRowDefinition(), Config::CONFIG_ROW_DEFINITION);
+                $this->config = new Config(new ConfigRowDefinition());
             } else {
-                $this->config = new Config(new ActionConfigRowDefinition(), Config::CONFIG_ROW_ACTION_DEFINITION);
+                $this->config = new Config(new ActionConfigRowDefinition());
             }
         }
     }
