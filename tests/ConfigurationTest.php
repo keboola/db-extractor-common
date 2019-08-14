@@ -1,8 +1,8 @@
 <?php
 
+declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Tests;
-
 
 use Keboola\DbExtractor\Application;
 use Keboola\DbExtractor\Test\ExtractorTest;
