@@ -18,6 +18,7 @@ class ActionConfigRowDefinition implements ConfigurationInterface
 
         // @formatter:off
         $rootNode
+            ->ignoreExtraKeys(true)
             ->children()
                 ->scalarNode('data_dir')
                     ->isRequired()
