@@ -7,6 +7,7 @@ namespace Keboola\DbExtractor\Extractor;
 use Keboola\Csv\CsvFile;
 use Keboola\Csv\Exception as CsvException;
 use Keboola\Datatype\Definition\GenericStorage;
+use Keboola\DbExtractor\DbRetryProxy;
 use Keboola\DbExtractor\Exception\ApplicationException;
 use Keboola\DbExtractor\Exception\DeadConnectionException;
 use Keboola\DbExtractor\Exception\UserException;
@@ -16,9 +17,6 @@ use Keboola\DbExtractorSSHTunnel\Exception\UserException as SSHTunnelUserExcepti
 use Nette\Utils;
 
 use PDOException;
-use Retry\BackOff\ExponentialBackOffPolicy;
-use Retry\Policy\SimpleRetryPolicy;
-use Retry\RetryProxy;
 use Throwable;
 use PDO;
 use PDOStatement;
@@ -66,17 +64,7 @@ abstract class Extractor
         }
         $this->dbParameters = $parameters['db'];
 
-        $simplyRetryPolicy = new SimpleRetryPolicy(
-            self::DEFAULT_MAX_TRIES,
-            [PDOException::class]
-        );
-        $exponentialBackOffPolicy = new ExponentialBackOffPolicy();
-
-        $proxy = new RetryProxy(
-            $simplyRetryPolicy,
-            $exponentialBackOffPolicy,
-            $this->logger
-        );
+        $proxy = new DbRetryProxy($this->logger, self::DEFAULT_MAX_TRIES, [PDOException::class]);
 
         try {
             $proxy->call(function (): void {
@@ -143,17 +131,7 @@ abstract class Extractor
         }
         $maxTries = isset($table['retries']) ? (int) $table['retries'] : self::DEFAULT_MAX_TRIES;
 
-        $simplyRetryPolicy = new SimpleRetryPolicy(
-            $maxTries,
-            [DeadConnectionException::class, \ErrorException::class]
-        );
-        $exponentialBackOffPolicy = new ExponentialBackOffPolicy();
-
-        $proxy = new RetryProxy(
-            $simplyRetryPolicy,
-            $exponentialBackOffPolicy,
-            $this->logger
-        );
+        $proxy = new DbRetryProxy($this->logger, $maxTries, [DeadConnectionException::class, \ErrorException::class]);
 
         try {
             $result = $proxy->call(function () use ($query, $maxTries, $outputTable, $isAdvancedQuery) {
@@ -219,14 +197,7 @@ abstract class Extractor
 
     protected function executeQuery(string $query, ?int $maxTries): PDOStatement
     {
-        $simplyRetryPolicy = new SimpleRetryPolicy($maxTries);
-        $exponentialBackOffPolicy = new ExponentialBackOffPolicy();
-
-        $proxy = new RetryProxy(
-            $simplyRetryPolicy,
-            $exponentialBackOffPolicy,
-            $this->logger
-        );
+        $proxy = new DbRetryProxy($this->logger, $maxTries);
 
         $stmt = $proxy->call(function () use ($query) {
             try {
