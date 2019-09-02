@@ -18,7 +18,7 @@
     "keboola/db-extractor-ssh-tunnel": "^1.1",
     "keboola/php-datatypes": "^4.0",
     "keboola/php-temp": "^2.0",
-    "keboola/php-utils": "^2.3||^3.0",
+    "keboola/php-utils": "^2.3||^3.0||^4.0",
     "keboola/retry": "^0.4",
     "nette/utils": "^2.4",
     "pimple/pimple": "^3.0",
