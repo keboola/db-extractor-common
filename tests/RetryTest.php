@@ -256,6 +256,8 @@ class RetryTest extends ExtractorTest
             );
             $this->serviceConnection->exec($query);
         }
+
+        $temp->remove();
     }
 
     private function getLineCount(string $fileName): int
