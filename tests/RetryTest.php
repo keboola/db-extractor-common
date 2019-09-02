@@ -196,7 +196,6 @@ class RetryTest extends ExtractorTest
     {
         $tableName = 'sales';
         $temp = new Temp();
-        $temp->initRunFolder();
         $sourceFileName = $temp->getTmpFolder() . '/large.csv';
 
         $res = $this->serviceConnection->query(sprintf(
