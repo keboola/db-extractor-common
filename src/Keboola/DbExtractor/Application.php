@@ -28,21 +28,19 @@ class Application extends Container
 
         $this['action'] = isset($config['action']) ? $config['action'] : 'run';
 
-        $this['parameters'] = $config['parameters'];
-
         $this['state'] = $state;
 
         $this['logger'] = $logger;
 
-        $this['extractor_factory'] = function () use ($app) {
-            return new ExtractorFactory($app['parameters'], $app['state']);
+        $this['extractor_factory'] = function () use ($app, $config) {
+            return new ExtractorFactory($config['parameters'], $app['state']);
         };
 
         $this['extractor'] = function () use ($app) {
             return $app['extractor_factory']->create($app['logger']);
         };
 
-        if (isset($this['parameters']['tables'])) {
+        if (isset($config['parameters']['tables'])) {
             $this->config = new Config($config, new ConfigDefinition());
         } else {
             if ($this['action'] === 'run') {
@@ -65,11 +63,12 @@ class Application extends Container
 
     private function runAction(): array
     {
+        $configData = $this->config->getData();
         $imported = [];
         $outputState = [];
-        if (isset($this['parameters']['tables'])) {
+        if (isset($configData['parameters']['tables'])) {
             $tables = (array) array_filter(
-                $this['parameters']['tables'],
+                $configData['parameters']['tables'],
                 function ($table) {
                     return ($table['enabled']);
                 }
@@ -79,7 +78,7 @@ class Application extends Container
                 $imported[] = $exportResults;
             }
         } else {
-            $exportResults = $this['extractor']->export($this['parameters']);
+            $exportResults = $this['extractor']->export($configData['parameters']);
             if (isset($exportResults['state'])) {
                 $outputState = $exportResults['state'];
                 unset($exportResults['state']);
