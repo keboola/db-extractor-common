@@ -9,6 +9,7 @@ use Keboola\DbExtractorConfig\Config;
 use Keboola\DbExtractorConfig\Configuration\ActionConfigRowDefinition;
 use Keboola\DbExtractorConfig\Configuration\ConfigDefinition;
 use Keboola\DbExtractorConfig\Configuration\ConfigRowDefinition;
+use Keboola\DbExtractorLogger\Logger;
 use Pimple\Container;
 use ErrorException;
 
@@ -42,20 +43,18 @@ class Application extends Container
         };
 
         if (isset($this['parameters']['tables'])) {
-            $this->config = new Config((new ConfigDefinition()));
+            $this->config = new Config($config, new ConfigDefinition());
         } else {
             if ($this['action'] === 'run') {
-                $this->config = new Config(new ConfigRowDefinition());
+                $this->config = new Config($config, new ConfigRowDefinition());
             } else {
-                $this->config = new Config(new ActionConfigRowDefinition());
+                $this->config = new Config($config, new ActionConfigRowDefinition());
             }
         }
     }
 
     public function run(): array
     {
-        $this['parameters'] = $this->config->validateParameters($this['parameters'], $this['action']);
-
         $actionMethod = $this['action'] . 'Action';
         if (!method_exists($this, $actionMethod)) {
             throw new UserException(sprintf('Action "%s" does not exist.', $this['action']));
