@@ -31,12 +31,12 @@ class DbRetryProxy extends RetryProxy
         if ($retryPolicy === null) {
             $retryPolicy = new SimpleRetryPolicy(
                 $maxTries ?? self::DEFAULT_MAX_TRIES,
-                $expectedExceptions ? $expectedExceptions : self::DEFAULT_EXCEPTED_EXCEPTIONS
+                $expectedExceptions ?? self::DEFAULT_EXCEPTED_EXCEPTIONS
             );
         }
         if ($backoffPolicy === null) {
             $backoffPolicy = new ExponentialBackOffPolicy(
-                $backoffInterval ? $backoffInterval : self::DEFAULT_BACKOFF_INTERVAL
+                $backoffInterval ?? self::DEFAULT_BACKOFF_INTERVAL
             );
         }
 
