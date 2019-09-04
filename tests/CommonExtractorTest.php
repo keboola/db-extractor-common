@@ -610,32 +610,6 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertEquals(['weird_I_d'], $manifest['primary_key']);
     }
 
-    public function testInvalidConfigurationQueryAndTable(): void
-    {
-        $config = $this->getConfig(self::DRIVER);
-        $config['parameters']['tables'][0]['table'] = ['schema' => 'testdb', 'tableName' => 'escaping'];
-        try {
-            $app = $this->getApp($config);
-            $app->run();
-            $this->fail('table and query parameters cannot both be present');
-        } catch (\Keboola\DbExtractorConfig\Exception\UserException $e) {
-            $this->assertStringStartsWith('Invalid configuration', $e->getMessage());
-        }
-    }
-
-    public function testInvalidConfigurationQueryNorTable(): void
-    {
-        $config = $this->getConfig(self::DRIVER);
-        unset($config['parameters']['tables'][0]['query']);
-        try {
-            $app = $this->getApp($config);
-            $app->run();
-            $this->fail('one of table or query is required');
-        } catch (\Keboola\DbExtractorConfig\Exception\UserException $e) {
-            $this->assertStringStartsWith('Invalid configuration', $e->getMessage());
-        }
-    }
-
     public function testStrangeTableName(): void
     {
         $config = $this->getConfig(self::DRIVER);
@@ -809,21 +783,6 @@ class CommonExtractorTest extends ExtractorTest
             $this->fail('specified column is not auto increment nor timestamp, should fail.');
         } catch (UserException $e) {
             $this->assertStringStartsWith('Column [name] specified for incremental fetching', $e->getMessage());
-        }
-    }
-
-    public function testIncrementalFetchingInvalidConfig(): void
-    {
-        $this->createAutoIncrementAndTimestampTable();
-        $config = $this->getIncrementalFetchingConfig();
-        $config['parameters']['query'] = 'SELECT * FROM auto_increment_timestamp';
-        unset($config['parameters']['table']);
-
-        try {
-            $result = ($this->getApp($config))->run();
-            $this->fail('cannot use incremental fetching with advanced query, should fail.');
-        } catch (\Keboola\DbExtractorConfig\Exception\UserException $e) {
-            $this->assertStringStartsWith('Invalid configuration', $e->getMessage());
         }
     }
 
