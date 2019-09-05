@@ -18,7 +18,7 @@ class DbRetryProxy extends RetryProxy
     /* set initial backoff to 1 second */
     public const DEFAULT_BACKOFF_INTERVAL = 1000;
 
-    public const DEFAULT_EXCEPTED_EXCEPTIONS = ['PDOException', 'ErrorException'];
+    public const DEFAULT_EXPECTED_EXCEPTIONS = ['PDOException', 'ErrorException'];
 
     public function __construct(
         LoggerInterface $logger,
@@ -31,7 +31,7 @@ class DbRetryProxy extends RetryProxy
         if ($retryPolicy === null) {
             $retryPolicy = new SimpleRetryPolicy(
                 $maxTries ?? self::DEFAULT_MAX_TRIES,
-                $expectedExceptions ?? self::DEFAULT_EXCEPTED_EXCEPTIONS
+                $expectedExceptions ?? self::DEFAULT_EXPECTED_EXCEPTIONS
             );
         }
         if ($backoffPolicy === null) {
