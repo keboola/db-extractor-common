@@ -41,5 +41,9 @@ class DbRetryProxyTest extends TestCase
             }
         });
         $this->assertEquals(5, $res);
+        foreach ($this->testHandler->getRecords() as $ind => $record) {
+            $tryNumber = $ind + 1;
+            $this->assertEquals("test throw {$tryNumber}. Retrying... [{$tryNumber}x]", $record['message']);
+        }
     }
 }
