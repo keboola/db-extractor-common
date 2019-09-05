@@ -44,7 +44,9 @@ class Application extends Container
         $this->logger = $logger;
 
         $extractorFactory = new ExtractorFactory($config['parameters'], $this->state);
-        $this->extractor = $extractorFactory->create($this->logger);
+        $this->extractor = function () use ($extractorFactory, $logger) {
+            return $extractorFactory->create($logger);
+        };
 
         if (isset($config['parameters']['tables'])) {
             $this->config = new Config($config, new ConfigDefinition());
