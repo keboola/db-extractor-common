@@ -2,3 +2,4 @@ parameters:
     ignoreErrors:
         - '#Property Keboola\\DbExtractor\\Tests\\RetryTest::\$taintedPdo \(PDO\) does not accept null.#'
         - '#Call to an undefined method PHPUnit\\Framework\\MockObject\\MockObject::export\(\).#'
+        - '#Property Keboola\\DbExtractor\\Application::\$extractor \(Keboola\\DbExtractor\\Extractor\\Extractor\) does not accept Closure\(\): mixed.#'
