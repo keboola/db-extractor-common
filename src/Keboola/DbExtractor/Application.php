@@ -16,6 +16,9 @@ use ErrorException;
 
 class Application extends Container
 {
+    /** @var Extractor */
+    private $extractor;
+
     /** @var Config $config */
     protected $config;
 
@@ -133,8 +136,11 @@ class Application extends Container
 
     private function getExtractor(): Extractor
     {
-        $config = $this->config->getData();
-        $extractorFactory = new ExtractorFactory($config['parameters'], $this->state);
-        return $extractorFactory->create($this->logger);
+        if (!($this->extractor instanceof Extractor)) {
+            $config = $this->config->getData();
+            $extractorFactory = new ExtractorFactory($config['parameters'], $this->state);
+            $this->extractor = $extractorFactory->create($this->logger);
+        }
+        return $this->extractor;
     }
 }
