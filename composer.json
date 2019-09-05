@@ -27,6 +27,7 @@
   "require-dev": {
     "aws/aws-sdk-php": "^3.107",
     "keboola/coding-standard": "^8.0",
+    "monolog/monolog": "^1.17",
     "phpstan/phpstan-shim": "^0.11.12",
     "phpunit/phpunit": "^7.5",
     "symfony/debug": "^4.3",
