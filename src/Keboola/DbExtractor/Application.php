@@ -19,9 +19,6 @@ class Application extends Container
     /** @var Config $config */
     protected $config;
 
-    /** @var Extractor $extractor */
-    protected $extractor;
-
     /** @var Logger $logger */
     protected $logger;
 
@@ -42,11 +39,6 @@ class Application extends Container
         $this->state = $state;
 
         $this->logger = $logger;
-
-        $extractorFactory = new ExtractorFactory($config['parameters'], $this->state);
-        $this->extractor = function () use ($extractorFactory, $logger) {
-            return $extractorFactory->create($logger);
-        };
 
         if (isset($config['parameters']['tables'])) {
             $this->config = new Config($config, new ConfigDefinition());
@@ -82,11 +74,11 @@ class Application extends Container
                 }
             );
             foreach ($tables as $table) {
-                $exportResults = $this->extractor->export($table);
+                $exportResults = $this->getExtractor()->export($table);
                 $imported[] = $exportResults;
             }
         } else {
-            $exportResults = $this->extractor->export($configData['parameters']);
+            $exportResults = $this->getExtractor()->export($configData['parameters']);
             if (isset($exportResults['state'])) {
                 $outputState = $exportResults['state'];
                 unset($exportResults['state']);
@@ -104,7 +96,7 @@ class Application extends Container
     private function testConnectionAction(): array
     {
         try {
-            $this->extractor->testConnection();
+            $this->getExtractor()->testConnection();
         } catch (\Throwable $e) {
             throw new UserException(sprintf("Connection failed: '%s'", $e->getMessage()), 0, $e);
         }
@@ -118,7 +110,7 @@ class Application extends Container
     {
         try {
             $output = [];
-            $output['tables'] = $this->extractor->getTables();
+            $output['tables'] = $this->getExtractor()->getTables();
             $output['status'] = 'success';
         } catch (\Throwable $e) {
             throw new UserException(sprintf("Failed to get tables: '%s'", $e->getMessage()), 0, $e);
@@ -137,5 +129,12 @@ class Application extends Container
             }
             throw new ErrorException($errstr, 0, $errno, $errfile, $errline);
         });
+    }
+
+    private function getExtractor(): Extractor
+    {
+        $config = $this->config->getData();
+        $extractorFactory = new ExtractorFactory($config['parameters'], $this->state);
+        return $extractorFactory->create($this->logger);
     }
 }
