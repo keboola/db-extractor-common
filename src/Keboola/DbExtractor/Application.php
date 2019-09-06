@@ -46,7 +46,7 @@ class Application extends Container
         $this->buildConfig($config);
     }
 
-    protected function buildConfig(array $config)
+    protected function buildConfig(array $config): void
     {
         if (isset($config['parameters']['tables'])) {
             $this->config = new Config($config, new ConfigDefinition());
