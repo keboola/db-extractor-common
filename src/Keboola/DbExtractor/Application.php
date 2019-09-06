@@ -16,8 +16,8 @@ use ErrorException;
 
 class Application extends Container
 {
-    /** @var Extractor */
-    private $extractor;
+    /** @var string $action */
+    protected $action;
 
     /** @var Config $config */
     protected $config;
@@ -25,11 +25,11 @@ class Application extends Container
     /** @var Logger $logger */
     protected $logger;
 
-    /** @var string $action */
-    protected $action;
-
     /** @var array $state */
     protected $state;
+
+    /** @var Extractor */
+    private $extractor;
 
     public function __construct(array $config, Logger $logger, array $state = [])
     {
@@ -147,5 +147,15 @@ class Application extends Container
             $this->extractor = $extractorFactory->create($this->logger);
         }
         return $this->extractor;
+    }
+
+    public function getAction(): string
+    {
+        return $this->action;
+    }
+
+    public function getLogger(): Logger
+    {
+        return $this->logger;
     }
 }
