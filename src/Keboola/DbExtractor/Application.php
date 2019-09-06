@@ -43,6 +43,11 @@ class Application extends Container
 
         $this->logger = $logger;
 
+        $this->buildConfig($config);
+    }
+
+    protected function buildConfig(array $config)
+    {
         if (isset($config['parameters']['tables'])) {
             $this->config = new Config($config, new ConfigDefinition());
         } else {
