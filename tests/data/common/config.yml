@@ -3,7 +3,7 @@ parameters:
         host: localhost
         database: testdb
         user: travis
-        password:
+        \#password:
         port: 3306
 
     tables:

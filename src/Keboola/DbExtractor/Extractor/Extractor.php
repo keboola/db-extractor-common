@@ -53,7 +53,6 @@ abstract class Extractor
         $this->logger = $logger;
         $this->dataDir = $parameters['data_dir'];
         $this->state = $state;
-
         if (isset($parameters['db']['ssh']['enabled']) && $parameters['db']['ssh']['enabled']) {
             try {
                 $sshTunnel = new SSHTunnel($logger);

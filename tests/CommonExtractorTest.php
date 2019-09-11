@@ -8,6 +8,7 @@ use Keboola\Csv\CsvFile;
 use Keboola\DbExtractor\Application;
 use Keboola\DbExtractor\Exception\ApplicationException;
 use Keboola\DbExtractor\Exception\UserException;
+use Keboola\DbExtractorConfig\Exception\UserException as ConfigUserException;
 use Keboola\DbExtractorLogger\Logger;
 use Monolog\Handler\TestHandler;
 use Symfony\Component\Filesystem\Filesystem;
@@ -614,26 +615,20 @@ class CommonExtractorTest extends ExtractorTest
     {
         $config = $this->getConfig(self::DRIVER);
         $config['parameters']['tables'][0]['table'] = ['schema' => 'testdb', 'tableName' => 'escaping'];
-        try {
-            $app = $this->getApp($config);
-            $app->run();
-            $this->fail('table and query parameters cannot both be present');
-        } catch (\Keboola\DbExtractor\Exception\UserException $e) {
-            $this->assertStringStartsWith('Invalid Configuration', $e->getMessage());
-        }
+        $this->expectException(ConfigUserException::class);
+        $this->expectExceptionMessage('Both table and query cannot be set together.');
+        $app = $this->getApp($config);
+        $app->run();
     }
 
     public function testInvalidConfigurationQueryNorTable(): void
     {
         $config = $this->getConfig(self::DRIVER);
         unset($config['parameters']['tables'][0]['query']);
-        try {
-            $app = $this->getApp($config);
-            $app->run();
-            $this->fail('one of table or query is required');
-        } catch (\Keboola\DbExtractor\Exception\UserException $e) {
-            $this->assertStringStartsWith('Invalid Configuration', $e->getMessage());
-        }
+        $this->expectException(ConfigUserException::class);
+        $this->expectExceptionMessage('One of table or query is required');
+        $app = $this->getApp($config);
+        $app->run();
     }
 
     public function testStrangeTableName(): void
@@ -819,12 +814,10 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['query'] = 'SELECT * FROM auto_increment_timestamp';
         unset($config['parameters']['table']);
 
-        try {
-            $result = ($this->getApp($config))->run();
-            $this->fail('cannot use incremental fetching with advanced query, should fail.');
-        } catch (UserException $e) {
-            $this->assertStringStartsWith('Invalid Configuration', $e->getMessage());
-        }
+        $this->expectException(ConfigUserException::class);
+        $this->expectExceptionMessage('Incremental fetching is not supported for advanced queries.');
+        $app = $this->getApp($config);
+        $app->run();
     }
 
     public function testColumnOrdering(): void
@@ -894,8 +887,8 @@ class CommonExtractorTest extends ExtractorTest
         // we want to test the no results case
         $config['parameters']['query'] = 'SELECT 1 LIMIT 0';
 
-        $this->expectException(UserException::class);
-        $this->expectExceptionMessageRegExp('(.*Both table and query cannot be set together.*)');
+        $this->expectException(ConfigUserException::class);
+        $this->expectExceptionMessage('Both table and query cannot be set together.');
 
         ($this->getApp($config))->run();
     }
@@ -910,8 +903,8 @@ class CommonExtractorTest extends ExtractorTest
         // we want to test the no results case
         $config['parameters']['query'] = 'SELECT 1 LIMIT 0';
 
-        $this->expectException(UserException::class);
-        $this->expectExceptionMessageRegExp('(.*Incremental fetching is not supported for advanced queries.*)');
+        $this->expectException(ConfigUserException::class);
+        $this->expectExceptionMessage('Incremental fetching is not supported for advanced queries.');
 
         ($this->getApp($config))->run();
     }
@@ -922,10 +915,10 @@ class CommonExtractorTest extends ExtractorTest
         unset($config['parameters']['name']);
         unset($config['parameters']['table']);
 
-        $this->expectException(UserException::class);
-        $this->expectExceptionMessageRegExp('(.*One of table or query is required.*)');
-
-        ($this->getApp($config))->run();
+        $this->expectException(ConfigUserException::class);
+        $this->expectExceptionMessage('One of table or query is required');
+        $app = $this->getApp($config);
+        $app->run();
     }
 
     public function testInvalidConfigsInvalidTableWithNoName(): void
@@ -934,10 +927,10 @@ class CommonExtractorTest extends ExtractorTest
         unset($config['parameters']['name']);
         $config['parameters']['table'] = ['tableName' => 'sales'];
 
-        $this->expectException(UserException::class);
-        $this->expectExceptionMessageRegExp('(.*The table property requires "tableName" and "schema".*)');
-
-        ($this->getApp($config))->run();
+        $this->expectException(ConfigUserException::class);
+        $this->expectExceptionMessage('The child node "schema" at path "root.parameters.table" must be configured.');
+        $app = $this->getApp($config);
+        $app->run();
     }
 
     public function testNoRetryOnCsvError(): void
