@@ -8,6 +8,7 @@ use Keboola\Csv\CsvFile;
 use Keboola\DbExtractor\Application;
 use Keboola\DbExtractor\Exception\ApplicationException;
 use Keboola\DbExtractor\Exception\UserException;
+use Keboola\DbExtractorConfig\Exception\UserException as ConfigUserException;
 use Keboola\DbExtractorLogger\Logger;
 use Monolog\Handler\TestHandler;
 use Symfony\Component\Filesystem\Filesystem;
@@ -610,6 +611,26 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertEquals(['weird_I_d'], $manifest['primary_key']);
     }
 
+    public function testInvalidConfigurationQueryAndTable(): void
+    {
+        $config = $this->getConfig(self::DRIVER);
+        $config['parameters']['tables'][0]['table'] = ['schema' => 'testdb', 'tableName' => 'escaping'];
+        $this->expectException(ConfigUserException::class);
+        $this->expectExceptionMessage('Both table and query cannot be set together.');
+        $app = $this->getApp($config);
+        $app->run();
+    }
+
+    public function testInvalidConfigurationQueryNorTable(): void
+    {
+        $config = $this->getConfig(self::DRIVER);
+        unset($config['parameters']['tables'][0]['query']);
+        $this->expectException(ConfigUserException::class);
+        $this->expectExceptionMessage('One of table or query is required');
+        $app = $this->getApp($config);
+        $app->run();
+    }
+
     public function testStrangeTableName(): void
     {
         $config = $this->getConfig(self::DRIVER);
@@ -786,6 +807,19 @@ class CommonExtractorTest extends ExtractorTest
         }
     }
 
+    public function testIncrementalFetchingInvalidConfig(): void
+    {
+        $this->createAutoIncrementAndTimestampTable();
+        $config = $this->getIncrementalFetchingConfig();
+        $config['parameters']['query'] = 'SELECT * FROM auto_increment_timestamp';
+        unset($config['parameters']['table']);
+
+        $this->expectException(ConfigUserException::class);
+        $this->expectExceptionMessage('Incremental fetching is not supported for advanced queries.');
+        $app = $this->getApp($config);
+        $app->run();
+    }
+
     public function testColumnOrdering(): void
     {
         $this->createAutoIncrementAndTimestampTable();
@@ -843,6 +877,60 @@ class CommonExtractorTest extends ExtractorTest
 
         $this->assertArrayHasKey('status', $result);
         $this->assertEquals('success', $result['status']);
+    }
+
+    public function testInvalidConfigsBothTableAndQueryWithNoName(): void
+    {
+        $config = $this->getConfigRow(self::DRIVER);
+        unset($config['parameters']['name']);
+
+        // we want to test the no results case
+        $config['parameters']['query'] = 'SELECT 1 LIMIT 0';
+
+        $this->expectException(ConfigUserException::class);
+        $this->expectExceptionMessage('Both table and query cannot be set together.');
+
+        ($this->getApp($config))->run();
+    }
+
+    public function testInvalidConfigsBothIncrFetchAndQueryWithNoName(): void
+    {
+        $config = $this->getConfigRow(self::DRIVER);
+        unset($config['parameters']['name']);
+        unset($config['parameters']['table']);
+        $config['parameters']['incrementalFetchingColumn'] = 'abc';
+
+        // we want to test the no results case
+        $config['parameters']['query'] = 'SELECT 1 LIMIT 0';
+
+        $this->expectException(ConfigUserException::class);
+        $this->expectExceptionMessage('Incremental fetching is not supported for advanced queries.');
+
+        ($this->getApp($config))->run();
+    }
+
+    public function testInvalidConfigsNeitherTableNorQueryWithNoName(): void
+    {
+        $config = $this->getConfigRow(self::DRIVER);
+        unset($config['parameters']['name']);
+        unset($config['parameters']['table']);
+
+        $this->expectException(ConfigUserException::class);
+        $this->expectExceptionMessage('One of table or query is required');
+        $app = $this->getApp($config);
+        $app->run();
+    }
+
+    public function testInvalidConfigsInvalidTableWithNoName(): void
+    {
+        $config = $this->getConfigRow(self::DRIVER);
+        unset($config['parameters']['name']);
+        $config['parameters']['table'] = ['tableName' => 'sales'];
+
+        $this->expectException(ConfigUserException::class);
+        $this->expectExceptionMessage('The child node "schema" at path "root.parameters.table" must be configured.');
+        $app = $this->getApp($config);
+        $app->run();
     }
 
     public function testNoRetryOnCsvError(): void
