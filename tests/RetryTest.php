@@ -196,7 +196,6 @@ class RetryTest extends ExtractorTest
     {
         $tableName = 'sales';
         $temp = new Temp();
-        $temp->initRunFolder();
         $sourceFileName = $temp->getTmpFolder() . '/large.csv';
 
         $res = $this->serviceConnection->query(sprintf(
@@ -257,6 +256,8 @@ class RetryTest extends ExtractorTest
             );
             $this->serviceConnection->exec($query);
         }
+
+        $temp->remove();
     }
 
     private function getLineCount(string $fileName): int
