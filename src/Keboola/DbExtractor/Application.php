@@ -137,14 +137,4 @@ class Application extends Container
             throw new ErrorException($errstr, 0, $errno, $errfile, $errline);
         });
     }
-
-    public function getAction(): string
-    {
-        return $this['action'];
-    }
-
-    public function getLogger(): Logger
-    {
-        return $this['logger'];
-    }
 }
