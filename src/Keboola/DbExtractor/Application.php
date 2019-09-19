@@ -34,15 +34,16 @@ class Application extends Container
 
         $this['logger'] = $logger;
 
+        $this->buildConfig($config);
+
         $this['extractor_factory'] = function () use ($app) {
-            return new ExtractorFactory($app['parameters'], $app['state']);
+            $configData = $app->config->getData();
+            return new ExtractorFactory($configData['parameters'], $app['state']);
         };
 
         $this['extractor'] = function () use ($app) {
             return $app['extractor_factory']->create($app['logger']);
         };
-
-        $this->buildConfig($config);
     }
 
     protected function buildConfig(array $config): void
