@@ -35,7 +35,8 @@ class Application extends Container
         $this['logger'] = $logger;
 
         $this['extractor_factory'] = function () use ($app) {
-            return new ExtractorFactory($app['parameters'], $app['state']);
+            $configData = $app->config->getData();
+            return new ExtractorFactory($configData['parameters'], $app['state']);
         };
 
         $this['extractor'] = function () use ($app) {
