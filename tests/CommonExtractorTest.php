@@ -13,7 +13,6 @@ use Keboola\DbExtractorLogger\Logger;
 use Monolog\Handler\TestHandler;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
-use Symfony\Component\Yaml\Yaml;
 use Keboola\DbExtractor\Test\ExtractorTest;
 use Keboola\DbExtractor\Test\DataLoader;
 
@@ -130,7 +129,7 @@ class CommonExtractorTest extends ExtractorTest
     public function testRunJsonConfig(): void
     {
         $this->cleanOutputDirectory();
-        $result = ($this->getApp($this->getConfig(self::DRIVER, parent::CONFIG_FORMAT_JSON)))->run();
+        $result = ($this->getApp($this->getConfig(self::DRIVER)))->run();
 
         $this->assertExtractedData($this->dataDir . '/escaping.csv', $result['imported'][0]['outputTable']);
         $filename = $this->dataDir . '/out/tables/' . $result['imported'][0]['outputTable'] . '.csv.manifest';
@@ -444,8 +443,9 @@ class CommonExtractorTest extends ExtractorTest
         $result = $app->run();
         $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][0]['outputTable']);
 
-        $outputManifest = Yaml::parse(
-            (string) file_get_contents($manifestFile)
+        $outputManifest = json_decode(
+            (string) file_get_contents($manifestFile),
+            true
         );
 
         $this->assertArrayHasKey('destination', $outputManifest);
