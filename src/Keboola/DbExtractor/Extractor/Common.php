@@ -12,7 +12,6 @@ use PDO;
 
 class Common extends Extractor
 {
-    public const TYPE_AUTO_INCREMENT = 'autoIncrement';
     public const INCREMENT_TYPE_NUMERIC = 'numeric';
     public const INCREMENT_TYPE_TIMESTAMP = 'timestamp';
     public const NUMERIC_BASE_TYPES = ['INTEGER', 'NUMERIC', 'FLOAT'];
@@ -104,13 +103,13 @@ class Common extends Extractor
     {
         $incrementalAddon = null;
         if ($this->incrementalFetching && isset($this->state['lastFetchedRow'])) {
-            if ($this->incrementalFetching['type'] === self::TYPE_AUTO_INCREMENT) {
+            if ($this->incrementalFetching['type'] === self::INCREMENT_TYPE_NUMERIC) {
                 $incrementalAddon = sprintf(
                     ' %s > %d',
                     $this->quote($this->incrementalFetching['column']),
                     (int) $this->state['lastFetchedRow']
                 );
-            } else if ($this->incrementalFetching['type'] === self::TYPE_AUTO_INCREMENT) {
+            } else if ($this->incrementalFetching['type'] === self::INCREMENT_TYPE_TIMESTAMP) {
                 $incrementalAddon = sprintf(
                     ' %s > \'%s\'',
                     $this->quote($this->incrementalFetching['column']),
