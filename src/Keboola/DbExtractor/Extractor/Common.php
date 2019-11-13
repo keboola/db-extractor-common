@@ -285,10 +285,10 @@ class Common extends Extractor
         $sql = 'SELECT MAX(%s) %s FROM %s.%s';
         $fullsql = sprintf(
             $sql,
-            $this->db->quoteIdentifier($this->incrementalFetching['column']),
-            $this->db->quoteIdentifier($this->incrementalFetching['column']),
-            $this->db->quoteIdentifier($table['schema']),
-            $this->db->quoteIdentifier($table['tableName'])
+            $this->db->quote($this->incrementalFetching['column']),
+            $this->db->quote($this->incrementalFetching['column']),
+            $this->db->quote($table['schema']),
+            $this->db->quote($table['tableName'])
         );
         $result = $this->db->query($fullsql)->fetchAll();
         if (count($result) > 0) {
