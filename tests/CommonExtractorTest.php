@@ -742,7 +742,10 @@ class CommonExtractorTest extends ExtractorTest
             $result['imported']
         );
 
-        $this->db->exec('INSERT INTO auto_increment_timestamp (`name`, `number`) VALUES (\'charles\', 20.23486237628), (\'william\', 21.2863763287638276)');
+        $this->db->exec(
+            'INSERT INTO auto_increment_timestamp (`name`, `number`)'.
+            ' VALUES (\'charles\', 20.23486237628), (\'william\', 21.2863763287638276)'
+        );
 
         $newResult = ($this->getApp($config, $result['state']))->run();
 
