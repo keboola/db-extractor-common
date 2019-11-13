@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Extractor;
 
+use Keboola\Datatype\Definition\Exception\InvalidLengthException;
+use Keboola\Datatype\Definition\MySQL;
 use Keboola\DbExtractor\Exception\ApplicationException;
 use Keboola\DbExtractor\Exception\UserException;
 use PDO;
@@ -11,7 +13,9 @@ use PDO;
 class Common extends Extractor
 {
     public const TYPE_AUTO_INCREMENT = 'autoIncrement';
-    public const TYPE_TIMESTAMP = 'timestamp';
+    public const INCREMENT_TYPE_NUMERIC = 'numeric';
+    public const INCREMENT_TYPE_TIMESTAMP = 'timestamp';
+    public const NUMERIC_BASE_TYPES = ['INTEGER', 'NUMERIC', 'FLOAT'];
 
     /** @var array */
     protected $database;
@@ -72,18 +76,21 @@ class Common extends Extractor
                 )
             );
         }
-        if ($columns[0]['EXTRA'] === 'auto_increment') {
-            $this->incrementalFetching['column'] = $columnName;
-            $this->incrementalFetching['type'] = self::TYPE_AUTO_INCREMENT;
-        } else if ($columns[0]['EXTRA'] === 'on update CURRENT_TIMESTAMP' &&
-                   $columns[0]['COLUMN_DEFAULT'] === 'CURRENT_TIMESTAMP') {
-            $this->incrementalFetching['column'] = $columnName;
-            $this->incrementalFetching['type'] = self::TYPE_TIMESTAMP;
-        } else {
+        try {
+            $datatype = new MySQL($columns[0]['DATA_TYPE']);
+            if (in_array($datatype->getBasetype(), self::NUMERIC_BASE_TYPES)) {
+                $this->incrementalFetching['column'] = $columnName;
+                $this->incrementalFetching['type'] = self::INCREMENT_TYPE_NUMERIC;
+            } else if ($datatype->getBasetype() === 'TIMESTAMP') {
+                $this->incrementalFetching['column'] = $columnName;
+                $this->incrementalFetching['type'] = self::INCREMENT_TYPE_TIMESTAMP;
+            } else {
+                throw new UserException('invalid incremental fetching column type');
+            }
+        } catch (InvalidLengthException | UserException $exception) {
             throw new UserException(
                 sprintf(
-                    'Column [%s] specified for incremental fetching is not an auto increment column'.
-                    'or an auto update timestamp',
+                    'Column [%s] specified for incremental fetching is not a numeric or timestamp type column',
                     $columnName
                 )
             );
