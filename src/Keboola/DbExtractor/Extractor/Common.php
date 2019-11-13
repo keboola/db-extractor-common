@@ -282,13 +282,13 @@ class Common extends Extractor
 
     public function getMaxOfIncrementalFetchingColumn(array $table): ?string
     {
-        $sql = 'SELECT MAX(%s) %s FROM %s.%s';
+        $sql = 'SELECT MAX(%s) as %s FROM %s.%s';
         $fullsql = sprintf(
             $sql,
-            $this->db->quote($this->incrementalFetching['column']),
-            $this->db->quote($this->incrementalFetching['column']),
-            $this->db->quote($table['schema']),
-            $this->db->quote($table['tableName'])
+            $this->quote($this->incrementalFetching['column']),
+            $this->quote($this->incrementalFetching['column']),
+            $this->quote($table['schema']),
+            $this->quote($table['tableName'])
         );
         $result = $this->db->query($fullsql)->fetchAll();
         if (count($result) > 0) {
