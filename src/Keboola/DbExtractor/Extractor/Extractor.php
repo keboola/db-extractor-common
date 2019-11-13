@@ -104,6 +104,8 @@ abstract class Extractor
 
     abstract public function simpleQuery(array $table, array $columns = array()): string;
 
+    abstract public function getMaxOfIncrementalFetchingColumn(array $table): ?string;
+
     /**
      * @param array $table
      * @param string $columnName
@@ -167,7 +169,12 @@ abstract class Extractor
         ];
         // output state
         if (!empty($result['lastFetchedRow'])) {
-            $output['state']['lastFetchedRow'] = $result['lastFetchedRow'];
+            if ($this->canFetchMaxIncrementalValueSeparately($isAdvancedQuery)) {
+                $maxValue = $this->getMaxOfIncrementalFetchingColumn($table['table']);
+                $output['state']['lastFetchedRow'] = !is_null($maxValue) ? $maxValue : $result['lastFetchedRow'];
+            } else {
+                $output['state']['lastFetchedRow'] = $result['lastFetchedRow'];
+            }
         }
         return $output;
     }
@@ -390,5 +397,21 @@ abstract class Extractor
     protected function getDbParameters(): array
     {
         return $this->dbParameters;
+    }
+
+    protected function canFetchMaxIncrementalValueSeparately(bool $isAdvancedQuery): bool
+    {
+        return !$isAdvancedQuery && isset($this->incrementalFetching) && !$this->hasIncrementalLimit();
+    }
+
+    protected function hasIncrementalLimit(): bool
+    {
+        if (!$this->incrementalFetching) {
+            return false;
+        }
+        if (isset($this->incrementalFetching['limit']) && (int) $this->incrementalFetching['limit'] > 0) {
+            return true;
+        }
+        return false;
     }
 }
