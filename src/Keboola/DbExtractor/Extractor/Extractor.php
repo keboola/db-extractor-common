@@ -130,6 +130,11 @@ abstract class Extractor
         } else {
             $query = $table['query'];
         }
+        $maxValue = null;
+        if ($this->canFetchMaxIncrementalValueSeparately($isAdvancedQuery)) {
+            $maxValue = $this->getMaxOfIncrementalFetchingColumn($table['table']);
+        }
+
         $maxTries = isset($table['retries']) ? (int) $table['retries'] : self::DEFAULT_MAX_TRIES;
 
         $proxy = new DbRetryProxy($this->logger, $maxTries, [DeadConnectionException::class, \ErrorException::class]);
@@ -169,9 +174,8 @@ abstract class Extractor
         ];
         // output state
         if (!empty($result['lastFetchedRow'])) {
-            if ($this->canFetchMaxIncrementalValueSeparately($isAdvancedQuery)) {
-                $maxValue = $this->getMaxOfIncrementalFetchingColumn($table['table']);
-                $output['state']['lastFetchedRow'] = !is_null($maxValue) ? $maxValue : $result['lastFetchedRow'];
+            if ($maxValue) {
+                $output['state']['lastFetchedRow'] = $maxValue;
             } else {
                 $output['state']['lastFetchedRow'] = $result['lastFetchedRow'];
             }
