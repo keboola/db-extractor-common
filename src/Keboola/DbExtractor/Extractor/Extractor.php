@@ -173,10 +173,10 @@ abstract class Extractor
             'rows' => $result['rows'],
         ];
         // output state
-        if (!empty($result['lastFetchedRow'])) {
+        if (isset($this->incrementalFetching['column'])) {
             if ($maxValue) {
                 $output['state']['lastFetchedRow'] = $maxValue;
-            } else {
+            } elseif (!empty($result['lastFetchedRow'])) {
                 $output['state']['lastFetchedRow'] = $result['lastFetchedRow'];
             }
         }
