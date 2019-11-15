@@ -751,8 +751,8 @@ class CommonExtractorTest extends ExtractorTest
 
         $this->assertArrayHasKey('state', $newResult);
         $this->assertArrayHasKey('lastFetchedRow', $newResult['state']);
-        $this->assertEquals('21.286376953125', $newResult['state']['lastFetchedRow']);
-        $this->assertEquals(4, $newResult['imported']['rows']);
+        $this->assertEquals('21.28637632876382760000', $newResult['state']['lastFetchedRow']);
+        $this->assertEquals(2, $newResult['imported']['rows']);
     }
 
     public function testIncrementalFetchingLimit(): void
@@ -1045,7 +1045,7 @@ class CommonExtractorTest extends ExtractorTest
             'CREATE TABLE auto_increment_timestamp (
             `id` INT NOT NULL AUTO_INCREMENT,
             `name` VARCHAR(30) NOT NULL DEFAULT \'pam\',
-            `number` FLOAT NOT NULL DEFAULT 0.0,
+            `number` DECIMAL(25,20) NOT NULL DEFAULT 0.0,
             `timestamp` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (`id`)
         )'
