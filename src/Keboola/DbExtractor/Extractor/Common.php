@@ -146,14 +146,14 @@ class Common extends Extractor
 
         if ($incrementalAddon) {
             $query .= sprintf(
-                ' WHERE %s ORDER BY %s',
-                $incrementalAddon,
-                $this->quote($this->incrementalFetching['column'])
+                ' WHERE %s',
+                $incrementalAddon
             );
         }
         if (isset($this->incrementalFetching['limit'])) {
             $query .= sprintf(
-                ' LIMIT %d',
+                ' ORDER BY %s LIMIT %d',
+                $this->quote($this->incrementalFetching['column']),
                 $this->incrementalFetching['limit']
             );
         }
