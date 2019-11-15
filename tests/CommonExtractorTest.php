@@ -725,6 +725,36 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertEquals(2, $newResult['imported']['rows']);
     }
 
+    public function testIncrementalMaxNumberValue(): void
+    {
+        $config = $this->getIncrementalFetchingConfig();
+        $config['parameters']['incrementalFetchingColumn'] = 'number';
+        $this->createAutoIncrementAndTimestampTable();
+
+        $result = ($this->getApp($config))->run();
+
+        $this->assertEquals('success', $result['status']);
+        $this->assertEquals(
+            [
+                'outputTable' => 'in.c-main.auto-increment-timestamp',
+                'rows' => 2,
+            ],
+            $result['imported']
+        );
+
+        $this->db->exec(
+            'INSERT INTO auto_increment_timestamp (`name`, `number`)'.
+            ' VALUES (\'charles\', 20.23486237628), (\'william\', 21.2863763287638276)'
+        );
+
+        $newResult = ($this->getApp($config, $result['state']))->run();
+
+        $this->assertArrayHasKey('state', $newResult);
+        $this->assertArrayHasKey('lastFetchedRow', $newResult['state']);
+        $this->assertEquals('21.28637632876382760000', $newResult['state']['lastFetchedRow']);
+        $this->assertEquals(2, $newResult['imported']['rows']);
+    }
+
     public function testIncrementalFetchingLimit(): void
     {
         $config = $this->getIncrementalFetchingConfig();
@@ -1015,6 +1045,7 @@ class CommonExtractorTest extends ExtractorTest
             'CREATE TABLE auto_increment_timestamp (
             `id` INT NOT NULL AUTO_INCREMENT,
             `name` VARCHAR(30) NOT NULL DEFAULT \'pam\',
+            `number` DECIMAL(25,20) NOT NULL DEFAULT 0.0,
             `timestamp` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (`id`)
         )'

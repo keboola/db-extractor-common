@@ -104,6 +104,8 @@ abstract class Extractor
 
     abstract public function simpleQuery(array $table, array $columns = array()): string;
 
+    abstract public function getMaxOfIncrementalFetchingColumn(array $table): ?string;
+
     /**
      * @param array $table
      * @param string $columnName
@@ -128,6 +130,11 @@ abstract class Extractor
         } else {
             $query = $table['query'];
         }
+        $maxValue = null;
+        if ($this->canFetchMaxIncrementalValueSeparately($isAdvancedQuery)) {
+            $maxValue = $this->getMaxOfIncrementalFetchingColumn($table['table']);
+        }
+
         $maxTries = isset($table['retries']) ? (int) $table['retries'] : self::DEFAULT_MAX_TRIES;
 
         $proxy = new DbRetryProxy($this->logger, $maxTries, [DeadConnectionException::class, \ErrorException::class]);
@@ -166,8 +173,12 @@ abstract class Extractor
             'rows' => $result['rows'],
         ];
         // output state
-        if (!empty($result['lastFetchedRow'])) {
-            $output['state']['lastFetchedRow'] = $result['lastFetchedRow'];
+        if (isset($this->incrementalFetching['column'])) {
+            if ($maxValue) {
+                $output['state']['lastFetchedRow'] = $maxValue;
+            } elseif (!empty($result['lastFetchedRow'])) {
+                $output['state']['lastFetchedRow'] = $result['lastFetchedRow'];
+            }
         }
         return $output;
     }
@@ -390,5 +401,21 @@ abstract class Extractor
     protected function getDbParameters(): array
     {
         return $this->dbParameters;
+    }
+
+    protected function canFetchMaxIncrementalValueSeparately(bool $isAdvancedQuery): bool
+    {
+        return !$isAdvancedQuery && isset($this->incrementalFetching) && !$this->hasIncrementalLimit();
+    }
+
+    protected function hasIncrementalLimit(): bool
+    {
+        if (!$this->incrementalFetching) {
+            return false;
+        }
+        if (isset($this->incrementalFetching['limit']) && (int) $this->incrementalFetching['limit'] > 0) {
+            return true;
+        }
+        return false;
     }
 }
