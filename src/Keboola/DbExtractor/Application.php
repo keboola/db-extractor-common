@@ -48,15 +48,28 @@ class Application extends Container
 
     protected function buildConfig(array $config): void
     {
-        if (isset($config['parameters']['tables'])) {
-            $this->config = new Config($config, new ConfigDefinition());
-        } else {
+        if ($this->isRowConfiguration($config)) {
             if ($this['action'] === 'run') {
                 $this->config = new Config($config, new ConfigRowDefinition());
             } else {
                 $this->config = new Config($config, new ActionConfigRowDefinition());
             }
+        } else {
+            $this->config = new Config($config, new ConfigDefinition());
         }
+    }
+
+    protected function isRowConfiguration(array $config): bool
+    {
+        if (isset($config['parameters']['table']) || isset($config['parameters']['query'])) {
+            return true;
+        }
+
+        if (!isset($config['parameters']['tables'])) {
+            return true;
+        }
+
+        return false;
     }
 
     public function run(): array
@@ -74,7 +87,7 @@ class Application extends Container
         $configData = $this->config->getData();
         $imported = [];
         $outputState = [];
-        if (isset($configData['parameters']['tables'])) {
+        if (!$this->isRowConfiguration($configData)) {
             $tables = (array) array_filter(
                 $configData['parameters']['tables'],
                 function ($table) {
