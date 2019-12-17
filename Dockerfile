@@ -1,5 +1,4 @@
-#VERSION 1.0.0
-FROM db-ex-common-sshproxy AS sshproxy
+FROM keboola/db-component-ssh-proxy:latest AS sshproxy
 FROM php:7.1-fpm
 
 ENV DEBIAN_FRONTEND noninteractive
