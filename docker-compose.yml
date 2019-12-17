@@ -31,7 +31,6 @@ services:
       MYSQL_ROOT_PASSWORD: somePassword
 
   sshproxy:
-    build: ./tests/env/sshproxy
-    image: db-ex-common-sshproxy
+    image: keboola/db-component-ssh-proxy:latest
     links:
       - mysql
