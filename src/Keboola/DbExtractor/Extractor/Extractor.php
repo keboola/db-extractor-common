@@ -30,15 +30,20 @@ abstract class Extractor
     /** @var PDO|mixed */
     protected $db;
 
-    protected array $state;
+    /** @var  array */
+    protected $state;
 
-    protected ?array $incrementalFetching = null;
+    /** @var  array|null with keys type (autoIncrement or timestamp), column, and limit */
+    protected $incrementalFetching;
 
-    protected Logger $logger;
+    /** @var Logger */
+    protected $logger;
 
-    protected string $dataDir;
+    /** @var string */
+    protected $dataDir;
 
-    private array $dbParameters;
+    /** @var array */
+    private $dbParameters;
 
     public function __construct(array $parameters, array $state = [], ?Logger $logger = null)
     {
@@ -92,6 +97,9 @@ abstract class Extractor
      */
     abstract public function testConnection();
 
+    /**
+     * @param array|null $tables - an optional array of tables with tableName and schema properties
+     */
     abstract public function getTables(?array $tables = null): array;
 
     abstract public function simpleQuery(array $table, array $columns = array()): string;
@@ -218,6 +226,12 @@ abstract class Extractor
         return $stmt;
     }
 
+    /**
+     * @param PDOStatement $stmt
+     * @param CsvFile $csv
+     * @param boolean $includeHeader
+     * @return array ['rows', 'lastFetchedRow']
+     */
     protected function writeToCsv(PDOStatement $stmt, CsvFile $csv, bool $includeHeader = true): array
     {
         $output = [];

@@ -10,9 +10,11 @@ use Keboola\DbExtractorLogger\Logger;
 
 class ExtractorFactory
 {
-    private array $parameters;
+    /** @var array  */
+    private $parameters;
 
-    private array $state;
+    /** @var array  */
+    private $state;
 
     public function __construct(array $parameters, array $state)
     {

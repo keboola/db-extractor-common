@@ -11,9 +11,11 @@ use PHPUnit\Framework\TestCase;
 
 class DbRetryProxyTest extends TestCase
 {
-    private TestHandler $testHandler;
+    /** @var TestHandler */
+    private $testHandler;
 
-    private Logger $logger;
+    /** @var Logger */
+    private $logger;
 
     public function setUp(): void
     {

@@ -21,16 +21,22 @@ class RetryTest extends ExtractorTest
 
     private const SERVER_KILLER_EXECUTABLE =  'php ' . __DIR__ . '/killerRabbit.php';
 
-    private array $dbParams;
+    /** @var array $dbParams */
+    private $dbParams;
 
-    private \PDO $taintedPdo;
+    /** @var \PDO $taintedPdo  */
+    private $taintedPdo;
 
-    private int $fetchCount = 0;
+    /** @var int $fetchCount */
+    private $fetchCount = 0;
 
-    private ?string $killerEnabled = null;
+    /** @var ?string $killerEnabled */
+    private $killerEnabled = null;
 
-    private int $pid;
+    /** @var int $pid */
+    private $pid;
 
+    /** @var PDO $serviceConnection */
     private \PDO $serviceConnection;
 
     public function setUp(): void
