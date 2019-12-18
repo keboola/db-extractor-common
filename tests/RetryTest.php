@@ -66,7 +66,7 @@ class RetryTest extends ExtractorTest
         // save the PID of the current connection
         $stmt = $this->taintedPdo->prepare('SELECT CONNECTION_ID() AS pid;');
         $stmt->execute();
-        $this->pid = $stmt->fetch()['pid'];
+        $this->pid = (int) $stmt->fetch()['pid'];
     }
 
     private function waitForDeadConnection(): void
