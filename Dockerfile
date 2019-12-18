@@ -1,5 +1,5 @@
 FROM keboola/db-component-ssh-proxy:latest AS sshproxy
-FROM php:7.1-fpm
+FROM php:7.4-fpm
 
 ENV DEBIAN_FRONTEND noninteractive
 ENV COMPOSER_ALLOW_SUPERUSER 1

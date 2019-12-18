@@ -4,9 +4,7 @@ namespace Keboola\DbExtractor\Tests;
 
 class TaintedPDO extends \PDO
 {
-    /**
-     * @var callable
-     */
+    /** @var callable */
     private $callback;
 
     public function setOnEvent($onEvent)

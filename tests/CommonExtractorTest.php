@@ -20,13 +20,9 @@ class CommonExtractorTest extends ExtractorTest
 {
     public const DRIVER = 'common';
 
-    /** @var string */
-    protected $appName = 'ex-db-common';
+    protected string $appName = 'ex-db-common';
 
-    /**
-     * @var  \PDO
-     */
-    private $db;
+    private \PDO $db;
 
     public function setUp(): void
     {

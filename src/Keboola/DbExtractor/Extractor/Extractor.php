@@ -30,20 +30,15 @@ abstract class Extractor
     /** @var PDO|mixed */
     protected $db;
 
-    /** @var  array */
-    protected $state;
+    protected array $state;
 
-    /** @var  array|null with keys type (autoIncrement or timestamp), column, and limit */
-    protected $incrementalFetching;
+    protected ?array $incrementalFetching;
 
-    /** @var Logger */
-    protected $logger;
+    protected Logger $logger;
 
-    /** @var string */
-    protected $dataDir;
+    protected string $dataDir;
 
-    /** @var array */
-    private $dbParameters;
+    private array $dbParameters;
 
     public function __construct(array $parameters, array $state = [], ?Logger $logger = null)
     {
@@ -97,9 +92,6 @@ abstract class Extractor
      */
     abstract public function testConnection();
 
-    /**
-     * @param array|null $tables - an optional array of tables with tableName and schema properties
-     */
     abstract public function getTables(?array $tables = null): array;
 
     abstract public function simpleQuery(array $table, array $columns = array()): string;
@@ -226,12 +218,6 @@ abstract class Extractor
         return $stmt;
     }
 
-    /**
-     * @param PDOStatement $stmt
-     * @param CsvFile $csv
-     * @param boolean $includeHeader
-     * @return array ['rows', 'lastFetchedRow']
-     */
     protected function writeToCsv(PDOStatement $stmt, CsvFile $csv, bool $includeHeader = true): array
     {
         $output = [];
@@ -271,7 +257,7 @@ abstract class Extractor
             return $output;
         }
         // no rows found.  If incremental fetching is turned on, we need to preserve the last state
-        if ($this->incrementalFetching['column'] && isset($this->state['lastFetchedRow'])) {
+        if (isset($this->incrementalFetching['column']) && isset($this->state['lastFetchedRow'])) {
             $output = $this->state;
         }
         $output['rows'] = 0;

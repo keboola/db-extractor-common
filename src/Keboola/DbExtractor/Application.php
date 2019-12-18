@@ -15,8 +15,7 @@ use ErrorException;
 
 class Application extends Container
 {
-    /** @var Config $config */
-    protected $config;
+    protected Config $config;
 
     public function __construct(array $config, Logger $logger, array $state = [])
     {

@@ -6,9 +6,7 @@ use PDO;
 
 class TaintedPDOStatement extends \PDOStatement
 {
-    /**
-     * @var callable
-     */
+    /** @var callable */
     private $callback;
 
     private function __construct($onEvent)
