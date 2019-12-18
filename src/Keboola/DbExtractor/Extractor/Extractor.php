@@ -32,7 +32,7 @@ abstract class Extractor
 
     protected array $state;
 
-    protected ?array $incrementalFetching;
+    protected ?array $incrementalFetching = null;
 
     protected Logger $logger;
 

@@ -16,7 +16,7 @@ class Common extends Extractor
     public const INCREMENT_TYPE_TIMESTAMP = 'timestamp';
     public const NUMERIC_BASE_TYPES = ['INTEGER', 'NUMERIC', 'FLOAT'];
 
-    protected array $database;
+    protected string $database;
 
     public function createConnection(array $params): PDO
     {
