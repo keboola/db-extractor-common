@@ -23,7 +23,7 @@ class RetryTest extends ExtractorTest
 
     private array $dbParams;
 
-    private \PDO $taintedPdo;
+    private ?\PDO $taintedPdo;
 
     private int $fetchCount = 0;
 
