@@ -36,7 +36,7 @@ class RetryTest extends ExtractorTest
     /** @var int $pid */
     private $pid;
 
-    /** @var \PDO|null $serviceConnection */
+    /** @var \PDO $serviceConnection */
     private $serviceConnection;
 
     public function setUp(): void
@@ -56,7 +56,6 @@ class RetryTest extends ExtractorTest
         $retries = 0;
         while (true) {
             try {
-                $this->taintedPdo = null;
                 $conn = $this->getConnection();
                 $conn->prepare('SELECT NOW();')->execute();
                 $this->taintedPdo = $conn;
