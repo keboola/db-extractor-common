@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Extractor;
+
 error_reporting(0);
 
 use Keboola\Datatype\Definition\Exception\InvalidLengthException;
