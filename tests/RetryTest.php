@@ -37,7 +37,7 @@ class RetryTest extends ExtractorTest
     private $pid;
 
     /** @var PDO $serviceConnection */
-    private \PDO $serviceConnection;
+    private $serviceConnection;
 
     public function setUp(): void
     {
@@ -56,6 +56,7 @@ class RetryTest extends ExtractorTest
         $retries = 0;
         while (true) {
             try {
+                $this->taintedPdo = null;
                 $conn = $this->getConnection();
                 $conn->prepare('SELECT NOW();')->execute();
                 $this->taintedPdo = $conn;
@@ -72,7 +73,7 @@ class RetryTest extends ExtractorTest
         // save the PID of the current connection
         $stmt = $this->taintedPdo->prepare('SELECT CONNECTION_ID() AS pid;');
         $stmt->execute();
-        $this->pid = (int) $stmt->fetch()['pid'];
+        $this->pid = $stmt->fetch()['pid'];
     }
 
     private function waitForDeadConnection(): void
