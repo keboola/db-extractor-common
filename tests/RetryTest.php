@@ -36,7 +36,7 @@ class RetryTest extends ExtractorTest
     /** @var int $pid */
     private $pid;
 
-    /** @var PDO $serviceConnection */
+    /** @var \PDO|null $serviceConnection */
     private $serviceConnection;
 
     public function setUp(): void
