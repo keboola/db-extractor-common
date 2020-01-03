@@ -271,7 +271,7 @@ abstract class Extractor
             return $output;
         }
         // no rows found.  If incremental fetching is turned on, we need to preserve the last state
-        if ($this->incrementalFetching['column'] && isset($this->state['lastFetchedRow'])) {
+        if (isset($this->incrementalFetching['column']) && isset($this->state['lastFetchedRow'])) {
             $output = $this->state;
         }
         $output['rows'] = 0;
