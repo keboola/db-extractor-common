@@ -129,13 +129,9 @@ class Application extends Container
 
     private function getTablesAction(): array
     {
-        try {
-            $output = [];
-            $output['tables'] = $this['extractor']->getTables();
-            $output['status'] = 'success';
-        } catch (\Throwable $e) {
-            throw new UserException(sprintf("Failed to get tables: '%s'", $e->getMessage()), 0, $e);
-        }
+        $output = [];
+        $output['tables'] = $this['extractor']->getTables();
+        $output['status'] = 'success';
         return $output;
     }
 
