@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace Keboola\DbExtractor\Tests;
 
 use Keboola\DbExtractor\DbRetryProxy;
-use Keboola\DbExtractorLogger\Logger;
 use Monolog\Handler\TestHandler;
+use Monolog\Logger;
+use PHPUnit\Framework\Assert;
 use PHPUnit\Framework\TestCase;
 
 class DbRetryProxyTest extends TestCase
@@ -14,8 +15,7 @@ class DbRetryProxyTest extends TestCase
     /** @var TestHandler */
     private $testHandler;
 
-    /** @var Logger */
-    private $logger;
+    private Logger $logger;
 
     public function setUp(): void
     {
@@ -40,10 +40,10 @@ class DbRetryProxyTest extends TestCase
                 return $i;
             }
         });
-        $this->assertEquals(5, $res);
+        Assert::assertEquals(5, $res);
         foreach ($this->testHandler->getRecords() as $ind => $record) {
             $tryNumber = $ind + 1;
-            $this->assertEquals("test throw {$tryNumber}. Retrying... [{$tryNumber}x]", $record['message']);
+            Assert::assertEquals("test throw {$tryNumber}. Retrying... [{$tryNumber}x]", $record['message']);
         }
     }
 }

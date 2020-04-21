@@ -24,7 +24,10 @@ class DataLoader
         );
     }
 
-    public function load(string $inputFile, string $destinationTable, int $ignoreLines = 1): int
+    /**
+     * @return false|int
+     */
+    public function load(string $inputFile, string $destinationTable, int $ignoreLines = 1)
     {
         $query = sprintf(
             "LOAD DATA LOCAL INFILE '%s'

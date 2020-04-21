@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Keboola\DbExtractor\Tests;
 
 class TaintedPDO extends \PDO
@@ -9,17 +11,29 @@ class TaintedPDO extends \PDO
      */
     private $callback;
 
-    public function setOnEvent($onEvent)
+    public function setOnEvent(callable $onEvent): void
     {
         $this->callback = $onEvent;
     }
 
+    /**
+     * @param string $statement
+     * @param array $options
+     * @return bool|\PDOStatement
+     */
     public function prepare($statement, $options = array())
     {
         call_user_func($this->callback, 'prepare');
         return parent::prepare($statement, $options);
     }
 
+    /**
+     * @param string $statement
+     * @param null $mode
+     * @param null $arg3
+     * @param array $ctorargs
+     * @return false|\PDOStatement
+     */
     public function query($statement, $mode = null, $arg3 = null, array $ctorargs = [])
     {
         call_user_func($this->callback, 'query');

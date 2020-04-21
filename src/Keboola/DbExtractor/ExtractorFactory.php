@@ -6,7 +6,7 @@ namespace Keboola\DbExtractor;
 
 use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractor\Extractor\Extractor;
-use Keboola\DbExtractorLogger\Logger;
+use Psr\Log\LoggerInterface;
 
 class ExtractorFactory
 {
@@ -22,7 +22,7 @@ class ExtractorFactory
         $this->state = $state;
     }
 
-    public function create(Logger $logger): Extractor
+    public function create(LoggerInterface $logger): Extractor
     {
         $extractorClass = __NAMESPACE__ . '\\Extractor\\' . $this->parameters['extractor_class'];
         if (!class_exists($extractorClass)) {

@@ -4,19 +4,18 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Extractor;
 
-use Keboola\Csv\CsvFile;
+use Keboola\Csv\CsvWriter;
 use Keboola\Csv\Exception as CsvException;
 use Keboola\Datatype\Definition\GenericStorage;
 use Keboola\DbExtractor\DbRetryProxy;
 use Keboola\DbExtractor\Exception\ApplicationException;
 use Keboola\DbExtractor\Exception\DeadConnectionException;
 use Keboola\DbExtractor\Exception\UserException;
-use Keboola\DbExtractorLogger\Logger;
 use Keboola\DbExtractorSSHTunnel\SSHTunnel;
 use Keboola\DbExtractorSSHTunnel\Exception\UserException as SSHTunnelUserException;
 use Nette\Utils;
-
 use PDOException;
+use Psr\Log\LoggerInterface;
 use Throwable;
 use PDO;
 use PDOStatement;
@@ -36,7 +35,7 @@ abstract class Extractor
     /** @var  array|null with keys type (autoIncrement or timestamp), column, and limit */
     protected $incrementalFetching;
 
-    /** @var Logger */
+    /** @var LoggerInterface */
     protected $logger;
 
     /** @var string */
@@ -45,11 +44,8 @@ abstract class Extractor
     /** @var array */
     private $dbParameters;
 
-    public function __construct(array $parameters, array $state = [], ?Logger $logger = null)
+    public function __construct(array $parameters, array $state, LoggerInterface $logger)
     {
-        if (is_null($logger)) {
-            $logger = new Logger('db-ex-common');
-        }
         $this->logger = $logger;
         $this->dataDir = $parameters['data_dir'];
         $this->state = $state;
@@ -150,17 +146,15 @@ abstract class Extractor
             });
         } catch (CsvException $e) {
             throw new ApplicationException('Failed writing CSV File: ' . $e->getMessage(), $e->getCode(), $e);
-        } catch (\PDOException $e) {
-            throw $this->handleDbError($e, $table, $maxTries);
-        } catch (\ErrorException $e) {
-            throw $this->handleDbError($e, $table, $maxTries);
-        } catch (DeadConnectionException $e) {
+        } catch (\PDOException | \ErrorException | DeadConnectionException $e) {
             throw $this->handleDbError($e, $table, $maxTries);
         }
+
         if ($result['rows'] > 0) {
             $this->createManifest($table);
         } else {
-            $this->logger->warn(
+            @unlink($this->getOutputFilename($outputTable)); // no rows, no file
+            $this->logger->warning(
                 sprintf(
                     'Query returned empty result. Nothing was imported to [%s]',
                     $table['outputTable']
@@ -227,12 +221,9 @@ abstract class Extractor
     }
 
     /**
-     * @param PDOStatement $stmt
-     * @param CsvFile $csv
-     * @param boolean $includeHeader
      * @return array ['rows', 'lastFetchedRow']
      */
-    protected function writeToCsv(PDOStatement $stmt, CsvFile $csv, bool $includeHeader = true): array
+    protected function writeToCsv(PDOStatement $stmt, CsvWriter $csv, bool $includeHeader = true): array
     {
         $output = [];
 
@@ -278,13 +269,13 @@ abstract class Extractor
         return $output;
     }
 
-    protected function createOutputCsv(string $outputTable): CsvFile
+    protected function createOutputCsv(string $outputTable): CsvWriter
     {
         $outTablesDir = $this->dataDir . '/out/tables';
         if (!is_dir($outTablesDir)) {
             mkdir($outTablesDir, 0777, true);
         }
-        return new CsvFile($this->getOutputFilename($outputTable));
+        return new CsvWriter($this->getOutputFilename($outputTable));
     }
 
     /**

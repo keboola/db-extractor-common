@@ -4,15 +4,16 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Tests;
 
-use Keboola\Csv\CsvFile;
+use Keboola\Csv\CsvWriter;
 use Keboola\DbExtractor\Application;
 use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractor\Extractor\Common;
-use Keboola\DbExtractorLogger\Logger;
 use Keboola\DbExtractor\Test\ExtractorTest;
+use Monolog\Logger;
 use Keboola\Temp\Temp;
 use Monolog\Handler\TestHandler;
 use PDO;
+use PHPUnit\Framework\Assert;
 use Symfony\Component\Debug\ErrorHandler;
 
 class RetryTest extends ExtractorTest
@@ -211,7 +212,7 @@ class RetryTest extends ExtractorTest
 
         // Set up the data table
         if (!$tableExists) {
-            $csv = new CsvFile($sourceFileName);
+            $csv = new CsvWriter($sourceFileName);
             $header = [
                 'usergender',
                 'usercity',
@@ -240,7 +241,6 @@ class RetryTest extends ExtractorTest
                 )
             );
             $this->serviceConnection->exec($createTableSql);
-            $fileName = (string) $csv;
             $query = sprintf(
                 "LOAD DATA LOCAL INFILE '%s'
                 INTO TABLE `%s`.`%s`
@@ -249,7 +249,7 @@ class RetryTest extends ExtractorTest
                 OPTIONALLY ENCLOSED BY '\"'
                 ESCAPED BY ''
                 IGNORE 1 LINES",
-                $fileName,
+                $sourceFileName,
                 getenv('TEST_RDS_DATABASE'),
                 $tableName
             );
@@ -289,9 +289,9 @@ class RetryTest extends ExtractorTest
         }
         $this->waitForConnection();
 
-        self::assertContains('Rabbit of Caerbannog', $output);
-        self::assertEquals(0, $ret, $output);
-        self::assertNotEmpty($this->taintedPdo);
+        Assert::assertStringContainsString('Rabbit of Caerbannog', $output);
+        Assert::assertEquals(0, $ret, $output);
+        Assert::assertNotEmpty($this->taintedPdo);
     }
 
     public function testNetworkKillerQuery(): void
@@ -398,10 +398,10 @@ class RetryTest extends ExtractorTest
         $result = $app->run();
         $outputCsvFile = $this->dataDir . '/out/tables/' . $result['imported'][0]['outputTable'] . '.csv';
 
-        self::assertEquals('success', $result['status']);
-        self::assertFileExists($outputCsvFile);
-        self::assertFileExists($outputCsvFile . '.manifest');
-        self::assertEquals(self::ROW_COUNT + 1, $this->getLineCount($outputCsvFile));
+        Assert::assertEquals('success', $result['status']);
+        Assert::assertFileExists($outputCsvFile);
+        Assert::assertFileExists($outputCsvFile . '.manifest');
+        Assert::assertEquals(self::ROW_COUNT + 1, $this->getLineCount($outputCsvFile));
     }
 
     public function testConnectServerError(): void
@@ -420,8 +420,11 @@ class RetryTest extends ExtractorTest
             $app->run();
             self::fail('Must raise exception.');
         } catch (UserException $e) {
-            self::assertFalse($handler->hasInfoThatContains('Retrying...'));
-            self::assertContains('Error connecting to DB: SQLSTATE[HY000] [2002] Connection refused', $e->getMessage());
+            Assert::assertFalse($handler->hasInfoThatContains('Retrying...'));
+            Assert::assertStringContainsString(
+                'Error connecting to DB: SQLSTATE[HY000] [2002] Connection refused',
+                $e->getMessage()
+            );
         }
     }
 
@@ -451,13 +454,13 @@ class RetryTest extends ExtractorTest
         $result = $extractor->export($config['parameters']['tables'][0]);
         $outputCsvFile = $this->dataDir . '/out/tables/' . $result['outputTable'] . '.csv';
 
-        self::assertFileExists($outputCsvFile);
-        self::assertFileExists($outputCsvFile . '.manifest');
-        self::assertEquals($rowCount + 1, $this->getLineCount($outputCsvFile));
-        self::assertTrue($handler->hasInfoThatContains('Retrying...'));
+        Assert::assertFileExists($outputCsvFile);
+        Assert::assertFileExists($outputCsvFile . '.manifest');
+        Assert::assertEquals($rowCount + 1, $this->getLineCount($outputCsvFile));
+        Assert::assertTrue($handler->hasInfoThatContains('Retrying...'));
         /* it's ok that `PDOStatement::execute()` is reported here,
             because prepared statements are PDO emulated (see testNetworkKillerPrepare). */
-        self::assertTrue($handler->hasInfoThatContains(
+        Assert::assertTrue($handler->hasInfoThatContains(
             'Warning: PDOStatement::execute(): MySQL server has gone away. Retrying'
         ));
     }
@@ -487,11 +490,11 @@ class RetryTest extends ExtractorTest
         $result = $extractor->export($config['parameters']['tables'][0]);
         $outputCsvFile = $this->dataDir . '/out/tables/' . $result['outputTable'] . '.csv';
 
-        self::assertFileExists($outputCsvFile);
-        self::assertFileExists($outputCsvFile . '.manifest');
-        self::assertEquals(100 + 1, $this->getLineCount($outputCsvFile));
-        self::assertTrue($handler->hasInfoThatContains('Retrying...'));
-        self::assertTrue($handler->hasInfoThatContains(
+        Assert::assertFileExists($outputCsvFile);
+        Assert::assertFileExists($outputCsvFile . '.manifest');
+        Assert::assertEquals(100 + 1, $this->getLineCount($outputCsvFile));
+        Assert::assertTrue($handler->hasInfoThatContains('Retrying...'));
+        Assert::assertTrue($handler->hasInfoThatContains(
             'Warning: PDOStatement::execute(): MySQL server has gone away. Retrying'
         ));
     }
@@ -523,11 +526,11 @@ class RetryTest extends ExtractorTest
         $result = $extractor->export($config['parameters']['tables'][0]);
         $outputCsvFile = $this->dataDir . '/out/tables/' . $result['outputTable'] . '.csv';
 
-        self::assertFileExists($outputCsvFile);
-        self::assertFileExists($outputCsvFile . '.manifest');
-        self::assertEquals($rowCount + 1, $this->getLineCount($outputCsvFile));
-        self::assertTrue($handler->hasInfoThatContains('Retrying...'));
-        self::assertTrue($handler->hasInfoThatContains('Warning: Empty row packet body. Retrying... [1x]'));
+        Assert::assertFileExists($outputCsvFile);
+        Assert::assertFileExists($outputCsvFile . '.manifest');
+        Assert::assertEquals($rowCount + 1, $this->getLineCount($outputCsvFile));
+        Assert::assertTrue($handler->hasInfoThatContains('Retrying...'));
+        Assert::assertTrue($handler->hasInfoThatContains('Warning: Empty row packet body. Retrying... [1x]'));
     }
 
     public function testRetryNetworkErrorFetchFailure(): void
@@ -574,11 +577,11 @@ class RetryTest extends ExtractorTest
             $extractor->export($config['parameters']['tables'][0]);
             self::fail('Must raise exception.');
         } catch (UserException $e) {
-            self::assertTrue($handler->hasInfoThatContains('Retrying...'));
-            self::assertTrue($handler->hasInfoThatContains(
+            Assert::assertTrue($handler->hasInfoThatContains('Retrying...'));
+            Assert::assertTrue($handler->hasInfoThatContains(
                 'SQLSTATE[HY000]: General error: 2006 MySQL server has gone away. Retrying... [9x]'
             ));
-            self::assertContains(
+            Assert::assertStringContainsString(
                 'query failed: SQLSTATE[HY000]: General error: 2006 MySQL server has gone away Tried 10 times.',
                 $e->getMessage()
             );
@@ -608,12 +611,12 @@ class RetryTest extends ExtractorTest
             $extractor->export($config['parameters']['tables'][0]);
             self::fail('Must raise exception.');
         } catch (UserException $e) {
-            self::assertContains(
+            Assert::assertStringContainsString(
                 'non_existent_table\' doesn\'t exist Tried 10 times',
                 $e->getMessage()
             );
-            self::assertTrue($handler->hasInfoThatContains('Retrying...'));
-            self::assertTrue($handler->hasInfoThatContains(
+            Assert::assertTrue($handler->hasInfoThatContains('Retrying...'));
+            Assert::assertTrue($handler->hasInfoThatContains(
                 'non_existent_table\' doesn\'t exist. Retrying... [9x]'
             ));
         }

@@ -9,16 +9,16 @@ use Keboola\DbExtractorConfig\Config;
 use Keboola\DbExtractorConfig\Configuration\ActionConfigRowDefinition;
 use Keboola\DbExtractorConfig\Configuration\ConfigDefinition;
 use Keboola\DbExtractorConfig\Configuration\ConfigRowDefinition;
-use Keboola\DbExtractorLogger\Logger;
 use Pimple\Container;
 use ErrorException;
+use Psr\Log\LoggerInterface;
 
 class Application extends Container
 {
     /** @var Config $config */
     protected $config;
 
-    public function __construct(array $config, Logger $logger, array $state = [])
+    public function __construct(array $config, LoggerInterface $logger, array $state = [])
     {
         static::setEnvironment();
 

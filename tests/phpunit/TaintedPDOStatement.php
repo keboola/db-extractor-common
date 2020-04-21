@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Keboola\DbExtractor\Tests;
 
 use PDO;
@@ -11,11 +13,14 @@ class TaintedPDOStatement extends \PDOStatement
      */
     private $callback;
 
-    private function __construct($onEvent)
+    private function __construct(callable $onEvent)
     {
         $this->callback = $onEvent;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function fetch($fetch_style = null, $cursor_orientation = PDO::FETCH_ORI_NEXT, $cursor_offset = 0)
     {
         if ($fetch_style === null) {
@@ -25,6 +30,9 @@ class TaintedPDOStatement extends \PDOStatement
         return parent::fetch($fetch_style, $cursor_orientation, $cursor_offset);
     }
 
+    /**
+     * @inheritDoc
+     */
     public function execute($input_parameters = null)
     {
         call_user_func($this->callback, 'execute');

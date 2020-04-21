@@ -1,4 +1,3 @@
-FROM keboola/db-component-ssh-proxy:latest AS sshproxy
 FROM php:7.4-cli
 
 ARG COMPOSER_FLAGS="--prefer-dist --no-interaction"
@@ -58,5 +57,3 @@ COPY . /code/
 
 # Run normal composer - all deps are cached already
 RUN composer install $COMPOSER_FLAGS
-
-COPY --from=sshproxy /root/.ssh /root/.ssh
