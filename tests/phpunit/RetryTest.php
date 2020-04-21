@@ -4,15 +4,16 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Tests;
 
-use Keboola\Csv\CsvFile;
+use Keboola\Csv\CsvWriter;
 use Keboola\DbExtractor\Application;
 use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractor\Extractor\Common;
-use Keboola\DbExtractorLogger\Logger;
 use Keboola\DbExtractor\Test\ExtractorTest;
+use Monolog\Logger;
 use Keboola\Temp\Temp;
 use Monolog\Handler\TestHandler;
 use PDO;
+use PHPUnit\Framework\Assert;
 use Symfony\Component\Debug\ErrorHandler;
 
 class RetryTest extends ExtractorTest
@@ -21,35 +22,17 @@ class RetryTest extends ExtractorTest
 
     private const SERVER_KILLER_EXECUTABLE =  'php ' . __DIR__ . '/killerRabbit.php';
 
-    /**
-     * @var array
-     */
-    private $dbParams;
+    private array $dbParams;
 
-    /**
-     * @var PDO
-     */
-    private $taintedPdo;
+    private PDO $taintedPdo;
 
-    /**
-     * @var int
-     */
-    private $fetchCount = 0;
+    private int $fetchCount = 0;
 
-    /**
-     * @var ?string
-     */
-    private $killerEnabled = null;
+    private ?string $killerEnabled = null;
 
-    /**
-     * @var int
-     */
-    private $pid;
+    private int $pid;
 
-    /**
-     * @var \PDO
-     */
-    private $serviceConnection;
+    private PDO $serviceConnection;
 
     public function setUp(): void
     {
@@ -68,7 +51,6 @@ class RetryTest extends ExtractorTest
         $retries = 0;
         while (true) {
             try {
-                $this->taintedPdo = null;
                 $conn = $this->getConnection();
                 $conn->prepare('SELECT NOW();')->execute();
                 $this->taintedPdo = $conn;
@@ -85,7 +67,7 @@ class RetryTest extends ExtractorTest
         // save the PID of the current connection
         $stmt = $this->taintedPdo->prepare('SELECT CONNECTION_ID() AS pid;');
         $stmt->execute();
-        $this->pid = $stmt->fetch()['pid'];
+        $this->pid = (int) $stmt->fetch()['pid'];
     }
 
     private function waitForDeadConnection(): void
@@ -97,7 +79,7 @@ class RetryTest extends ExtractorTest
                 $this->taintedPdo->prepare('SELECT NOW();')->execute();
                 $cnt++;
                 if ($cnt > 50) {
-                    self::fail('Failed to kill the server');
+                    Assert::fail('Failed to kill the server');
                 }
                 sleep(1);
             } catch (\Throwable $e) {
@@ -211,7 +193,7 @@ class RetryTest extends ExtractorTest
 
         // Set up the data table
         if (!$tableExists) {
-            $csv = new CsvFile($sourceFileName);
+            $csv = new CsvWriter($sourceFileName);
             $header = [
                 'usergender',
                 'usercity',
@@ -240,7 +222,6 @@ class RetryTest extends ExtractorTest
                 )
             );
             $this->serviceConnection->exec($createTableSql);
-            $fileName = (string) $csv;
             $query = sprintf(
                 "LOAD DATA LOCAL INFILE '%s'
                 INTO TABLE `%s`.`%s`
@@ -249,7 +230,7 @@ class RetryTest extends ExtractorTest
                 OPTIONALLY ENCLOSED BY '\"'
                 ESCAPED BY ''
                 IGNORE 1 LINES",
-                $fileName,
+                $sourceFileName,
                 getenv('TEST_RDS_DATABASE'),
                 $tableName
             );
@@ -284,14 +265,14 @@ class RetryTest extends ExtractorTest
         $this->waitForDeadConnection();
         try {
             $this->taintedPdo->prepare('SELECT NOW();')->execute();
-            self::fail('Connection must be dead now.');
+            Assert::fail('Connection must be dead now.');
         } catch (\Throwable $e) {
         }
         $this->waitForConnection();
 
-        self::assertContains('Rabbit of Caerbannog', $output);
-        self::assertEquals(0, $ret, $output);
-        self::assertNotEmpty($this->taintedPdo);
+        Assert::assertStringContainsString('Rabbit of Caerbannog', $output);
+        Assert::assertEquals(0, $ret, $output);
+        Assert::assertNotEmpty($this->taintedPdo);
     }
 
     public function testNetworkKillerQuery(): void
@@ -304,8 +285,8 @@ class RetryTest extends ExtractorTest
             will convert the warnings to PHPUnit\Framework\Error\Warning */
         ErrorHandler::register(null, true);
         $this->killerEnabled = 'query';
-        self::expectException(\ErrorException::class);
-        self::expectExceptionMessage('Warning: PDO::query(): MySQL server has gone away');
+        $this->expectException(\PDOException::class);
+        $this->expectExceptionMessage('MySQL server has gone away');
         $this->taintedPdo->query('SELECT NOW();');
     }
 
@@ -320,10 +301,8 @@ class RetryTest extends ExtractorTest
         ErrorHandler::register(null, true);
 
         $this->killerEnabled = 'prepare';
-        self::expectException(\ErrorException::class);
-        /* It's ok that `PDOStatement::execute` is reported, because on prepare
-            is done on client (see testNetworkKillerTruePrepare). */
-        self::expectExceptionMessage('Warning: PDOStatement::execute(): MySQL server has gone away');
+        $this->expectException(\PDOException::class);
+        $this->expectExceptionMessage('MySQL server has gone away');
         $stmt = $this->taintedPdo->prepare('SELECT NOW();');
         $stmt->execute();
     }
@@ -339,10 +318,8 @@ class RetryTest extends ExtractorTest
         ErrorHandler::register(null, true);
         $this->taintedPdo->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
         $this->killerEnabled = 'prepare';
-        self::expectException(\ErrorException::class);
-        /* With emulated prepare turned off (ATTR_EMULATE_PREPARES above), the error occurs truly in
-            `PDO::prepare()`, see testNetworkKillerPrepare. */
-        self::expectExceptionMessage('Warning: PDO::prepare(): MySQL server has gone away');
+        $this->expectException(\PDOException::class);
+        $this->expectExceptionMessage('MySQL server has gone away');
         $this->taintedPdo->prepare('SELECT NOW();');
     }
 
@@ -358,8 +335,8 @@ class RetryTest extends ExtractorTest
 
         $stmt = $this->taintedPdo->prepare('SELECT NOW();');
         $this->killerEnabled = 'execute';
-        self::expectException(\ErrorException::class);
-        self::expectExceptionMessage('Warning: PDOStatement::execute(): MySQL server has gone away');
+        $this->expectException(\PDOException::class);
+        $this->expectExceptionMessage('MySQL server has gone away');
         $stmt->execute();
     }
 
@@ -376,8 +353,8 @@ class RetryTest extends ExtractorTest
 
         $stmt = $this->taintedPdo->prepare('SELECT * FROM sales LIMIT 100000');
         $stmt->execute();
-        self::expectException(\ErrorException::class);
-        self::expectExceptionMessage('Warning: Empty row packet body');
+        $this->expectException(\ErrorException::class);
+        $this->expectExceptionMessage('Warning: Empty row packet body');
         $this->killerEnabled = 'fetch';
         /** @noinspection PhpStatementHasEmptyBodyInspection */
         while ($row = $stmt->fetch()) {
@@ -398,10 +375,10 @@ class RetryTest extends ExtractorTest
         $result = $app->run();
         $outputCsvFile = $this->dataDir . '/out/tables/' . $result['imported'][0]['outputTable'] . '.csv';
 
-        self::assertEquals('success', $result['status']);
-        self::assertFileExists($outputCsvFile);
-        self::assertFileExists($outputCsvFile . '.manifest');
-        self::assertEquals(self::ROW_COUNT + 1, $this->getLineCount($outputCsvFile));
+        Assert::assertEquals('success', $result['status']);
+        Assert::assertFileExists($outputCsvFile);
+        Assert::assertFileExists($outputCsvFile . '.manifest');
+        Assert::assertEquals(self::ROW_COUNT + 1, $this->getLineCount($outputCsvFile));
     }
 
     public function testConnectServerError(): void
@@ -418,10 +395,13 @@ class RetryTest extends ExtractorTest
         $app = new Application($config, $logger, []);
         try {
             $app->run();
-            self::fail('Must raise exception.');
+            Assert::fail('Must raise exception.');
         } catch (UserException $e) {
-            self::assertFalse($handler->hasInfoThatContains('Retrying...'));
-            self::assertContains('Error connecting to DB: SQLSTATE[HY000] [2002] Connection refused', $e->getMessage());
+            Assert::assertFalse($handler->hasInfoThatContains('Retrying...'));
+            Assert::assertStringContainsString(
+                'Error connecting to DB: SQLSTATE[HY000] [2002] Connection refused',
+                $e->getMessage()
+            );
         }
     }
 
@@ -451,13 +431,13 @@ class RetryTest extends ExtractorTest
         $result = $extractor->export($config['parameters']['tables'][0]);
         $outputCsvFile = $this->dataDir . '/out/tables/' . $result['outputTable'] . '.csv';
 
-        self::assertFileExists($outputCsvFile);
-        self::assertFileExists($outputCsvFile . '.manifest');
-        self::assertEquals($rowCount + 1, $this->getLineCount($outputCsvFile));
-        self::assertTrue($handler->hasInfoThatContains('Retrying...'));
+        Assert::assertFileExists($outputCsvFile);
+        Assert::assertFileExists($outputCsvFile . '.manifest');
+        Assert::assertEquals($rowCount + 1, $this->getLineCount($outputCsvFile));
+        Assert::assertTrue($handler->hasInfoThatContains('Retrying...'));
         /* it's ok that `PDOStatement::execute()` is reported here,
             because prepared statements are PDO emulated (see testNetworkKillerPrepare). */
-        self::assertTrue($handler->hasInfoThatContains(
+        Assert::assertTrue($handler->hasInfoThatContains(
             'Warning: PDOStatement::execute(): MySQL server has gone away. Retrying'
         ));
     }
@@ -487,12 +467,12 @@ class RetryTest extends ExtractorTest
         $result = $extractor->export($config['parameters']['tables'][0]);
         $outputCsvFile = $this->dataDir . '/out/tables/' . $result['outputTable'] . '.csv';
 
-        self::assertFileExists($outputCsvFile);
-        self::assertFileExists($outputCsvFile . '.manifest');
-        self::assertEquals(100 + 1, $this->getLineCount($outputCsvFile));
-        self::assertTrue($handler->hasInfoThatContains('Retrying...'));
-        self::assertTrue($handler->hasInfoThatContains(
-            'Warning: PDOStatement::execute(): MySQL server has gone away. Retrying'
+        Assert::assertFileExists($outputCsvFile);
+        Assert::assertFileExists($outputCsvFile . '.manifest');
+        Assert::assertEquals(100 + 1, $this->getLineCount($outputCsvFile));
+        Assert::assertTrue($handler->hasInfoThatContains('Retrying...'));
+        Assert::assertTrue($handler->hasInfoThatContains(
+            'MySQL server has gone away. Retrying'
         ));
     }
 
@@ -523,11 +503,11 @@ class RetryTest extends ExtractorTest
         $result = $extractor->export($config['parameters']['tables'][0]);
         $outputCsvFile = $this->dataDir . '/out/tables/' . $result['outputTable'] . '.csv';
 
-        self::assertFileExists($outputCsvFile);
-        self::assertFileExists($outputCsvFile . '.manifest');
-        self::assertEquals($rowCount + 1, $this->getLineCount($outputCsvFile));
-        self::assertTrue($handler->hasInfoThatContains('Retrying...'));
-        self::assertTrue($handler->hasInfoThatContains('Warning: Empty row packet body. Retrying... [1x]'));
+        Assert::assertFileExists($outputCsvFile);
+        Assert::assertFileExists($outputCsvFile . '.manifest');
+        Assert::assertEquals($rowCount + 1, $this->getLineCount($outputCsvFile));
+        Assert::assertTrue($handler->hasInfoThatContains('Retrying...'));
+        Assert::assertTrue($handler->hasInfoThatContains('Warning: Empty row packet body. Retrying... [1x]'));
     }
 
     public function testRetryNetworkErrorFetchFailure(): void
@@ -572,13 +552,13 @@ class RetryTest extends ExtractorTest
         try {
             /** @var Common $extractor */
             $extractor->export($config['parameters']['tables'][0]);
-            self::fail('Must raise exception.');
+            Assert::fail('Must raise exception.');
         } catch (UserException $e) {
-            self::assertTrue($handler->hasInfoThatContains('Retrying...'));
-            self::assertTrue($handler->hasInfoThatContains(
+            Assert::assertTrue($handler->hasInfoThatContains('Retrying...'));
+            Assert::assertTrue($handler->hasInfoThatContains(
                 'SQLSTATE[HY000]: General error: 2006 MySQL server has gone away. Retrying... [9x]'
             ));
-            self::assertContains(
+            Assert::assertStringContainsString(
                 'query failed: SQLSTATE[HY000]: General error: 2006 MySQL server has gone away Tried 10 times.',
                 $e->getMessage()
             );
@@ -606,14 +586,14 @@ class RetryTest extends ExtractorTest
         ErrorHandler::register(null, true);
         try {
             $extractor->export($config['parameters']['tables'][0]);
-            self::fail('Must raise exception.');
+            Assert::fail('Must raise exception.');
         } catch (UserException $e) {
-            self::assertContains(
+            Assert::assertStringContainsString(
                 'non_existent_table\' doesn\'t exist Tried 10 times',
                 $e->getMessage()
             );
-            self::assertTrue($handler->hasInfoThatContains('Retrying...'));
-            self::assertTrue($handler->hasInfoThatContains(
+            Assert::assertTrue($handler->hasInfoThatContains('Retrying...'));
+            Assert::assertTrue($handler->hasInfoThatContains(
                 'non_existent_table\' doesn\'t exist. Retrying... [9x]'
             ));
         }

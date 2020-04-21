@@ -1,4 +1,3 @@
-FROM keboola/db-component-ssh-proxy:latest AS sshproxy
 FROM php:7.4-cli
 
 ARG COMPOSER_FLAGS="--prefer-dist --no-interaction"
@@ -27,10 +26,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     time \
     libzip-dev \
     && rm -r /var/lib/apt/lists/* \
-	&& sed -i 's/^# *\(en_US.UTF-8\)/\1/' /etc/locale.gen \
-	&& locale-gen \
-	&& chmod +x /tmp/composer-install.sh \
-	&& /tmp/composer-install.sh
+    && sed -i 's/^# *\(en_US.UTF-8\)/\1/' /etc/locale.gen \
+    && locale-gen \
+    && chmod +x /tmp/composer-install.sh \
+    && /tmp/composer-install.sh
 
 ENV LANGUAGE=en_US.UTF-8
 ENV LANG=en_US.UTF-8
@@ -58,5 +57,3 @@ COPY . /code/
 
 # Run normal composer - all deps are cached already
 RUN composer install $COMPOSER_FLAGS
-
-COPY --from=sshproxy /root/.ssh /root/.ssh

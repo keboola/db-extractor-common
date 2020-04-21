@@ -4,21 +4,22 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor;
 
+use Keboola\Component\Logger\AsyncActionLogging;
+use Keboola\Component\Logger\SyncActionLogging;
 use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractorConfig\Config;
 use Keboola\DbExtractorConfig\Configuration\ActionConfigRowDefinition;
 use Keboola\DbExtractorConfig\Configuration\ConfigDefinition;
 use Keboola\DbExtractorConfig\Configuration\ConfigRowDefinition;
-use Keboola\DbExtractorLogger\Logger;
 use Pimple\Container;
 use ErrorException;
+use Psr\Log\LoggerInterface;
 
 class Application extends Container
 {
-    /** @var Config $config */
-    protected $config;
+    protected Config $config;
 
-    public function __construct(array $config, Logger $logger, array $state = [])
+    public function __construct(array $config, LoggerInterface $logger, array $state = [])
     {
         static::setEnvironment();
 
@@ -74,6 +75,19 @@ class Application extends Container
 
     public function run(): array
     {
+        // Setup logger, copied from php-component/src/BaseComponent.php
+        // Will be removed in next refactoring steps,
+        // ... when Application will be replace by standard BaseComponent
+        if ($this['action'] !== 'run') { // $this->isSyncAction()
+            if ($this['logger'] instanceof SyncActionLogging) {
+                $this['logger']->setupSyncActionLogging();
+            }
+        } else {
+            if ($this['logger']instanceof AsyncActionLogging) {
+                $this['logger']->setupAsyncActionLogging();
+            }
+        }
+
         $actionMethod = $this['action'] . 'Action';
         if (!method_exists($this, $actionMethod)) {
             throw new UserException(sprintf('Action "%s" does not exist.', $this['action']));

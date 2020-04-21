@@ -4,33 +4,39 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Tests;
 
-use Keboola\Csv\CsvFile;
+use PDO;
+use Monolog\Logger;
+use Keboola\Csv\CsvReader;
 use Keboola\DbExtractor\Application;
 use Keboola\DbExtractor\Exception\ApplicationException;
 use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractorConfig\Exception\UserException as ConfigUserException;
-use Keboola\DbExtractorLogger\Logger;
 use Monolog\Handler\TestHandler;
+use PHPUnit\Framework\Assert;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
 use Keboola\DbExtractor\Test\ExtractorTest;
 use Keboola\DbExtractor\Test\DataLoader;
+use Symfony\Component\Process\Process;
 
 class CommonExtractorTest extends ExtractorTest
 {
     public const DRIVER = 'common';
 
-    /** @var string */
-    protected $appName = 'ex-db-common';
+    protected string $appName = 'ex-db-common';
 
-    /**
-     * @var  \PDO
-     */
-    private $db;
+    private PDO $db;
 
-    public function setUp(): void
+    protected function setUp(): void
     {
         $this->initDatabase();
+    }
+
+    protected function tearDown(): void
+    {
+        # Close SSH tunnel if created
+        $process = new Process(['sh', '-c', 'pgrep ssh | xargs -r kill']);
+        $process->mustRun();
     }
 
     private function getApp(array $config, array $state = []): Application
@@ -53,8 +59,7 @@ class CommonExtractorTest extends ExtractorTest
                 'DROP DATABASE IF EXISTS `%s`',
                 $this->getEnv(self::DRIVER, 'DB_DATABASE')
             )
-        )
-        ;
+        );
         $dataLoader->getPdo()->exec(
             sprintf(
                 '
@@ -122,8 +127,8 @@ class CommonExtractorTest extends ExtractorTest
             (string) file_get_contents($filename),
             true
         );
-        $this->assertEquals(['weird_I_d', 'S_oPaulo'], $manifest['columns']);
-        $this->assertEquals(['weird_I_d'], $manifest['primary_key']);
+        Assert::assertEquals(['weird_I_d', 'SaoPaulo'], $manifest['columns']);
+        Assert::assertEquals(['weird_I_d'], $manifest['primary_key']);
     }
 
     public function testRunJsonConfig(): void
@@ -137,8 +142,8 @@ class CommonExtractorTest extends ExtractorTest
             (string) file_get_contents($filename),
             true
         );
-        $this->assertArrayNotHasKey('columns', $manifest);
-        $this->assertArrayNotHasKey('primary_key', $manifest);
+        Assert::assertArrayNotHasKey('columns', $manifest);
+        Assert::assertArrayNotHasKey('primary_key', $manifest);
 
         $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][1]['outputTable']);
         $filename = $this->dataDir . '/out/tables/' . $result['imported'][1]['outputTable'] . '.csv.manifest';
@@ -146,25 +151,25 @@ class CommonExtractorTest extends ExtractorTest
             (string) file_get_contents($filename),
             true
         );
-        $this->assertEquals(['weird_I_d', 'S_oPaulo'], $manifest['columns']);
-        $this->assertEquals(['weird_I_d'], $manifest['primary_key']);
+        Assert::assertEquals(['weird_I_d', 'SaoPaulo'], $manifest['columns']);
+        Assert::assertEquals(['weird_I_d'], $manifest['primary_key']);
     }
 
     public function testRunConfigRow(): void
     {
         $this->cleanOutputDirectory();
         $result = ($this->getApp($this->getConfigRow(self::DRIVER)))->run();
-        $this->assertEquals('success', $result['status']);
-        $this->assertEquals('in.c-main.simple', $result['imported']['outputTable']);
-        $this->assertEquals(2, $result['imported']['rows']);
+        Assert::assertEquals('success', $result['status']);
+        Assert::assertEquals('in.c-main.simple', $result['imported']['outputTable']);
+        Assert::assertEquals(2, $result['imported']['rows']);
         $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported']['outputTable']);
         $filename = $this->dataDir . '/out/tables/' . $result['imported']['outputTable'] . '.csv.manifest';
         $manifest = json_decode(
             (string) file_get_contents($filename),
             true
         );
-        $this->assertEquals(['weird_I_d', 'S_oPaulo'], $manifest['columns']);
-        $this->assertEquals(['weird_I_d'], $manifest['primary_key']);
+        Assert::assertEquals(['weird_I_d', 'SaoPaulo'], $manifest['columns']);
+        Assert::assertEquals(['weird_I_d'], $manifest['primary_key']);
     }
 
     public function testRunWithSSH(): void
@@ -245,12 +250,13 @@ class CommonExtractorTest extends ExtractorTest
         try {
             ($this->getApp($config))->run();
         } catch (UserException $e) {
-            $this->assertContains('Tried 3 times', $e->getMessage());
+            Assert::assertStringContainsString('Tried 3 times', $e->getMessage());
         }
     }
 
     public function testRunEmptyQuery(): void
     {
+        $this->cleanOutputDirectory();
         $outputCsvFile = $this->dataDir . '/out/tables/in.c-main.escaping.csv';
         $outputManifestFile = $this->dataDir . '/out/tables/in.c-main.escaping.csv.manifest';
 
@@ -259,9 +265,9 @@ class CommonExtractorTest extends ExtractorTest
 
         $result = ($this->getApp($config))->run();
 
-        $this->assertEquals('success', $result['status']);
-        $this->assertFileNotExists($outputCsvFile);
-        $this->assertFileNotExists($outputManifestFile);
+        Assert::assertEquals('success', $result['status']);
+        Assert::assertFileDoesNotExist($outputCsvFile);
+        Assert::assertFileDoesNotExist($outputManifestFile);
     }
 
     public function testTestConnection(): void
@@ -272,7 +278,7 @@ class CommonExtractorTest extends ExtractorTest
         $app = $this->getApp($config);
         $res = $app->run();
 
-        $this->assertEquals('success', $res['status']);
+        Assert::assertEquals('success', $res['status']);
     }
 
     public function testTestConnectionFailInTheMiddle(): void
@@ -289,7 +295,7 @@ class CommonExtractorTest extends ExtractorTest
             $this->fail('Failing query must raise exception.');
         } catch (\Keboola\DbExtractor\Exception\UserException $e) {
             // test that the error message contains the query name
-            $this->assertContains('[dummy]', $e->getMessage());
+            Assert::assertStringContainsString('[dummy]', $e->getMessage());
         }
     }
 
@@ -307,7 +313,7 @@ class CommonExtractorTest extends ExtractorTest
             $exceptionThrown = true;
         }
 
-        $this->assertTrue($exceptionThrown);
+        Assert::assertTrue($exceptionThrown);
     }
 
     public function testGetTablesAction(): void
@@ -319,26 +325,26 @@ class CommonExtractorTest extends ExtractorTest
 
         $result = $app->run();
 
-        $this->assertArrayHasKey('status', $result);
-        $this->assertArrayHasKey('tables', $result);
-        $this->assertEquals('success', $result['status']);
-        $this->assertCount(3, $result['tables']);
+        Assert::assertArrayHasKey('status', $result);
+        Assert::assertArrayHasKey('tables', $result);
+        Assert::assertEquals('success', $result['status']);
+        Assert::assertCount(3, $result['tables']);
 
         unset($result['tables'][0]['rowCount']);
         unset($result['tables'][1]['rowCount']);
         unset($result['tables'][3]['rowCount']);
 
-        $expectedData = array (
+        $expectedData = [
             0 =>
-                array (
+                [
                     'name' => 'escaping',
                     'sanitizedName' => 'escaping',
                     'schema' => 'testdb',
                     'type' => 'BASE TABLE',
                     'columns' =>
-                        array (
+                        [
                             0 =>
-                                array (
+                                [
                                     'name' => 'col1',
                                     'sanitizedName' => 'col1',
                                     'type' => 'varchar',
@@ -347,9 +353,9 @@ class CommonExtractorTest extends ExtractorTest
                                     'nullable' => false,
                                     'default' => 'abc',
                                     'ordinalPosition' => '1',
-                                ),
+                                ],
                             1 =>
-                                array (
+                                [
                                     'name' => 'col2',
                                     'sanitizedName' => 'col2',
                                     'type' => 'varchar',
@@ -358,19 +364,19 @@ class CommonExtractorTest extends ExtractorTest
                                     'nullable' => false,
                                     'default' => 'abc',
                                     'ordinalPosition' => '2',
-                                ),
-                        ),
-                ),
+                                ],
+                        ],
+                ],
             1 =>
-                array (
+                [
                     'name' => 'escapingPK',
                     'sanitizedName' => 'escapingPK',
                     'schema' => 'testdb',
                     'type' => 'BASE TABLE',
                     'columns' =>
-                        array (
+                        [
                             0 =>
-                                array (
+                                [
                                     'name' => 'col1',
                                     'sanitizedName' => 'col1',
                                     'type' => 'varchar',
@@ -379,9 +385,9 @@ class CommonExtractorTest extends ExtractorTest
                                     'nullable' => false,
                                     'default' => '',
                                     'ordinalPosition' => '1',
-                                ),
+                                ],
                             1 =>
-                                array (
+                                [
                                     'name' => 'col2',
                                     'sanitizedName' => 'col2',
                                     'type' => 'varchar',
@@ -390,20 +396,20 @@ class CommonExtractorTest extends ExtractorTest
                                     'nullable' => false,
                                     'default' => '',
                                     'ordinalPosition' => '2',
-                                ),
-                        ),
-                ),
+                                ],
+                        ],
+                ],
             2 =>
-                array (
+                [
                     'name' => 'simple',
                     'sanitizedName' => 'simple',
                     'schema' => 'testdb',
                     'type' => 'BASE TABLE',
                     'rowCount' => '2',
                     'columns' =>
-                        array (
+                        [
                             0 =>
-                                array (
+                                [
                                     'name' => '_weird-I-d',
                                     'sanitizedName' => 'weird_I_d',
                                     'type' => 'varchar',
@@ -412,23 +418,23 @@ class CommonExtractorTest extends ExtractorTest
                                     'nullable' => false,
                                     'default' => 'abc',
                                     'ordinalPosition' => '1',
-                                ),
+                                ],
                             1 =>
-                                array (
+                                [
                                     'name' => 'SãoPaulo',
-                                    'sanitizedName' => 'S_oPaulo',
+                                    'sanitizedName' => 'SaoPaulo',
                                     'type' => 'varchar',
                                     'primaryKey' => false,
                                     'length' => '155',
                                     'nullable' => false,
                                     'default' => 'abc',
                                     'ordinalPosition' => '2',
-                                ),
-                        ),
-                ),
-        );
+                                ],
+                        ],
+                ],
+        ];
 
-        $this->assertEquals($expectedData, $result['tables']);
+        Assert::assertEquals($expectedData, $result['tables']);
     }
 
     public function testMetadataManifest(): void
@@ -448,9 +454,9 @@ class CommonExtractorTest extends ExtractorTest
             true
         );
 
-        $this->assertArrayHasKey('destination', $outputManifest);
-        $this->assertArrayHasKey('incremental', $outputManifest);
-        $this->assertArrayHasKey('metadata', $outputManifest);
+        Assert::assertArrayHasKey('destination', $outputManifest);
+        Assert::assertArrayHasKey('incremental', $outputManifest);
+        Assert::assertArrayHasKey('metadata', $outputManifest);
 
         $expectedMetadata = [
             'KBC.name' => 'simple',
@@ -460,125 +466,125 @@ class CommonExtractorTest extends ExtractorTest
         ];
         $metadataList = [];
         foreach ($outputManifest['metadata'] as $i => $metadata) {
-            $this->assertArrayHasKey('key', $metadata);
-            $this->assertArrayHasKey('value', $metadata);
+            Assert::assertArrayHasKey('key', $metadata);
+            Assert::assertArrayHasKey('value', $metadata);
             $metadataList[$metadata['key']] = $metadata['value'];
         }
 
-        $this->assertEquals(2, $metadataList['KBC.rowCount']);
+        Assert::assertEquals(2, $metadataList['KBC.rowCount']);
         unset($metadataList['KBC.rowCount']);
 
-        $this->assertEquals($expectedMetadata, $metadataList);
-        $this->assertArrayHasKey('column_metadata', $outputManifest);
-        $this->assertCount(2, $outputManifest['column_metadata']);
-        $this->assertArrayHasKey('weird_I_d', $outputManifest['column_metadata']);
-        $this->assertArrayHasKey('S_oPaulo', $outputManifest['column_metadata']);
+        Assert::assertEquals($expectedMetadata, $metadataList);
+        Assert::assertArrayHasKey('column_metadata', $outputManifest);
+        Assert::assertCount(2, $outputManifest['column_metadata']);
+        Assert::assertArrayHasKey('weird_I_d', $outputManifest['column_metadata']);
+        Assert::assertArrayHasKey('SaoPaulo', $outputManifest['column_metadata']);
 
-        $expectedColumnMetadata = array (
+        $expectedColumnMetadata = [
             'weird_I_d' =>
-                array (
+                [
                     0 =>
-                        array (
+                        [
                             'key' => 'KBC.datatype.type',
                             'value' => 'varchar',
-                        ),
+                        ],
                     1 =>
-                        array (
+                        [
                             'key' => 'KBC.datatype.nullable',
                             'value' => false,
-                        ),
+                        ],
                     2 =>
-                        array (
+                        [
                             'key' => 'KBC.datatype.basetype',
                             'value' => 'STRING',
-                        ),
+                        ],
                     3 =>
-                        array (
+                        [
                             'key' => 'KBC.datatype.length',
                             'value' => '155',
-                        ),
+                        ],
                     4 =>
-                        array (
+                        [
                             'key' => 'KBC.datatype.default',
                             'value' => 'abc',
-                        ),
+                        ],
                     5 =>
-                        array (
+                        [
                             'key' => 'KBC.sourceName',
                             'value' => '_weird-I-d',
-                        ),
+                        ],
                     6 =>
-                        array (
+                        [
                             'key' => 'KBC.sanitizedName',
                             'value' => 'weird_I_d',
-                        ),
+                        ],
                     7 =>
-                        array (
+                        [
                             'key' => 'KBC.primaryKey',
                             'value' => true,
-                        ),
+                        ],
                     8 =>
-                        array (
+                        [
                             'key' => 'KBC.ordinalPosition',
                             'value' => '1',
-                        ),
+                        ],
                     9 =>
-                        array (
+                        [
                             'key' => 'KBC.constraintName',
                             'value' => 'PRIMARY',
-                        ),
-                ),
-            'S_oPaulo' =>
-                array (
+                        ],
+                ],
+            'SaoPaulo' =>
+                [
                     0 =>
-                        array (
+                        [
                             'key' => 'KBC.datatype.type',
                             'value' => 'varchar',
-                        ),
+                        ],
                     1 =>
-                        array (
+                        [
                             'key' => 'KBC.datatype.nullable',
                             'value' => false,
-                        ),
+                        ],
                     2 =>
-                        array (
+                        [
                             'key' => 'KBC.datatype.basetype',
                             'value' => 'STRING',
-                        ),
+                        ],
                     3 =>
-                        array (
+                        [
                             'key' => 'KBC.datatype.length',
                             'value' => '155',
-                        ),
+                        ],
                     4 =>
-                        array (
+                        [
                             'key' => 'KBC.datatype.default',
                             'value' => 'abc',
-                        ),
+                        ],
                     5 =>
-                        array (
+                        [
                             'key' => 'KBC.sourceName',
                             'value' => 'SãoPaulo',
-                        ),
+                        ],
                     6 =>
-                        array (
+                        [
                             'key' => 'KBC.sanitizedName',
-                            'value' => 'S_oPaulo',
-                        ),
+                            'value' => 'SaoPaulo',
+                        ],
                     7 =>
-                        array (
+                        [
                             'key' => 'KBC.primaryKey',
                             'value' => false,
-                        ),
+                        ],
                     8 =>
-                        array (
+                        [
                             'key' => 'KBC.ordinalPosition',
                             'value' => '2',
-                        ),
-                ),
-        );
+                        ],
+                ],
+        ];
 
-        $this->assertEquals($expectedColumnMetadata, $outputManifest['column_metadata']);
+        Assert::assertEquals($expectedColumnMetadata, $outputManifest['column_metadata']);
     }
 
     public function testNonExistingAction(): void
@@ -607,8 +613,8 @@ class CommonExtractorTest extends ExtractorTest
             (string) file_get_contents($this->dataDir . '/out/tables/' . $outputTableName . '.csv.manifest'),
             true
         );
-        $this->assertEquals(['weird_I_d', 'S_oPaulo'], $manifest['columns']);
-        $this->assertEquals(['weird_I_d'], $manifest['primary_key']);
+        Assert::assertEquals(['weird_I_d', 'SaoPaulo'], $manifest['columns']);
+        Assert::assertEquals(['weird_I_d'], $manifest['primary_key']);
     }
 
     public function testInvalidConfigurationQueryAndTable(): void
@@ -638,9 +644,9 @@ class CommonExtractorTest extends ExtractorTest
         unset($config['parameters']['tables'][1]);
         $result = ($this->getApp($config))->run();
 
-        $this->assertEquals('success', $result['status']);
-        $this->assertFileExists($this->dataDir . '/out/tables/in.c-main.something-weird.csv');
-        $this->assertFileExists($this->dataDir . '/out/tables/in.c-main.something-weird.csv.manifest');
+        Assert::assertEquals('success', $result['status']);
+        Assert::assertFileExists($this->dataDir . '/out/tables/in.c-main.something-weird.csv');
+        Assert::assertFileExists($this->dataDir . '/out/tables/in.c-main.something-weird.csv.manifest');
     }
 
     public function testIncrementalFetchingByTimestamp(): void
@@ -651,8 +657,8 @@ class CommonExtractorTest extends ExtractorTest
 
         $result = ($this->getApp($config))->run();
 
-        $this->assertEquals('success', $result['status']);
-        $this->assertEquals(
+        Assert::assertEquals('success', $result['status']);
+        Assert::assertEquals(
             [
                 'outputTable' => 'in.c-main.auto-increment-timestamp',
                 'rows' => 2,
@@ -661,14 +667,14 @@ class CommonExtractorTest extends ExtractorTest
         );
 
         //check that output state contains expected information
-        $this->assertArrayHasKey('state', $result);
-        $this->assertArrayHasKey('lastFetchedRow', $result['state']);
-        $this->assertNotEmpty($result['state']['lastFetchedRow']);
+        Assert::assertArrayHasKey('state', $result);
+        Assert::assertArrayHasKey('lastFetchedRow', $result['state']);
+        Assert::assertNotEmpty($result['state']['lastFetchedRow']);
 
         sleep(2);
         // the next fetch should be empty
         $emptyResult = ($this->getApp($config, $result['state']))->run();
-        $this->assertEquals(0, $emptyResult['imported']['rows']);
+        Assert::assertEquals(0, $emptyResult['imported']['rows']);
 
         sleep(2);
         //now add a couple rows and run it again.
@@ -677,9 +683,9 @@ class CommonExtractorTest extends ExtractorTest
         $newResult = ($this->getApp($config, $result['state']))->run();
 
         //check that output state contains expected information
-        $this->assertArrayHasKey('state', $newResult);
-        $this->assertArrayHasKey('lastFetchedRow', $newResult['state']);
-        $this->assertGreaterThan(
+        Assert::assertArrayHasKey('state', $newResult);
+        Assert::assertArrayHasKey('lastFetchedRow', $newResult['state']);
+        Assert::assertGreaterThan(
             $result['state']['lastFetchedRow'],
             $newResult['state']['lastFetchedRow']
         );
@@ -693,8 +699,8 @@ class CommonExtractorTest extends ExtractorTest
 
         $result = ($this->getApp($config))->run();
 
-        $this->assertEquals('success', $result['status']);
-        $this->assertEquals(
+        Assert::assertEquals('success', $result['status']);
+        Assert::assertEquals(
             [
                 'outputTable' => 'in.c-main.auto-increment-timestamp',
                 'rows' => 2,
@@ -703,14 +709,14 @@ class CommonExtractorTest extends ExtractorTest
         );
 
         //check that output state contains expected information
-        $this->assertArrayHasKey('state', $result);
-        $this->assertArrayHasKey('lastFetchedRow', $result['state']);
-        $this->assertEquals(2, $result['state']['lastFetchedRow']);
+        Assert::assertArrayHasKey('state', $result);
+        Assert::assertArrayHasKey('lastFetchedRow', $result['state']);
+        Assert::assertEquals(2, $result['state']['lastFetchedRow']);
 
         sleep(2);
         // the next fetch should be empty
         $emptyResult = ($this->getApp($config, $result['state']))->run();
-        $this->assertEquals(0, $emptyResult['imported']['rows']);
+        Assert::assertEquals(0, $emptyResult['imported']['rows']);
 
         sleep(2);
         //now add a couple rows and run it again.
@@ -719,10 +725,10 @@ class CommonExtractorTest extends ExtractorTest
         $newResult = ($this->getApp($config, $result['state']))->run();
 
         //check that output state contains expected information
-        $this->assertArrayHasKey('state', $newResult);
-        $this->assertArrayHasKey('lastFetchedRow', $newResult['state']);
-        $this->assertEquals(4, $newResult['state']['lastFetchedRow']);
-        $this->assertEquals(2, $newResult['imported']['rows']);
+        Assert::assertArrayHasKey('state', $newResult);
+        Assert::assertArrayHasKey('lastFetchedRow', $newResult['state']);
+        Assert::assertEquals(4, $newResult['state']['lastFetchedRow']);
+        Assert::assertEquals(2, $newResult['imported']['rows']);
     }
 
     public function testIncrementalMaxNumberValue(): void
@@ -733,8 +739,8 @@ class CommonExtractorTest extends ExtractorTest
 
         $result = ($this->getApp($config))->run();
 
-        $this->assertEquals('success', $result['status']);
-        $this->assertEquals(
+        Assert::assertEquals('success', $result['status']);
+        Assert::assertEquals(
             [
                 'outputTable' => 'in.c-main.auto-increment-timestamp',
                 'rows' => 2,
@@ -743,16 +749,16 @@ class CommonExtractorTest extends ExtractorTest
         );
 
         $this->db->exec(
-            'INSERT INTO auto_increment_timestamp (`name`, `number`)'.
+            'INSERT INTO auto_increment_timestamp (`name`, `number`)' .
             ' VALUES (\'charles\', 20.23486237628), (\'william\', 21.2863763287638276)'
         );
 
         $newResult = ($this->getApp($config, $result['state']))->run();
 
-        $this->assertArrayHasKey('state', $newResult);
-        $this->assertArrayHasKey('lastFetchedRow', $newResult['state']);
-        $this->assertEquals('21.28637632876382760000', $newResult['state']['lastFetchedRow']);
-        $this->assertEquals(2, $newResult['imported']['rows']);
+        Assert::assertArrayHasKey('state', $newResult);
+        Assert::assertArrayHasKey('lastFetchedRow', $newResult['state']);
+        Assert::assertEquals('21.28637632876382760000', $newResult['state']['lastFetchedRow']);
+        Assert::assertEquals(2, $newResult['imported']['rows']);
     }
 
     public function testIncrementalFetchingLimit(): void
@@ -763,8 +769,8 @@ class CommonExtractorTest extends ExtractorTest
 
         $result = ($this->getApp($config))->run();
 
-        $this->assertEquals('success', $result['status']);
-        $this->assertEquals(
+        Assert::assertEquals('success', $result['status']);
+        Assert::assertEquals(
             [
                 'outputTable' => 'in.c-main.auto-increment-timestamp',
                 'rows' => 1,
@@ -773,14 +779,14 @@ class CommonExtractorTest extends ExtractorTest
         );
 
         //check that output state contains expected information
-        $this->assertArrayHasKey('state', $result);
-        $this->assertArrayHasKey('lastFetchedRow', $result['state']);
-        $this->assertEquals(1, $result['state']['lastFetchedRow']);
+        Assert::assertArrayHasKey('state', $result);
+        Assert::assertArrayHasKey('lastFetchedRow', $result['state']);
+        Assert::assertEquals(1, $result['state']['lastFetchedRow']);
 
         sleep(2);
         // the next fetch should contain the second row
         $result = ($this->getApp($config, $result['state']))->run();
-        $this->assertEquals(
+        Assert::assertEquals(
             [
                 'outputTable' => 'in.c-main.auto-increment-timestamp',
                 'rows' => 1,
@@ -789,9 +795,9 @@ class CommonExtractorTest extends ExtractorTest
         );
 
         //check that output state contains expected information
-        $this->assertArrayHasKey('state', $result);
-        $this->assertArrayHasKey('lastFetchedRow', $result['state']);
-        $this->assertEquals(2, $result['state']['lastFetchedRow']);
+        Assert::assertArrayHasKey('state', $result);
+        Assert::assertArrayHasKey('lastFetchedRow', $result['state']);
+        Assert::assertEquals(2, $result['state']['lastFetchedRow']);
     }
 
     public function testIncrementalFetchingDisabled(): void
@@ -801,7 +807,7 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['incrementalFetchingColumn'] = ''; // unset
         $result = ($this->getApp($config))->run();
 
-        $this->assertEquals(
+        Assert::assertEquals(
             [
                 'outputTable' => 'in.c-main.auto-increment-timestamp',
                 'rows' => 2,
@@ -810,8 +816,8 @@ class CommonExtractorTest extends ExtractorTest
         );
 
         //check that output state contains expected information
-        $this->assertArrayHasKey('state', $result);
-        $this->assertEmpty($result['state']);
+        Assert::assertArrayHasKey('state', $result);
+        Assert::assertEmpty($result['state']);
     }
 
     public function testIncrementalFetchingInvalidColumns(): void
@@ -824,7 +830,7 @@ class CommonExtractorTest extends ExtractorTest
             $result = ($this->getApp($config))->run();
             $this->fail('specified autoIncrement column does not exist, should fail.');
         } catch (UserException $e) {
-            $this->assertStringStartsWith('Column [fakeCol]', $e->getMessage());
+            Assert::assertStringStartsWith('Column [fakeCol]', $e->getMessage());
         }
 
         // column exists but is not auto-increment nor updating timestamp so should fail
@@ -833,7 +839,7 @@ class CommonExtractorTest extends ExtractorTest
             $result = ($this->getApp($config))->run();
             $this->fail('specified column is not auto increment nor timestamp, should fail.');
         } catch (UserException $e) {
-            $this->assertStringStartsWith('Column [name] specified for incremental fetching', $e->getMessage());
+            Assert::assertStringStartsWith('Column [name] specified for incremental fetching', $e->getMessage());
         }
     }
 
@@ -857,7 +863,7 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['columns'] = ['timestamp', 'id', 'name'];
         $config['parameters']['outputTable'] = 'in.c-main.columnsCheck';
         $result = $this->getApp($config)->run();
-        $this->assertEquals('success', $result['status']);
+        Assert::assertEquals('success', $result['status']);
         $outputManifestFile = $this->dataDir . '/out/tables/in.c-main.columnscheck.csv.manifest';
 
         $outputManifest = json_decode(
@@ -866,16 +872,16 @@ class CommonExtractorTest extends ExtractorTest
         );
 
         // check that the manifest has the correct column ordering
-        $this->assertEquals($config['parameters']['columns'], $outputManifest['columns']);
+        Assert::assertEquals($config['parameters']['columns'], $outputManifest['columns']);
         // check the data
-        $expectedData = iterator_to_array(new CsvFile($this->dataDir.'/columnsOrderCheck.csv'));
-        $outputData = iterator_to_array(new CsvFile($this->dataDir.'/out/tables/in.c-main.columnscheck.csv'));
-        $this->assertCount(2, $outputData);
+        $expectedData = iterator_to_array(new CsvReader($this->dataDir . '/columnsOrderCheck.csv'));
+        $outputData = iterator_to_array(new CsvReader($this->dataDir . '/out/tables/in.c-main.columnscheck.csv'));
+        Assert::assertCount(2, $outputData);
         foreach ($outputData as $rowNum => $line) {
             // assert timestamp
-            $this->assertNotFalse(strtotime($line[0]));
-            $this->assertEquals($line[1], $expectedData[$rowNum][1]);
-            $this->assertEquals($line[2], $expectedData[$rowNum][2]);
+            Assert::assertNotFalse(strtotime($line[0]));
+            Assert::assertEquals($line[1], $expectedData[$rowNum][1]);
+            Assert::assertEquals($line[2], $expectedData[$rowNum][2]);
         }
     }
 
@@ -891,9 +897,9 @@ class CommonExtractorTest extends ExtractorTest
         ];
 
         $result = ($this->getApp($config))->run();
-        $this->assertCount(1, $result);
-        $this->assertArrayHasKey('status', $result);
-        $this->assertEquals('success', $result['status']);
+        Assert::assertCount(1, $result);
+        Assert::assertArrayHasKey('status', $result);
+        Assert::assertEquals('success', $result['status']);
     }
 
     public function testConfigWithNoName(): void
@@ -905,8 +911,8 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['query'] = 'SELECT 1 LIMIT 0';
         $result = ($this->getApp($config))->run();
 
-        $this->assertArrayHasKey('status', $result);
-        $this->assertEquals('success', $result['status']);
+        Assert::assertArrayHasKey('status', $result);
+        Assert::assertEquals('success', $result['status']);
     }
 
     public function testInvalidConfigsBothTableAndQueryWithNoName(): void
@@ -971,15 +977,15 @@ class CommonExtractorTest extends ExtractorTest
         (new Filesystem)->symlink('/dev/full', $this->dataDir . '/out/tables/in.c-main.simple-csv-err.csv');
 
         $handler = new TestHandler();
-        $logger = new Logger($this->appName);
+        $logger = new Logger('test');
         $logger->pushHandler($handler);
         $app = new Application($config, $logger, []);
         try {
             $app->run();
             self::fail('Must raise exception');
         } catch (ApplicationException $e) {
-            self::assertContains('Failed writing CSV File', $e->getMessage());
-            self::assertFalse($handler->hasInfoThatContains('Retrying'));
+            Assert::assertStringContainsString('Failed writing CSV File', $e->getMessage());
+            Assert::assertFalse($handler->hasInfoThatContains('Retrying'));
         }
     }
 
@@ -1061,9 +1067,9 @@ class CommonExtractorTest extends ExtractorTest
         $outputCsvFile = $this->dataDir . '/out/tables/' . $outputName . '.csv';
         $outputManifestFile = $this->dataDir . '/out/tables/' . $outputName . '.csv.manifest';
 
-        $this->assertFileExists($outputCsvFile);
-        $this->assertFileExists($outputManifestFile);
-        $this->assertEquals(file_get_contents($expectedCsvFile), file_get_contents($outputCsvFile));
+        Assert::assertFileExists($outputCsvFile);
+        Assert::assertFileExists($outputManifestFile);
+        Assert::assertEquals(file_get_contents($expectedCsvFile), file_get_contents($outputCsvFile));
     }
 
 
@@ -1079,10 +1085,10 @@ class CommonExtractorTest extends ExtractorTest
             $app->run();
             self::fail('Must raise exception.');
         } catch (UserException $e) {
-            self::assertTrue($handler->hasInfoThatContains('Retrying...'));
-            self::assertContains('Error connecting to '.
-                'DB: SQLSTATE[HY000] [2002] '.
-                'php_network_getaddresses: getaddrinfo '.
+            Assert::assertTrue($handler->hasInfoThatContains('Retrying...'));
+            Assert::assertStringContainsString('Error connecting to ' .
+                'DB: SQLSTATE[HY000] [2002] ' .
+                'php_network_getaddresses: getaddrinfo ' .
                 'failed: Name or service not known', $e->getMessage());
         }
     }
