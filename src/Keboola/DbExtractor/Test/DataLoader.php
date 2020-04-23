@@ -8,8 +8,7 @@ use PDO;
 
 class DataLoader
 {
-    /** @var PDO  */
-    private $pdo;
+    private PDO $pdo;
 
     public function __construct(string $host, string $port, string $dbname, string $user, string $pass)
     {
@@ -38,7 +37,9 @@ class DataLoader
             $ignoreLines
         );
 
-        return $this->pdo->exec($query);
+        /** @var int $result */
+        $result = $this->pdo->exec($query);
+        return $result;
     }
 
     public function getPdo(): PDO

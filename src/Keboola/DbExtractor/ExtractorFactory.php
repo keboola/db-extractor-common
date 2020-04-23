@@ -6,15 +6,13 @@ namespace Keboola\DbExtractor;
 
 use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractor\Extractor\Extractor;
-use Keboola\DbExtractorLogger\Logger;
+use Psr\Log\LoggerInterface;
 
 class ExtractorFactory
 {
-    /** @var array  */
-    private $parameters;
+    private array $parameters;
 
-    /** @var array  */
-    private $state;
+    private array $state;
 
     public function __construct(array $parameters, array $state)
     {
@@ -22,7 +20,7 @@ class ExtractorFactory
         $this->state = $state;
     }
 
-    public function create(Logger $logger): Extractor
+    public function create(LoggerInterface $logger): Extractor
     {
         $extractorClass = __NAMESPACE__ . '\\Extractor\\' . $this->parameters['extractor_class'];
         if (!class_exists($extractorClass)) {

@@ -5,13 +5,8 @@ language: bash
 services:
   - docker
 
-install:
-  - docker-compose build
-
 script:
-  - docker-compose run --rm tests
-
-notifications:
-  email: false
-  slack:
-    secure: WbHNcuuev2GcIU0bVUfMdHlzuqGrExnhxj3/tZz5uLgVWE4tVzNVGRB0HPVj+96f9NFdddUM5gyczsCQ1BLpQRAz4mbE/x1UAr/SzF+XYEsJKUegm0Swc8w58OO05ELxxZD/SxnaUGV0qA5pP5ILeneTxeOSeJUcBvYm6S4qodBMhFufazpblNh7eJoR+tgRlS9VC3eNqSkI19KLEAUMjH/S4W9ZHHrwrggddDLNAEGB1pGCI7YLlOoOYq5v9Vo10BQsHyAa1T0zC+JWywxCRGHdiw89J1V2GCFPv62qPDQbMuS+XvgB2L11NWhOPTrpDpBf5hY/S3F3hR+G4hVyAbUCee8e26SqvbV3GY0slflTECJGgtab+hLkcd5hX4W4Ora4t4HYVsLCWqcG27L8U8w5fK4Jx/FtAM5UcgKNXhY/cD6MrVkGUg6Bv1snquen4qmU8g8f8f0zKEe90GiKonNWXjqmuIlNGt3gz7diqR0RNmNjqFYyLN2U5IiKE3hcRIA9nJ697xephl+ybBmbFfUZouVvZ1U/OrxXiBcvZY1jXhl2lIcmKEnMBL8PIbd+GJuLgG6uPajXi6h6UA526/AfFDTM/rOXRd8ZqY8BAcYB4caERz5gDQN8iCL3hfSb8EHTMLpzBuhe+EbgFXdPuUFbhg7zv5YTBuHaz2plsj8=
+  - docker -v
+  - docker-compose build
+  - docker-compose run wait
+  - docker-compose run tests composer ci

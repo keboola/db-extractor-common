@@ -5,15 +5,12 @@ declare(strict_types=1);
 namespace Keboola\DbExtractor\Test;
 
 use Keboola\DbExtractor\Application;
-use Keboola\DbExtractor\Exception\UserException;
-use Keboola\DbExtractorLogger\Logger;
+use Monolog\Logger;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Yaml\Yaml;
 
 class ExtractorTest extends TestCase
 {
-    /** @var string */
-    protected $dataDir = __DIR__ . '/../../../../tests/data';
+    protected string $dataDir = __DIR__ . '/../../../../tests/phpunit/data';
 
     protected function getConfigDbNode(string $driver): array
     {

@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Exception;
 
+use Keboola\CommonExceptions\ApplicationExceptionInterface;
 use Throwable;
 
-class ApplicationException extends \Exception
+class ApplicationException extends \Exception implements ApplicationExceptionInterface
 {
     /** @var array */
     protected $data;

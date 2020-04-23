@@ -7,9 +7,8 @@
          convertWarningsToExceptions="true"
          processIsolation="false"
          stopOnFailure="false"
-         bootstrap="vendor/autoload.php">
-
-    <testsuite name="DB Extractor Common Test Suite">
-        <directory>tests</directory>
+         bootstrap="tests/phpunit/bootstrap.php">
+    <testsuite name="Main Test Suite">
+        <directory>tests/phpunit</directory>
     </testsuite>
 </phpunit>

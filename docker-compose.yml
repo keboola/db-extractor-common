@@ -1,11 +1,7 @@
-version: "2"
+version: "3"
 services:
-  tests:
+  tests: &tests
     build: .
-    image: keboola/db-extractor-common
-    volumes:
-      - .:/code
-    command: sh -c 'composer install -n && composer ci'
     environment:
       COMMON_DB_USER: root
       COMMON_DB_PASSWORD: somePassword
@@ -23,6 +19,25 @@ services:
     depends_on:
       - sshproxy
       - mysql
+    volumes:
+      - ssh-keys:/root/.ssh:ro
+
+  dev:
+    <<: *tests
+    command: bash
+    volumes:
+      - ./:/code
+      - ssh-keys:/root/.ssh:ro
+
+
+  wait:
+    image: waisbrot/wait
+    depends_on:
+      - sshproxy
+      - mysql
+    environment:
+      - TARGETS=mysql:3306,sshproxy:22
+      - TIMEOUT=60
 
   mysql:
     image: mysql:5.6
@@ -32,5 +47,10 @@ services:
 
   sshproxy:
     image: keboola/db-component-ssh-proxy:latest
+    volumes:
+      - ssh-keys:/root/.ssh
     links:
       - mysql
+
+volumes:
+  ssh-keys:

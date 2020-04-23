@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Exception;
 
-class UserException extends ApplicationException
+use Keboola\CommonExceptions\UserExceptionInterface;
+
+class UserException extends \Exception implements UserExceptionInterface
 {
 
 }

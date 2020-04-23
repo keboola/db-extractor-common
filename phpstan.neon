@@ -1,4 +1,7 @@
 parameters:
+    checkMissingIterableValueType: false
+    excludes_analyse:
+        - 'tests/phpunit/TaintedPDO.php'
+        - 'tests/phpunit/TaintedPDOStatement.php'
     ignoreErrors:
-        - '#Property Keboola\\DbExtractor\\Tests\\RetryTest::\$taintedPdo \(PDO\) does not accept null.#'
-        - '#Call to an undefined method PHPUnit\\Framework\\MockObject\\MockObject::export\(\).#'
+        - '#Offset .* does not exist on array\|null.#' # TODO remove (arrays will be replaced by Value Objects)
