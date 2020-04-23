@@ -20,7 +20,7 @@
     "keboola/php-component": "^8.1",
     "keboola/php-datatypes": "^4.7",
     "keboola/php-utils": "^2.3||^3.0||^4.0",
-    "keboola/retry": "^0.4",
+    "keboola/retry": "^0.5",
     "monolog/monolog": "^2.0",
     "nette/utils": "^3.0",
     "phpunit/phpunit": "^9.1",
