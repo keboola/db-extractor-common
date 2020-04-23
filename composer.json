@@ -19,7 +19,7 @@
     "keboola/php-datatypes": "^4.7",
     "keboola/php-utils": "^2.3||^3.0||^4.0",
     "keboola/retry": "^0.4",
-    "nette/utils": "^2.5",
+    "nette/utils": "^3.0",
     "pimple/pimple": "^3.3"
   },
   "require-dev": {
