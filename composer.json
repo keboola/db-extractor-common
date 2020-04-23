@@ -13,21 +13,25 @@
     "php": ">=7.4",
     "ext-json": "*",
     "ext-pdo": "*",
+    "keboola/common-exceptions": "^1.0",
     "keboola/csv": "^2.1",
     "keboola/db-extractor-config": "^1.2.1",
     "keboola/db-extractor-ssh-tunnel": "^1.1",
+    "keboola/php-component": "^8.1",
     "keboola/php-datatypes": "^4.7",
     "keboola/php-utils": "^2.3||^3.0||^4.0",
     "keboola/retry": "^0.4",
+    "monolog/monolog": "^2.0",
     "nette/utils": "^3.0",
-    "pimple/pimple": "^3.3"
+    "phpunit/phpunit": "^9.1",
+    "pimple/pimple": "^3.3",
+    "psr/log": "^1.1"
   },
   "require-dev": {
     "php-parallel-lint/php-parallel-lint": "^1.2",
     "keboola/coding-standard": ">=9.0.0",
     "keboola/php-temp": "^2.0",
     "phpstan/phpstan": "^0.12.14",
-    "phpunit/phpunit": "^9.1",
     "aws/aws-sdk-php": "^3.107",
     "symfony/debug": "^4.3"
   },
