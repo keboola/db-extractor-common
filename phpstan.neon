@@ -4,4 +4,5 @@ parameters:
         - 'tests/phpunit/TaintedPDO.php'
         - 'tests/phpunit/TaintedPDOStatement.php'
     ignoreErrors:
-        - '#Offset .* does not exist on array\|null.#' # TODO remove (arrays will be replaced by Value Objects)
+        # Required constructor argumens of ValueObjects are checked, see: checkRequiredProperties
+        - '#Keboola\\DbExtractor\\Metadata\\ValueObject\\.* constructor expects string, string\|null given.#'
