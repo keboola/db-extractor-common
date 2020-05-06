@@ -338,98 +338,55 @@ class CommonExtractorTest extends ExtractorTest
             0 =>
                 [
                     'name' => 'escaping',
-                    'sanitizedName' => 'escaping',
                     'schema' => 'testdb',
-                    'type' => 'BASE TABLE',
                     'columns' =>
                         [
-                            0 =>
-                                [
-                                    'name' => 'col1',
-                                    'sanitizedName' => 'col1',
-                                    'type' => 'varchar',
-                                    'primaryKey' => false,
-                                    'length' => '155',
-                                    'nullable' => false,
-                                    'default' => 'abc',
-                                    'ordinalPosition' => '1',
-                                ],
-                            1 =>
-                                [
-                                    'name' => 'col2',
-                                    'sanitizedName' => 'col2',
-                                    'type' => 'varchar',
-                                    'primaryKey' => false,
-                                    'length' => '155',
-                                    'nullable' => false,
-                                    'default' => 'abc',
-                                    'ordinalPosition' => '2',
-                                ],
+                            [
+                                'name' => 'col1',
+                                'type' => 'varchar',
+                                'primaryKey' => false,
+                            ],
+                            [
+                                'name' => 'col2',
+                                'type' => 'varchar',
+                                'primaryKey' => false,
+                            ],
                         ],
                 ],
             1 =>
                 [
                     'name' => 'escapingPK',
-                    'sanitizedName' => 'escapingPK',
                     'schema' => 'testdb',
-                    'type' => 'BASE TABLE',
                     'columns' =>
                         [
-                            0 =>
-                                [
-                                    'name' => 'col1',
-                                    'sanitizedName' => 'col1',
-                                    'type' => 'varchar',
-                                    'primaryKey' => true,
-                                    'length' => '155',
-                                    'nullable' => false,
-                                    'default' => '',
-                                    'ordinalPosition' => '1',
-                                ],
-                            1 =>
-                                [
-                                    'name' => 'col2',
-                                    'sanitizedName' => 'col2',
-                                    'type' => 'varchar',
-                                    'primaryKey' => true,
-                                    'length' => '155',
-                                    'nullable' => false,
-                                    'default' => '',
-                                    'ordinalPosition' => '2',
-                                ],
+                            [
+                                'name' => 'col1',
+                                'type' => 'varchar',
+                                'primaryKey' => true,
+                            ],
+                            [
+                                'name' => 'col2',
+                                'type' => 'varchar',
+                                'primaryKey' => true,
+                            ],
                         ],
                 ],
             2 =>
                 [
                     'name' => 'simple',
-                    'sanitizedName' => 'simple',
                     'schema' => 'testdb',
-                    'type' => 'BASE TABLE',
-                    'rowCount' => '2',
                     'columns' =>
                         [
-                            0 =>
-                                [
-                                    'name' => '_weird-I-d',
-                                    'sanitizedName' => 'weird_I_d',
-                                    'type' => 'varchar',
-                                    'primaryKey' => true,
-                                    'length' => '155',
-                                    'nullable' => false,
-                                    'default' => 'abc',
-                                    'ordinalPosition' => '1',
-                                ],
-                            1 =>
-                                [
-                                    'name' => 'SãoPaulo',
-                                    'sanitizedName' => 'SaoPaulo',
-                                    'type' => 'varchar',
-                                    'primaryKey' => false,
-                                    'length' => '155',
-                                    'nullable' => false,
-                                    'default' => 'abc',
-                                    'ordinalPosition' => '2',
-                                ],
+                            [
+                                'name' => '_weird-I-d',
+                                'type' => 'varchar',
+                                'primaryKey' => true,
+                            ],
+                            [
+                                'name' => 'SãoPaulo',
+                                'type' => 'varchar',
+                                'primaryKey' => false,
+                            ],
                         ],
                 ],
         ];
@@ -804,7 +761,7 @@ class CommonExtractorTest extends ExtractorTest
     {
         $this->createAutoIncrementAndTimestampTable();
         $config = $this->getIncrementalFetchingConfig();
-        $config['parameters']['incrementalFetchingColumn'] = ''; // unset
+        unset($config['parameters']['incremental']);
         $result = ($this->getApp($config))->run();
 
         Assert::assertEquals(
