@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Test;
 
+use RuntimeException;
 use PDO;
 
 class DataLoader
@@ -18,7 +19,8 @@ class DataLoader
             $user,
             $pass,
             [
-            PDO::MYSQL_ATTR_LOCAL_INFILE => true,
+                PDO::MYSQL_ATTR_LOCAL_INFILE => true,
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             ]
         );
     }
