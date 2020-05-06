@@ -6,6 +6,7 @@ namespace Keboola\DbExtractor\Tests;
 
 use Keboola\Csv\CsvWriter;
 use Keboola\DbExtractor\Application;
+use Keboola\DbExtractor\Configuration\ExportConfig;
 use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractor\Extractor\Common;
 use Keboola\DbExtractor\Test\ExtractorTest;
@@ -428,7 +429,7 @@ class RetryTest extends ExtractorTest
         ErrorHandler::register(null, true);
         // This will cause interrupt before PDO::prepare(), see testNetworkKillerPrepare
         $this->killerEnabled = 'prepare';
-        $result = $extractor->export($config['parameters']['tables'][0]);
+        $result = $extractor->export(ExportConfig::fromArray($config['parameters']['tables'][0]));
         $outputCsvFile = $this->dataDir . '/out/tables/' . $result['outputTable'] . '.csv';
 
         Assert::assertFileExists($outputCsvFile);
@@ -464,7 +465,7 @@ class RetryTest extends ExtractorTest
         ErrorHandler::register(null, true);
         // This will cause interrupt before PDO::prepare(), see testNetworkKillerPrepare
         $this->killerEnabled = 'prepare';
-        $result = $extractor->export($config['parameters']['tables'][0]);
+        $result = $extractor->export(ExportConfig::fromArray($config['parameters']['tables'][0]));
         $outputCsvFile = $this->dataDir . '/out/tables/' . $result['outputTable'] . '.csv';
 
         Assert::assertFileExists($outputCsvFile);
@@ -500,7 +501,7 @@ class RetryTest extends ExtractorTest
         ErrorHandler::register(null, true);
         // This will cause interrupt before PDO::prepare(), see testNetworkKillerPrepare
         $this->killerEnabled = 'fetch';
-        $result = $extractor->export($config['parameters']['tables'][0]);
+        $result = $extractor->export(ExportConfig::fromArray($config['parameters']['tables'][0]));
         $outputCsvFile = $this->dataDir . '/out/tables/' . $result['outputTable'] . '.csv';
 
         Assert::assertFileExists($outputCsvFile);
@@ -551,7 +552,7 @@ class RetryTest extends ExtractorTest
         $this->killerEnabled = 'prepare';
         try {
             /** @var Common $extractor */
-            $extractor->export($config['parameters']['tables'][0]);
+            $extractor->export(ExportConfig::fromArray($config['parameters']['tables'][0]));
             Assert::fail('Must raise exception.');
         } catch (UserException $e) {
             Assert::assertTrue($handler->hasInfoThatContains('Retrying...'));
@@ -585,7 +586,7 @@ class RetryTest extends ExtractorTest
             will convert the warnings to PHPUnit\Framework\Error\Warning */
         ErrorHandler::register(null, true);
         try {
-            $extractor->export($config['parameters']['tables'][0]);
+            $extractor->export(ExportConfig::fromArray($config['parameters']['tables'][0]));
             Assert::fail('Must raise exception.');
         } catch (UserException $e) {
             Assert::assertStringContainsString(
