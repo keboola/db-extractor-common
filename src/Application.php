@@ -6,7 +6,9 @@ namespace Keboola\DbExtractor;
 
 use Keboola\Component\Logger\AsyncActionLogging;
 use Keboola\Component\Logger\SyncActionLogging;
+use Keboola\DbExtractorConfig\Configuration\ValueObject\ExportConfig;
 use Keboola\DbExtractor\Exception\UserException;
+use Keboola\DbExtractor\Extractor\BaseExtractor;
 use Keboola\DbExtractorConfig\Config;
 use Keboola\DbExtractorConfig\Configuration\ActionConfigRowDefinition;
 use Keboola\DbExtractorConfig\Configuration\ConfigDefinition;
@@ -109,11 +111,11 @@ class Application extends Container
                 }
             );
             foreach ($tables as $table) {
-                $exportResults = $this['extractor']->export($table);
+                $exportResults = $this['extractor']->export(ExportConfig::fromArray($table));
                 $imported[] = $exportResults;
             }
         } else {
-            $exportResults = $this['extractor']->export($configData['parameters']);
+            $exportResults = $this['extractor']->export(ExportConfig::fromArray($configData['parameters']));
             if (isset($exportResults['state'])) {
                 $outputState = $exportResults['state'];
                 unset($exportResults['state']);
@@ -143,8 +145,10 @@ class Application extends Container
 
     private function getTablesAction(): array
     {
+        /** @var BaseExtractor $extractor */
+        $extractor = $this['extractor'];
         $output = [];
-        $output['tables'] = $this['extractor']->getTables();
+        $output['tables'] = $extractor->getTables();
         $output['status'] = 'success';
         return $output;
     }
