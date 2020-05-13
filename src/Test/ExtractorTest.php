@@ -10,7 +10,7 @@ use PHPUnit\Framework\TestCase;
 
 class ExtractorTest extends TestCase
 {
-    protected string $dataDir = __DIR__ . '/../../../../tests/phpunit/data';
+    protected string $dataDir = __DIR__ . '/../../tests/phpunit/data';
 
     protected function getConfigDbNode(string $driver): array
     {
