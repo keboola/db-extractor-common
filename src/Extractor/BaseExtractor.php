@@ -177,7 +177,12 @@ abstract class BaseExtractor
     {
         $message = sprintf('[%s]: ', $export->getOutputTable());
         $message .= sprintf('DB query failed: %s', $e->getMessage());
-        $message .= sprintf(' Tried %d times.', $export->getMaxRetries());
+
+        // Retry mechanism can be disabled if maxRetries = 0
+        if ($export->getMaxRetries() > 0) {
+            $message .= sprintf(' Tried %d times.', $export->getMaxRetries());
+        }
+
         return new UserException($message, 0, $e);
     }
 
