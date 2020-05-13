@@ -20,7 +20,7 @@ use Throwable;
 use PDO;
 use PDOStatement;
 
-abstract class Extractor
+abstract class BaseExtractor
 {
     public const DEFAULT_MAX_TRIES = 5;
 

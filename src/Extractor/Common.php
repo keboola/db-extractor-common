@@ -10,7 +10,7 @@ use Keboola\DbExtractor\Exception\ApplicationException;
 use Keboola\DbExtractor\Exception\UserException;
 use PDO;
 
-class Common extends Extractor
+class Common extends BaseExtractor
 {
     public const INCREMENT_TYPE_NUMERIC = 'numeric';
     public const INCREMENT_TYPE_TIMESTAMP = 'timestamp';

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Tests;
 
-use Keboola\DbExtractor\Extractor\Extractor;
+use Keboola\DbExtractor\Extractor\BaseExtractor;
 use PHPUnit\Framework\Assert;
 use PHPUnit\Framework\TestCase;
 
@@ -37,7 +37,7 @@ class MetadataTest extends TestCase
                 'value' => '2',
             ],
         ];
-        $outputMetadata = Extractor::getTableLevelMetadata($sourceData);
+        $outputMetadata = BaseExtractor::getTableLevelMetadata($sourceData);
         Assert::assertEquals($expectedOutput, $outputMetadata);
     }
 
@@ -101,7 +101,7 @@ class MetadataTest extends TestCase
                 ),
         );
 
-        $outputMetadata = Extractor::getColumnMetadata($testColumn);
+        $outputMetadata = BaseExtractor::getColumnMetadata($testColumn);
         Assert::assertEquals($expectedOutput, $outputMetadata);
     }
 }

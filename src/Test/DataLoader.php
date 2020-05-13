@@ -18,7 +18,8 @@ class DataLoader
             $user,
             $pass,
             [
-            PDO::MYSQL_ATTR_LOCAL_INFILE => true,
+                PDO::MYSQL_ATTR_LOCAL_INFILE => true,
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             ]
         );
     }
