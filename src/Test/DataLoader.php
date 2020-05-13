@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Test;
 
-use RuntimeException;
 use PDO;
 
 class DataLoader
