@@ -78,9 +78,9 @@ abstract class BaseExtractor
 
     abstract public function testConnection(): void;
 
-    abstract public function simpleQuery(ExportConfig $export): string;
+    abstract public function simpleQuery(ExportConfig $exportConfig): string;
 
-    abstract public function getMaxOfIncrementalFetchingColumn(ExportConfig $export): ?string;
+    abstract public function getMaxOfIncrementalFetchingColumn(ExportConfig $exportConfig): ?string;
 
     abstract public function getMetadataProvider(): MetadataProvider;
 
@@ -100,61 +100,61 @@ abstract class BaseExtractor
         return $serializer->serialize($this->getMetadataProvider()->listTables());
     }
 
-    public function validateIncrementalFetching(ExportConfig $export): void
+    public function validateIncrementalFetching(ExportConfig $exportConfig): void
     {
         throw new UserException('Incremental Fetching is not supported by this extractor.');
     }
 
-    public function export(ExportConfig $export): array
+    public function export(ExportConfig $exportConfig): array
     {
-        if ($export->isIncremental()) {
-            $this->validateIncrementalFetching($export);
-            $maxValue = $this->canFetchMaxIncrementalValueSeparately($export) ?
-                $this->getMaxOfIncrementalFetchingColumn($export) : null;
+        if ($exportConfig->isIncremental()) {
+            $this->validateIncrementalFetching($exportConfig);
+            $maxValue = $this->canFetchMaxIncrementalValueSeparately($exportConfig) ?
+                $this->getMaxOfIncrementalFetchingColumn($exportConfig) : null;
         } else {
             $maxValue = null;
         }
 
-        $this->logger->info('Exporting to ' . $export->getOutputTable());
-        $query = $export->hasQuery() ? $export->getQuery() : $this->simpleQuery($export);
+        $this->logger->info('Exporting to ' . $exportConfig->getOutputTable());
+        $query = $exportConfig->hasQuery() ? $exportConfig->getQuery() : $this->simpleQuery($exportConfig);
         $proxy = new DbRetryProxy(
             $this->logger,
-            $export->getMaxRetries(),
+            $exportConfig->getMaxRetries(),
             [DeadConnectionException::class, ErrorException::class]
         );
 
         try {
-            $result = $proxy->call(function () use ($query, $export) {
+            $result = $proxy->call(function () use ($query, $exportConfig) {
                 /** @var PDOStatement $stmt */
-                $stmt = $this->executeQuery($query, $export->getMaxRetries());
-                $csv = $this->createOutputCsv($export->getOutputTable());
-                $result = $this->writeToCsv($stmt, $csv, $export);
+                $stmt = $this->executeQuery($query, $exportConfig->getMaxRetries());
+                $csv = $this->createOutputCsv($exportConfig->getOutputTable());
+                $result = $this->writeToCsv($stmt, $csv, $exportConfig);
                 $this->isAlive();
                 return $result;
             });
         } catch (CsvException $e) {
             throw new ApplicationException('Failed writing CSV File: ' . $e->getMessage(), $e->getCode(), $e);
         } catch (\PDOException | \ErrorException | DeadConnectionException $e) {
-            throw $this->handleDbError($e, $export);
+            throw $this->handleDbError($e, $exportConfig);
         }
 
         if ($result['rows'] > 0) {
-            $this->createManifest($export);
+            $this->createManifest($exportConfig);
         } else {
-            @unlink($this->getOutputFilename($export->getOutputTable())); // no rows, no file
+            @unlink($this->getOutputFilename($exportConfig->getOutputTable())); // no rows, no file
             $this->logger->warning(sprintf(
                 'Query returned empty result. Nothing was imported to [%s]',
-                $export->getOutputTable()
+                $exportConfig->getOutputTable()
             ));
         }
 
         $output = [
-            'outputTable' => $export->getOutputTable(),
+            'outputTable' => $exportConfig->getOutputTable(),
             'rows' => $result['rows'],
         ];
 
         // output state
-        if ($export->isIncremental()) {
+        if ($exportConfig->isIncremental()) {
             if ($maxValue) {
                 $output['state']['lastFetchedRow'] = $maxValue;
             } elseif (!empty($result['lastFetchedRow'])) {
@@ -173,14 +173,14 @@ abstract class BaseExtractor
         }
     }
 
-    protected function handleDbError(Throwable $e, ExportConfig $export): UserException
+    protected function handleDbError(Throwable $e, ExportConfig $exportConfig): UserException
     {
-        $message = sprintf('[%s]: ', $export->getOutputTable());
+        $message = sprintf('[%s]: ', $exportConfig->getOutputTable());
         $message .= sprintf('DB query failed: %s', $e->getMessage());
 
         // Retry mechanism can be disabled if maxRetries = 0
-        if ($export->getMaxRetries() > 0) {
-            $message .= sprintf(' Tried %d times.', $export->getMaxRetries());
+        if ($exportConfig->getMaxRetries() > 0) {
+            $message .= sprintf(' Tried %d times.', $exportConfig->getMaxRetries());
         }
 
         return new UserException($message, 0, $e);
@@ -210,10 +210,10 @@ abstract class BaseExtractor
     /**
      * @return array ['rows', 'lastFetchedRow']
      */
-    protected function writeToCsv(PDOStatement $stmt, CsvWriter $csv, ExportConfig $export): array
+    protected function writeToCsv(PDOStatement $stmt, CsvWriter $csv, ExportConfig $exportConfig): array
     {
         // With custom query are no metadata in manifest, so header must be present
-        $includeHeader = $export->hasQuery();
+        $includeHeader = $exportConfig->hasQuery();
         $output = [];
 
         $resultRow = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -236,8 +236,8 @@ abstract class BaseExtractor
             }
             $stmt->closeCursor();
 
-            if ($export->isIncremental()) {
-                $incrementalColumn = $export->getIncrementalFetchingConfig()->getColumn();
+            if ($exportConfig->isIncremental()) {
+                $incrementalColumn = $exportConfig->getIncrementalFetchingConfig()->getColumn();
                 if (!array_key_exists($incrementalColumn, $lastRow)) {
                     throw new UserException(
                         sprintf(
@@ -252,7 +252,7 @@ abstract class BaseExtractor
             return $output;
         }
         // no rows found.  If incremental fetching is turned on, we need to preserve the last state
-        if ($export->isIncremental() && isset($this->state['lastFetchedRow'])) {
+        if ($exportConfig->isIncremental() && isset($this->state['lastFetchedRow'])) {
             $output = $this->state;
         }
         $output['rows'] = 0;
@@ -268,26 +268,26 @@ abstract class BaseExtractor
         return new CsvWriter($this->getOutputFilename($outputTable));
     }
 
-    protected function createManifest(ExportConfig $export): void
+    protected function createManifest(ExportConfig $exportConfig): void
     {
         $metadataSerializer = $this->getManifestMetadataSerializer();
-        $outFilename = $this->getOutputFilename($export->getOutputTable()) . '.manifest';
+        $outFilename = $this->getOutputFilename($exportConfig->getOutputTable()) . '.manifest';
 
         $manifestData = [
-            'destination' => $export->getOutputTable(),
-            'incremental' => $export->isIncremental(),
+            'destination' => $exportConfig->getOutputTable(),
+            'incremental' => $exportConfig->isIncremental(),
         ];
 
-        if ($export->hasPrimaryKey()) {
-            $manifestData['primary_key'] = $export->getPrimaryKey();
+        if ($exportConfig->hasPrimaryKey()) {
+            $manifestData['primary_key'] = $exportConfig->getPrimaryKey();
         }
 
-        if (!$export->hasQuery()) {
-            $table = $this->getMetadataProvider()->getTable($export->getTable());
+        if (!$exportConfig->hasQuery()) {
+            $table = $this->getMetadataProvider()->getTable($exportConfig->getTable());
             $allTableColumns = $table->getColumns();
             $columnMetadata = [];
             $sanitizedPks = [];
-            $exportedColumns = $export->hasColumns() ? $export->getColumns() : $allTableColumns->getNames();
+            $exportedColumns = $exportConfig->hasColumns() ? $exportConfig->getColumns() : $allTableColumns->getNames();
             foreach ($exportedColumns as $index => $columnName) {
                 $column = $allTableColumns->getByName($columnName);
                 if ($column->isPrimaryKey()) {
@@ -319,8 +319,8 @@ abstract class BaseExtractor
         return $this->dbParameters;
     }
 
-    protected function canFetchMaxIncrementalValueSeparately(ExportConfig $export): bool
+    protected function canFetchMaxIncrementalValueSeparately(ExportConfig $exportConfig): bool
     {
-        return !$export->hasQuery() && $export->isIncremental() && !$export->hasIncrementalLimit();
+        return !$exportConfig->hasQuery() && $exportConfig->isIncremental() && !$exportConfig->hasIncrementalLimit();
     }
 }

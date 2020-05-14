@@ -61,15 +61,15 @@ class Common extends BaseExtractor
         $this->db->query('SELECT 1');
     }
 
-    public function validateIncrementalFetching(ExportConfig $export): void
+    public function validateIncrementalFetching(ExportConfig $exportConfig): void
     {
         $res = $this->db->query(
             sprintf(
                 'SELECT * FROM INFORMATION_SCHEMA.COLUMNS as cols 
                             WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND COLUMN_NAME = %s',
-                $this->db->quote($export->getTable()->getSchema()),
-                $this->db->quote($export->getTable()->getName()),
-                $this->db->quote($export->getIncrementalColumn())
+                $this->db->quote($exportConfig->getTable()->getSchema()),
+                $this->db->quote($exportConfig->getTable()->getName()),
+                $this->db->quote($exportConfig->getIncrementalColumn())
             )
         );
         $columns = $res->fetchAll();
@@ -77,7 +77,7 @@ class Common extends BaseExtractor
             throw new UserException(
                 sprintf(
                     'Column [%s] specified for incremental fetching was not found in the table',
-                    $export->getIncrementalColumn()
+                    $exportConfig->getIncrementalColumn()
                 )
             );
         }
@@ -94,20 +94,20 @@ class Common extends BaseExtractor
             throw new UserException(
                 sprintf(
                     'Column [%s] specified for incremental fetching is not a numeric or timestamp type column',
-                    $export->getIncrementalColumn()
+                    $exportConfig->getIncrementalColumn()
                 )
             );
         }
     }
 
-    public function simpleQuery(ExportConfig $export): string
+    public function simpleQuery(ExportConfig $exportConfig): string
     {
         $sql = [];
 
-        if ($export->hasColumns()) {
+        if ($exportConfig->hasColumns()) {
             $sql[] = sprintf('SELECT %s', implode(', ', array_map(
                 fn(string $c) => $this->quote($c),
-                $export->getColumns()
+                $exportConfig->getColumns()
             )));
         } else {
             $sql[] = 'SELECT *';
@@ -115,21 +115,21 @@ class Common extends BaseExtractor
 
         $sql[] = sprintf(
             'FROM %s.%s',
-            $this->quote($export->getTable()->getSchema()),
-            $this->quote($export->getTable()->getName())
+            $this->quote($exportConfig->getTable()->getSchema()),
+            $this->quote($exportConfig->getTable()->getName())
         );
 
-        if ($export->isIncremental() && isset($this->state['lastFetchedRow'])) {
+        if ($exportConfig->isIncremental() && isset($this->state['lastFetchedRow'])) {
             if ($this->incrementalFetchingColType === self::INCREMENT_TYPE_NUMERIC) {
                 $sql[] = sprintf(
                     'WHERE %s > %d',
-                    $this->quote($export->getIncrementalColumn()),
+                    $this->quote($exportConfig->getIncrementalColumn()),
                     (int) $this->state['lastFetchedRow']
                 );
             } else if ($this->incrementalFetchingColType === self::INCREMENT_TYPE_TIMESTAMP) {
                 $sql[] = sprintf(
                     'WHERE %s > \'%s\'',
-                    $this->quote($export->getIncrementalColumn()),
+                    $this->quote($exportConfig->getIncrementalColumn()),
                     $this->state['lastFetchedRow']
                 );
             } else {
@@ -139,11 +139,11 @@ class Common extends BaseExtractor
             }
         }
 
-        if ($export->hasIncrementalLimit()) {
+        if ($exportConfig->hasIncrementalLimit()) {
             $sql[] = sprintf(
                 'ORDER BY %s LIMIT %d',
-                $this->quote($export->getIncrementalColumn()),
-                $export->getIncrementalLimit()
+                $this->quote($exportConfig->getIncrementalColumn()),
+                $exportConfig->getIncrementalLimit()
             );
         }
 
@@ -155,17 +155,17 @@ class Common extends BaseExtractor
         return $this->metadataProvider;
     }
 
-    public function getMaxOfIncrementalFetchingColumn(ExportConfig $export): ?string
+    public function getMaxOfIncrementalFetchingColumn(ExportConfig $exportConfig): ?string
     {
         $sql = sprintf(
             'SELECT MAX(%s) as %s FROM %s.%s',
-            $this->quote($export->getIncrementalColumn()),
-            $this->quote($export->getIncrementalColumn()),
-            $this->quote($export->getTable()->getSchema()),
-            $this->quote($export->getTable()->getName())
+            $this->quote($exportConfig->getIncrementalColumn()),
+            $this->quote($exportConfig->getIncrementalColumn()),
+            $this->quote($exportConfig->getTable()->getSchema()),
+            $this->quote($exportConfig->getTable()->getName())
         );
         $result = $this->db->query($sql)->fetchAll();
-        return $result ? $result[0][$export->getIncrementalColumn()] : null;
+        return $result ? $result[0][$exportConfig->getIncrementalColumn()] : null;
     }
 
     private function quote(string $obj): string
