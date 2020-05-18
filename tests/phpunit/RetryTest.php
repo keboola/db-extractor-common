@@ -167,7 +167,8 @@ class RetryTest extends ExtractorTest
             'query' => 'SELECT * FROM sales',
             'outputTable' => 'in.c-main.sales',
             'incremental' => false,
-            'primaryKey' => null,
+            'primaryKey' => [],
+            'columns' => [],
             'enabled' => true,
             'retries' => 10,
         ]];

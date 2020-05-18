@@ -589,7 +589,7 @@ class CommonExtractorTest extends ExtractorTest
         $config = $this->getConfig(self::DRIVER);
         unset($config['parameters']['tables'][0]['query']);
         $this->expectException(ConfigUserException::class);
-        $this->expectExceptionMessage('One of table or query is required');
+        $this->expectExceptionMessage('Table or query must be configured.');
         $app = $this->getApp($config);
         $app->run();
     }
@@ -762,6 +762,7 @@ class CommonExtractorTest extends ExtractorTest
         $this->createAutoIncrementAndTimestampTable();
         $config = $this->getIncrementalFetchingConfig();
         unset($config['parameters']['incremental']);
+        unset($config['parameters']['incrementalFetchingColumn']);
         $result = ($this->getApp($config))->run();
 
         Assert::assertEquals(
@@ -808,7 +809,9 @@ class CommonExtractorTest extends ExtractorTest
         unset($config['parameters']['table']);
 
         $this->expectException(ConfigUserException::class);
-        $this->expectExceptionMessage('Incremental fetching is not supported for advanced queries.');
+        $this->expectExceptionMessage(
+            'The "incrementalFetchingColumn" is configured, but incremental fetching is not supported for custom query.'
+        );
         $app = $this->getApp($config);
         $app->run();
     }
@@ -897,7 +900,9 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['query'] = 'SELECT 1 LIMIT 0';
 
         $this->expectException(ConfigUserException::class);
-        $this->expectExceptionMessage('Incremental fetching is not supported for advanced queries.');
+        $this->expectExceptionMessage(
+            'The "incrementalFetchingColumn" is configured, but incremental fetching is not supported for custom query.'
+        );
 
         ($this->getApp($config))->run();
     }
@@ -909,7 +914,7 @@ class CommonExtractorTest extends ExtractorTest
         unset($config['parameters']['table']);
 
         $this->expectException(ConfigUserException::class);
-        $this->expectExceptionMessage('One of table or query is required');
+        $this->expectExceptionMessage('Table or query must be configured.');
         $app = $this->getApp($config);
         $app->run();
     }
