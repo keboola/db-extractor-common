@@ -69,7 +69,7 @@ class Common extends BaseExtractor
                             WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND COLUMN_NAME = %s',
                 $this->db->quote($exportConfig->getTable()->getSchema()),
                 $this->db->quote($exportConfig->getTable()->getName()),
-                $this->db->quote($exportConfig->getIncrementalColumn())
+                $this->db->quote($exportConfig->getIncrementalFetchingColumn())
             )
         );
         $columns = $res->fetchAll();
@@ -77,7 +77,7 @@ class Common extends BaseExtractor
             throw new UserException(
                 sprintf(
                     'Column [%s] specified for incremental fetching was not found in the table',
-                    $exportConfig->getIncrementalColumn()
+                    $exportConfig->getIncrementalFetchingColumn()
                 )
             );
         }
@@ -94,7 +94,7 @@ class Common extends BaseExtractor
             throw new UserException(
                 sprintf(
                     'Column [%s] specified for incremental fetching is not a numeric or timestamp type column',
-                    $exportConfig->getIncrementalColumn()
+                    $exportConfig->getIncrementalFetchingColumn()
                 )
             );
         }
@@ -119,17 +119,17 @@ class Common extends BaseExtractor
             $this->quote($exportConfig->getTable()->getName())
         );
 
-        if ($exportConfig->isIncremental() && isset($this->state['lastFetchedRow'])) {
+        if ($exportConfig->isIncrementalFetching() && isset($this->state['lastFetchedRow'])) {
             if ($this->incrementalFetchingColType === self::INCREMENT_TYPE_NUMERIC) {
                 $sql[] = sprintf(
                     'WHERE %s > %d',
-                    $this->quote($exportConfig->getIncrementalColumn()),
+                    $this->quote($exportConfig->getIncrementalFetchingColumn()),
                     (int) $this->state['lastFetchedRow']
                 );
             } else if ($this->incrementalFetchingColType === self::INCREMENT_TYPE_TIMESTAMP) {
                 $sql[] = sprintf(
                     'WHERE %s > \'%s\'',
-                    $this->quote($exportConfig->getIncrementalColumn()),
+                    $this->quote($exportConfig->getIncrementalFetchingColumn()),
                     $this->state['lastFetchedRow']
                 );
             } else {
@@ -139,11 +139,11 @@ class Common extends BaseExtractor
             }
         }
 
-        if ($exportConfig->hasIncrementalLimit()) {
+        if ($exportConfig->hasIncrementalFetchingLimit()) {
             $sql[] = sprintf(
                 'ORDER BY %s LIMIT %d',
-                $this->quote($exportConfig->getIncrementalColumn()),
-                $exportConfig->getIncrementalLimit()
+                $this->quote($exportConfig->getIncrementalFetchingColumn()),
+                $exportConfig->getIncrementalFetchingLimit()
             );
         }
 
@@ -159,13 +159,13 @@ class Common extends BaseExtractor
     {
         $sql = sprintf(
             'SELECT MAX(%s) as %s FROM %s.%s',
-            $this->quote($exportConfig->getIncrementalColumn()),
-            $this->quote($exportConfig->getIncrementalColumn()),
+            $this->quote($exportConfig->getIncrementalFetchingColumn()),
+            $this->quote($exportConfig->getIncrementalFetchingColumn()),
             $this->quote($exportConfig->getTable()->getSchema()),
             $this->quote($exportConfig->getTable()->getName())
         );
         $result = $this->db->query($sql)->fetchAll();
-        return $result ? $result[0][$exportConfig->getIncrementalColumn()] : null;
+        return $result ? $result[0][$exportConfig->getIncrementalFetchingColumn()] : null;
     }
 
     private function quote(string $obj): string

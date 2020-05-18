@@ -107,7 +107,7 @@ abstract class BaseExtractor
 
     public function export(ExportConfig $exportConfig): array
     {
-        if ($exportConfig->isIncremental()) {
+        if ($exportConfig->isIncrementalFetching()) {
             $this->validateIncrementalFetching($exportConfig);
             $maxValue = $this->canFetchMaxIncrementalValueSeparately($exportConfig) ?
                 $this->getMaxOfIncrementalFetchingColumn($exportConfig) : null;
@@ -154,7 +154,7 @@ abstract class BaseExtractor
         ];
 
         // output state
-        if ($exportConfig->isIncremental()) {
+        if ($exportConfig->isIncrementalFetching()) {
             if ($maxValue) {
                 $output['state']['lastFetchedRow'] = $maxValue;
             } elseif (!empty($result['lastFetchedRow'])) {
@@ -236,7 +236,7 @@ abstract class BaseExtractor
             }
             $stmt->closeCursor();
 
-            if ($exportConfig->isIncremental()) {
+            if ($exportConfig->isIncrementalFetching()) {
                 $incrementalColumn = $exportConfig->getIncrementalFetchingConfig()->getColumn();
                 if (!array_key_exists($incrementalColumn, $lastRow)) {
                     throw new UserException(
@@ -252,7 +252,7 @@ abstract class BaseExtractor
             return $output;
         }
         // no rows found.  If incremental fetching is turned on, we need to preserve the last state
-        if ($exportConfig->isIncremental() && isset($this->state['lastFetchedRow'])) {
+        if ($exportConfig->isIncrementalFetching() && isset($this->state['lastFetchedRow'])) {
             $output = $this->state;
         }
         $output['rows'] = 0;
@@ -275,7 +275,7 @@ abstract class BaseExtractor
 
         $manifestData = [
             'destination' => $exportConfig->getOutputTable(),
-            'incremental' => $exportConfig->isIncremental(),
+            'incremental' => $exportConfig->isIncrementalFetching(),
         ];
 
         if ($exportConfig->hasPrimaryKey()) {
@@ -321,6 +321,9 @@ abstract class BaseExtractor
 
     protected function canFetchMaxIncrementalValueSeparately(ExportConfig $exportConfig): bool
     {
-        return !$exportConfig->hasQuery() && $exportConfig->isIncremental() && !$exportConfig->hasIncrementalLimit();
+        return
+            !$exportConfig->hasQuery() &&
+            $exportConfig->isIncrementalFetching() &&
+            !$exportConfig->hasIncrementalFetchingLimit();
     }
 }
