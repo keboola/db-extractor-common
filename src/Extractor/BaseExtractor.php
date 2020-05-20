@@ -135,7 +135,7 @@ abstract class BaseExtractor
         } catch (CsvException $e) {
             throw new ApplicationException('Failed writing CSV File: ' . $e->getMessage(), $e->getCode(), $e);
         } catch (\PDOException | \ErrorException | DeadConnectionException $e) {
-            throw $this->handleDbError($e, $exportConfig);
+            throw $this->handleDbError($e, $exportConfig->getMaxRetries(), $exportConfig->getOutputTable());
         }
 
         if ($result['rows'] > 0) {
@@ -173,14 +173,14 @@ abstract class BaseExtractor
         }
     }
 
-    protected function handleDbError(Throwable $e, ExportConfig $exportConfig): UserException
+    protected function handleDbError(Throwable $e, int $maxRetries, ?string $outputTable = null): UserException
     {
-        $message = sprintf('[%s]: ', $exportConfig->getOutputTable());
+        $message = $outputTable ? sprintf('[%s]: ', $outputTable) : '';
         $message .= sprintf('DB query failed: %s', $e->getMessage());
 
         // Retry mechanism can be disabled if maxRetries = 0
-        if ($exportConfig->getMaxRetries() > 0) {
-            $message .= sprintf(' Tried %d times.', $exportConfig->getMaxRetries());
+        if ($maxRetries > 0) {
+            $message .= sprintf(' Tried %d times.', $maxRetries);
         }
 
         return new UserException($message, 0, $e);
