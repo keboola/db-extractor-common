@@ -629,9 +629,9 @@ class CommonExtractorTest extends ExtractorTest
         Assert::assertNotEmpty($result['state']['lastFetchedRow']);
 
         sleep(2);
-        // the next fetch should be empty
+        // the next fetch should return row with last fetched value
         $emptyResult = ($this->getApp($config, $result['state']))->run();
-        Assert::assertEquals(0, $emptyResult['imported']['rows']);
+        Assert::assertEquals(1, $emptyResult['imported']['rows']);
 
         sleep(2);
         //now add a couple rows and run it again.
@@ -671,9 +671,9 @@ class CommonExtractorTest extends ExtractorTest
         Assert::assertEquals(2, $result['state']['lastFetchedRow']);
 
         sleep(2);
-        // the next fetch should be empty
+        // the next fetch should return row with last fetched value
         $emptyResult = ($this->getApp($config, $result['state']))->run();
-        Assert::assertEquals(0, $emptyResult['imported']['rows']);
+        Assert::assertEquals(1, $emptyResult['imported']['rows']);
 
         sleep(2);
         //now add a couple rows and run it again.
@@ -685,7 +685,7 @@ class CommonExtractorTest extends ExtractorTest
         Assert::assertArrayHasKey('state', $newResult);
         Assert::assertArrayHasKey('lastFetchedRow', $newResult['state']);
         Assert::assertEquals(4, $newResult['state']['lastFetchedRow']);
-        Assert::assertEquals(2, $newResult['imported']['rows']);
+        Assert::assertEquals(3, $newResult['imported']['rows']);
     }
 
     public function testIncrementalMaxNumberValue(): void
@@ -715,7 +715,10 @@ class CommonExtractorTest extends ExtractorTest
         Assert::assertArrayHasKey('state', $newResult);
         Assert::assertArrayHasKey('lastFetchedRow', $newResult['state']);
         Assert::assertEquals('21.28637632876382760000', $newResult['state']['lastFetchedRow']);
-        Assert::assertEquals(2, $newResult['imported']['rows']);
+
+        // Last fetched value is also present in the results of the next run ...
+        // so 4 = 2 rows with same timestamp = last fetched value + 2 new rows
+        Assert::assertEquals(4, $newResult['imported']['rows']);
     }
 
     public function testIncrementalFetchingLimit(): void
@@ -754,7 +757,10 @@ class CommonExtractorTest extends ExtractorTest
         //check that output state contains expected information
         Assert::assertArrayHasKey('state', $result);
         Assert::assertArrayHasKey('lastFetchedRow', $result['state']);
-        Assert::assertEquals(2, $result['state']['lastFetchedRow']);
+
+        // Last fetched value is also present in the results of the next run ...
+        // ... and LIMIT = 1   =>  returned same value as in the first run
+        Assert::assertEquals(1, $result['state']['lastFetchedRow']);
     }
 
     public function testIncrementalFetchingDisabled(): void

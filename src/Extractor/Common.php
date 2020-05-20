@@ -122,13 +122,15 @@ class Common extends BaseExtractor
         if ($exportConfig->isIncrementalFetching() && isset($this->state['lastFetchedRow'])) {
             if ($this->incrementalFetchingColType === self::INCREMENT_TYPE_NUMERIC) {
                 $sql[] = sprintf(
-                    'WHERE %s > %d',
+                    // intentionally ">=" last row should be included, it is handled by storage deduplication process
+                    'WHERE %s >= %d',
                     $this->quote($exportConfig->getIncrementalFetchingColumn()),
                     (int) $this->state['lastFetchedRow']
                 );
             } else if ($this->incrementalFetchingColType === self::INCREMENT_TYPE_TIMESTAMP) {
                 $sql[] = sprintf(
-                    'WHERE %s > \'%s\'',
+                    // intentionally ">=" last row should be included, it is handled by storage deduplication process
+                    'WHERE %s >= \'%s\'',
                     $this->quote($exportConfig->getIncrementalFetchingColumn()),
                     $this->state['lastFetchedRow']
                 );
