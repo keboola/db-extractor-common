@@ -4,34 +4,35 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Extractor;
 
+use Throwable;
+use ErrorException;
+use PDO;
+use PDOStatement;
+use PDOException;
+use Psr\Log\LoggerInterface;
+use Keboola\DbExtractor\TableResultFormat\Metadata\GetTables\DefaultGetTablesSerializer;
+use Keboola\DbExtractor\TableResultFormat\Metadata\GetTables\GetTablesSerializer;
 use Keboola\Csv\CsvWriter;
 use Keboola\Csv\Exception as CsvException;
-use Keboola\Datatype\Definition\GenericStorage;
+use Keboola\DbExtractorConfig\Configuration\ValueObject\ExportConfig;
 use Keboola\DbExtractor\DbRetryProxy;
 use Keboola\DbExtractor\Exception\ApplicationException;
 use Keboola\DbExtractor\Exception\DeadConnectionException;
 use Keboola\DbExtractor\Exception\UserException;
+use Keboola\DbExtractor\TableResultFormat\Metadata\Manifest\DefaultManifestSerializer;
+use Keboola\DbExtractor\TableResultFormat\Metadata\Manifest\ManifestSerializer;
 use Keboola\DbExtractorSSHTunnel\SSHTunnel;
 use Keboola\DbExtractorSSHTunnel\Exception\UserException as SSHTunnelUserException;
 use Nette\Utils;
-use PDOException;
-use Psr\Log\LoggerInterface;
-use Throwable;
-use PDO;
-use PDOStatement;
 
 abstract class BaseExtractor
 {
-    public const DEFAULT_MAX_TRIES = 5;
-
-    public const DATATYPE_KEYS = ['type', 'length', 'nullable', 'default', 'format'];
+    public const CONNECT_MAX_RETRIES = 5;
 
     /** @var PDO|mixed */
     protected $db;
 
     protected array $state;
-
-    protected ?array $incrementalFetching = null;
 
     protected LoggerInterface $logger;
 
@@ -54,7 +55,7 @@ abstract class BaseExtractor
         }
         $this->dbParameters = $parameters['db'];
 
-        $proxy = new DbRetryProxy($this->logger, self::DEFAULT_MAX_TRIES, [PDOException::class]);
+        $proxy = new DbRetryProxy($this->logger, self::CONNECT_MAX_RETRIES, [PDOException::class]);
 
         try {
             $proxy->call(function (): void {
@@ -68,13 +69,6 @@ abstract class BaseExtractor
             }
             throw new UserException('Error connecting to DB: ' . $e->getMessage(), 0, $e);
         }
-        if (isset($parameters['incrementalFetchingColumn']) && $parameters['incrementalFetchingColumn'] !== '') {
-            $this->validateIncrementalFetching(
-                $parameters['table'],
-                $parameters['incrementalFetchingColumn'],
-                isset($parameters['incrementalFetchingLimit']) ? $parameters['incrementalFetchingLimit'] : null
-            );
-        }
     }
 
     /**
@@ -84,81 +78,83 @@ abstract class BaseExtractor
 
     abstract public function testConnection(): void;
 
-    /**
-     * @param array|null $tables - an optional array of tables with tableName and schema properties
-     */
-    abstract public function getTables(?array $tables = null): array;
+    abstract public function simpleQuery(ExportConfig $exportConfig): string;
 
-    abstract public function simpleQuery(array $table, array $columns = array()): string;
+    abstract public function getMaxOfIncrementalFetchingColumn(ExportConfig $exportConfig): ?string;
 
-    abstract public function getMaxOfIncrementalFetchingColumn(array $table): ?string;
+    abstract public function getMetadataProvider(): MetadataProvider;
 
-    /**
-     * @param array $table
-     * @param string $columnName
-     * @param int|null $limit
-     * @throws UserException
-     */
-    public function validateIncrementalFetching(array $table, string $columnName, ?int $limit = null): void
+    public function getManifestMetadataSerializer(): ManifestSerializer
+    {
+        return new DefaultManifestSerializer();
+    }
+
+    public function getGetTablesMetadataSerializer(): GetTablesSerializer
+    {
+        return new DefaultGetTablesSerializer();
+    }
+
+    public function getTables(): array
+    {
+        $serializer = $this->getGetTablesMetadataSerializer();
+        return $serializer->serialize($this->getMetadataProvider()->listTables());
+    }
+
+    public function validateIncrementalFetching(ExportConfig $exportConfig): void
     {
         throw new UserException('Incremental Fetching is not supported by this extractor.');
     }
 
-    public function export(array $table): array
+    public function export(ExportConfig $exportConfig): array
     {
-        $outputTable = $table['outputTable'];
-
-        $this->logger->info('Exporting to ' . $outputTable);
-
-        $isAdvancedQuery = true;
-        if (array_key_exists('table', $table) && !array_key_exists('query', $table)) {
-            $isAdvancedQuery = false;
-            $query = $this->simpleQuery($table['table'], $table['columns']);
+        if ($exportConfig->isIncrementalFetching()) {
+            $this->validateIncrementalFetching($exportConfig);
+            $maxValue = $this->canFetchMaxIncrementalValueSeparately($exportConfig) ?
+                $this->getMaxOfIncrementalFetchingColumn($exportConfig) : null;
         } else {
-            $query = $table['query'];
-        }
-        $maxValue = null;
-        if ($this->canFetchMaxIncrementalValueSeparately($isAdvancedQuery)) {
-            $maxValue = $this->getMaxOfIncrementalFetchingColumn($table['table']);
+            $maxValue = null;
         }
 
-        $maxTries = isset($table['retries']) ? (int) $table['retries'] : self::DEFAULT_MAX_TRIES;
-
-        $proxy = new DbRetryProxy($this->logger, $maxTries, [DeadConnectionException::class, \ErrorException::class]);
+        $this->logger->info('Exporting to ' . $exportConfig->getOutputTable());
+        $query = $exportConfig->hasQuery() ? $exportConfig->getQuery() : $this->simpleQuery($exportConfig);
+        $proxy = new DbRetryProxy(
+            $this->logger,
+            $exportConfig->getMaxRetries(),
+            [DeadConnectionException::class, ErrorException::class]
+        );
 
         try {
-            $result = $proxy->call(function () use ($query, $maxTries, $outputTable, $isAdvancedQuery) {
+            $result = $proxy->call(function () use ($query, $exportConfig) {
                 /** @var PDOStatement $stmt */
-                $stmt = $this->executeQuery($query, $maxTries);
-                $csv = $this->createOutputCsv($outputTable);
-                $result = $this->writeToCsv($stmt, $csv, $isAdvancedQuery);
+                $stmt = $this->executeQuery($query, $exportConfig->getMaxRetries());
+                $csv = $this->createOutputCsv($exportConfig->getOutputTable());
+                $result = $this->writeToCsv($stmt, $csv, $exportConfig);
                 $this->isAlive();
                 return $result;
             });
         } catch (CsvException $e) {
             throw new ApplicationException('Failed writing CSV File: ' . $e->getMessage(), $e->getCode(), $e);
         } catch (\PDOException | \ErrorException | DeadConnectionException $e) {
-            throw $this->handleDbError($e, $table, $maxTries);
+            throw $this->handleDbError($e, $exportConfig->getMaxRetries(), $exportConfig->getOutputTable());
         }
 
         if ($result['rows'] > 0) {
-            $this->createManifest($table);
+            $this->createManifest($exportConfig);
         } else {
-            @unlink($this->getOutputFilename($outputTable)); // no rows, no file
-            $this->logger->warning(
-                sprintf(
-                    'Query returned empty result. Nothing was imported to [%s]',
-                    $table['outputTable']
-                )
-            );
+            @unlink($this->getOutputFilename($exportConfig->getOutputTable())); // no rows, no file
+            $this->logger->warning(sprintf(
+                'Query returned empty result. Nothing was imported to [%s]',
+                $exportConfig->getOutputTable()
+            ));
         }
 
         $output = [
-            'outputTable' => $outputTable,
+            'outputTable' => $exportConfig->getOutputTable(),
             'rows' => $result['rows'],
         ];
+
         // output state
-        if (isset($this->incrementalFetching['column'])) {
+        if ($exportConfig->isIncrementalFetching()) {
             if ($maxValue) {
                 $output['state']['lastFetchedRow'] = $maxValue;
             } elseif (!empty($result['lastFetchedRow'])) {
@@ -172,21 +168,21 @@ abstract class BaseExtractor
     {
         try {
             $this->testConnection();
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             throw new DeadConnectionException('Dead connection: ' . $e->getMessage());
         }
     }
 
-    protected function handleDbError(Throwable $e, ?array $table = null, ?int $counter = null): UserException
+    protected function handleDbError(Throwable $e, int $maxRetries, ?string $outputTable = null): UserException
     {
-        $message = '';
-        if ($table) {
-            $message = sprintf('[%s]: ', $table['outputTable']);
-        }
+        $message = $outputTable ? sprintf('[%s]: ', $outputTable) : '';
         $message .= sprintf('DB query failed: %s', $e->getMessage());
-        if ($counter) {
-            $message .= sprintf(' Tried %d times.', $counter);
+
+        // Retry mechanism can be disabled if maxRetries = 0
+        if ($maxRetries > 0) {
+            $message .= sprintf(' Tried %d times.', $maxRetries);
         }
+
         return new UserException($message, 0, $e);
     }
 
@@ -214,8 +210,10 @@ abstract class BaseExtractor
     /**
      * @return array ['rows', 'lastFetchedRow']
      */
-    protected function writeToCsv(PDOStatement $stmt, CsvWriter $csv, bool $includeHeader = true): array
+    protected function writeToCsv(PDOStatement $stmt, CsvWriter $csv, ExportConfig $exportConfig): array
     {
+        // With custom query are no metadata in manifest, so header must be present
+        $includeHeader = $exportConfig->hasQuery();
         $output = [];
 
         $resultRow = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -238,22 +236,23 @@ abstract class BaseExtractor
             }
             $stmt->closeCursor();
 
-            if (isset($this->incrementalFetching['column'])) {
-                if (!array_key_exists($this->incrementalFetching['column'], $lastRow)) {
+            if ($exportConfig->isIncrementalFetching()) {
+                $incrementalColumn = $exportConfig->getIncrementalFetchingConfig()->getColumn();
+                if (!array_key_exists($incrementalColumn, $lastRow)) {
                     throw new UserException(
                         sprintf(
                             'The specified incremental fetching column %s not found in the table',
-                            $this->incrementalFetching['column']
+                            $incrementalColumn
                         )
                     );
                 }
-                $output['lastFetchedRow'] = $lastRow[$this->incrementalFetching['column']];
+                $output['lastFetchedRow'] = $lastRow[$incrementalColumn];
             }
             $output['rows'] = $numRows;
             return $output;
         }
         // no rows found.  If incremental fetching is turned on, we need to preserve the last state
-        if (isset($this->incrementalFetching['column']) && isset($this->state['lastFetchedRow'])) {
+        if ($exportConfig->isIncrementalFetching() && isset($this->state['lastFetchedRow'])) {
             $output = $this->state;
         }
         $output['rows'] = 0;
@@ -269,109 +268,44 @@ abstract class BaseExtractor
         return new CsvWriter($this->getOutputFilename($outputTable));
     }
 
-    /**
-     * @param array $table
-     * @return bool|int
-     */
-    protected function createManifest(array $table)
+    protected function createManifest(ExportConfig $exportConfig): void
     {
-        $outFilename = $this->getOutputFilename($table['outputTable']) . '.manifest';
+        $metadataSerializer = $this->getManifestMetadataSerializer();
+        $outFilename = $this->getOutputFilename($exportConfig->getOutputTable()) . '.manifest';
 
         $manifestData = [
-            'destination' => $table['outputTable'],
-            'incremental' => $table['incremental'],
+            'destination' => $exportConfig->getOutputTable(),
+            'incremental' => $exportConfig->isIncrementalFetching(),
         ];
 
-        if (!empty($table['primaryKey'])) {
-            $manifestData['primary_key'] = $table['primaryKey'];
+        if ($exportConfig->hasPrimaryKey()) {
+            $manifestData['primary_key'] = $exportConfig->getPrimaryKey();
         }
 
-        $manifestColumns = [];
+        if (!$exportConfig->hasQuery()) {
+            $table = $this->getMetadataProvider()->getTable($exportConfig->getTable());
+            $allTableColumns = $table->getColumns();
+            $columnMetadata = [];
+            $sanitizedPks = [];
+            $exportedColumns = $exportConfig->hasColumns() ? $exportConfig->getColumns() : $allTableColumns->getNames();
+            foreach ($exportedColumns as $index => $columnName) {
+                $column = $allTableColumns->getByName($columnName);
+                if ($column->isPrimaryKey()) {
+                    $sanitizedPks[] = $column->getSanitizedName();
+                }
 
-        if (isset($table['table']) && !is_null($table['table'])) {
-            $tables = $this->getTables([$table['table']]);
-            if (count($tables) > 0) {
-                $tableDetails = $tables[0];
-                $columnMetadata = [];
-                $sanitizedPks = [];
-                $iterColumns = $table['columns'];
-                if (count($iterColumns) === 0) {
-                    $iterColumns = array_map(function ($column) {
-                        return $column['name'];
-                    }, $tableDetails['columns']);
-                }
-                foreach ($iterColumns as $ind => $columnName) {
-                    $column = null;
-                    foreach ($tableDetails['columns'] as $detailColumn) {
-                        if ($detailColumn['name'] === $columnName) {
-                            $column = $detailColumn;
-                        }
-                    }
-                    if (!$column) {
-                        throw new UserException(
-                            sprintf('The given column \'%s\' was not found in the table.', $columnName)
-                        );
-                    }
-                    // use sanitized name for primary key if available
-                    if (in_array($column['name'], $table['primaryKey']) && array_key_exists('sanitizedName', $column)) {
-                        $sanitizedPks[] = $column['sanitizedName'];
-                    }
-                    $columnName = $column['name'];
-                    if (array_key_exists('sanitizedName', $column)) {
-                        $columnName = $column['sanitizedName'];
-                    }
-                    $columnMetadata[$columnName] = $this->getColumnMetadata($column);
-                    $manifestColumns[] = $columnName;
-                }
-                $manifestData['metadata'] = $this->getTableLevelMetadata($tableDetails);
+                $columnMetadata[$column->getSanitizedName()] = $metadataSerializer->serializeColumn($column);
+            }
 
-                $manifestData['column_metadata'] = $columnMetadata;
-                $manifestData['columns'] = $manifestColumns;
-                if (!empty($sanitizedPks)) {
-                    $manifestData['primary_key'] = $sanitizedPks;
-                }
+            $manifestData['metadata'] = $metadataSerializer->serializeTable($table);
+            $manifestData['column_metadata'] = $columnMetadata;
+            $manifestData['columns'] = array_keys($columnMetadata);
+            if (!empty($sanitizedPks)) {
+                $manifestData['primary_key'] = $sanitizedPks;
             }
         }
-        return file_put_contents($outFilename, json_encode($manifestData));
-    }
 
-    public static function getColumnMetadata(array $column): array
-    {
-        $datatype = new GenericStorage(
-            $column['type'],
-            array_intersect_key($column, array_flip(self::DATATYPE_KEYS))
-        );
-        $columnMetadata = $datatype->toMetadata();
-        $nonDatatypeKeys = array_diff_key($column, array_flip(self::DATATYPE_KEYS));
-        foreach ($nonDatatypeKeys as $key => $value) {
-            if ($key === 'name') {
-                $columnMetadata[] = [
-                    'key' => 'KBC.sourceName',
-                    'value' => $value,
-                ];
-            } else {
-                $columnMetadata[] = [
-                    'key' => 'KBC.' . $key,
-                    'value' => $value,
-                ];
-            }
-        }
-        return $columnMetadata;
-    }
-
-    public static function getTableLevelMetadata(array $tableDetails): array
-    {
-        $metadata = [];
-        foreach ($tableDetails as $key => $value) {
-            if ($key === 'columns') {
-                continue;
-            }
-            $metadata[] = [
-                'key' => 'KBC.' . $key,
-                'value' => $value,
-            ];
-        }
-        return $metadata;
+        file_put_contents($outFilename, json_encode($manifestData));
     }
 
     protected function getOutputFilename(string $outputTableName): string
@@ -385,19 +319,11 @@ abstract class BaseExtractor
         return $this->dbParameters;
     }
 
-    protected function canFetchMaxIncrementalValueSeparately(bool $isAdvancedQuery): bool
+    protected function canFetchMaxIncrementalValueSeparately(ExportConfig $exportConfig): bool
     {
-        return !$isAdvancedQuery && isset($this->incrementalFetching) && !$this->hasIncrementalLimit();
-    }
-
-    protected function hasIncrementalLimit(): bool
-    {
-        if (!$this->incrementalFetching) {
-            return false;
-        }
-        if (isset($this->incrementalFetching['limit']) && (int) $this->incrementalFetching['limit'] > 0) {
-            return true;
-        }
-        return false;
+        return
+            !$exportConfig->hasQuery() &&
+            $exportConfig->isIncrementalFetching() &&
+            !$exportConfig->hasIncrementalFetchingLimit();
     }
 }

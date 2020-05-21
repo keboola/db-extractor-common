@@ -3,5 +3,4 @@ parameters:
     excludes_analyse:
         - 'tests/phpunit/TaintedPDO.php'
         - 'tests/phpunit/TaintedPDOStatement.php'
-    ignoreErrors:
-        - '#Offset .* does not exist on array\|null.#' # TODO remove (arrays will be replaced by Value Objects)
+    ignoreErrors: []

@@ -338,98 +338,55 @@ class CommonExtractorTest extends ExtractorTest
             0 =>
                 [
                     'name' => 'escaping',
-                    'sanitizedName' => 'escaping',
                     'schema' => 'testdb',
-                    'type' => 'BASE TABLE',
                     'columns' =>
                         [
-                            0 =>
-                                [
-                                    'name' => 'col1',
-                                    'sanitizedName' => 'col1',
-                                    'type' => 'varchar',
-                                    'primaryKey' => false,
-                                    'length' => '155',
-                                    'nullable' => false,
-                                    'default' => 'abc',
-                                    'ordinalPosition' => '1',
-                                ],
-                            1 =>
-                                [
-                                    'name' => 'col2',
-                                    'sanitizedName' => 'col2',
-                                    'type' => 'varchar',
-                                    'primaryKey' => false,
-                                    'length' => '155',
-                                    'nullable' => false,
-                                    'default' => 'abc',
-                                    'ordinalPosition' => '2',
-                                ],
+                            [
+                                'name' => 'col1',
+                                'type' => 'varchar',
+                                'primaryKey' => false,
+                            ],
+                            [
+                                'name' => 'col2',
+                                'type' => 'varchar',
+                                'primaryKey' => false,
+                            ],
                         ],
                 ],
             1 =>
                 [
                     'name' => 'escapingPK',
-                    'sanitizedName' => 'escapingPK',
                     'schema' => 'testdb',
-                    'type' => 'BASE TABLE',
                     'columns' =>
                         [
-                            0 =>
-                                [
-                                    'name' => 'col1',
-                                    'sanitizedName' => 'col1',
-                                    'type' => 'varchar',
-                                    'primaryKey' => true,
-                                    'length' => '155',
-                                    'nullable' => false,
-                                    'default' => '',
-                                    'ordinalPosition' => '1',
-                                ],
-                            1 =>
-                                [
-                                    'name' => 'col2',
-                                    'sanitizedName' => 'col2',
-                                    'type' => 'varchar',
-                                    'primaryKey' => true,
-                                    'length' => '155',
-                                    'nullable' => false,
-                                    'default' => '',
-                                    'ordinalPosition' => '2',
-                                ],
+                            [
+                                'name' => 'col1',
+                                'type' => 'varchar',
+                                'primaryKey' => true,
+                            ],
+                            [
+                                'name' => 'col2',
+                                'type' => 'varchar',
+                                'primaryKey' => true,
+                            ],
                         ],
                 ],
             2 =>
                 [
                     'name' => 'simple',
-                    'sanitizedName' => 'simple',
                     'schema' => 'testdb',
-                    'type' => 'BASE TABLE',
-                    'rowCount' => '2',
                     'columns' =>
                         [
-                            0 =>
-                                [
-                                    'name' => '_weird-I-d',
-                                    'sanitizedName' => 'weird_I_d',
-                                    'type' => 'varchar',
-                                    'primaryKey' => true,
-                                    'length' => '155',
-                                    'nullable' => false,
-                                    'default' => 'abc',
-                                    'ordinalPosition' => '1',
-                                ],
-                            1 =>
-                                [
-                                    'name' => 'SãoPaulo',
-                                    'sanitizedName' => 'SaoPaulo',
-                                    'type' => 'varchar',
-                                    'primaryKey' => false,
-                                    'length' => '155',
-                                    'nullable' => false,
-                                    'default' => 'abc',
-                                    'ordinalPosition' => '2',
-                                ],
+                            [
+                                'name' => '_weird-I-d',
+                                'type' => 'varchar',
+                                'primaryKey' => true,
+                            ],
+                            [
+                                'name' => 'SãoPaulo',
+                                'type' => 'varchar',
+                                'primaryKey' => false,
+                            ],
                         ],
                 ],
         ];
@@ -632,7 +589,7 @@ class CommonExtractorTest extends ExtractorTest
         $config = $this->getConfig(self::DRIVER);
         unset($config['parameters']['tables'][0]['query']);
         $this->expectException(ConfigUserException::class);
-        $this->expectExceptionMessage('One of table or query is required');
+        $this->expectExceptionMessage('Table or query must be configured.');
         $app = $this->getApp($config);
         $app->run();
     }
@@ -672,9 +629,9 @@ class CommonExtractorTest extends ExtractorTest
         Assert::assertNotEmpty($result['state']['lastFetchedRow']);
 
         sleep(2);
-        // the next fetch should be empty
+        // the next fetch should return row with last fetched value
         $emptyResult = ($this->getApp($config, $result['state']))->run();
-        Assert::assertEquals(0, $emptyResult['imported']['rows']);
+        Assert::assertEquals(1, $emptyResult['imported']['rows']);
 
         sleep(2);
         //now add a couple rows and run it again.
@@ -714,9 +671,9 @@ class CommonExtractorTest extends ExtractorTest
         Assert::assertEquals(2, $result['state']['lastFetchedRow']);
 
         sleep(2);
-        // the next fetch should be empty
+        // the next fetch should return row with last fetched value
         $emptyResult = ($this->getApp($config, $result['state']))->run();
-        Assert::assertEquals(0, $emptyResult['imported']['rows']);
+        Assert::assertEquals(1, $emptyResult['imported']['rows']);
 
         sleep(2);
         //now add a couple rows and run it again.
@@ -728,7 +685,7 @@ class CommonExtractorTest extends ExtractorTest
         Assert::assertArrayHasKey('state', $newResult);
         Assert::assertArrayHasKey('lastFetchedRow', $newResult['state']);
         Assert::assertEquals(4, $newResult['state']['lastFetchedRow']);
-        Assert::assertEquals(2, $newResult['imported']['rows']);
+        Assert::assertEquals(3, $newResult['imported']['rows']);
     }
 
     public function testIncrementalMaxNumberValue(): void
@@ -758,7 +715,10 @@ class CommonExtractorTest extends ExtractorTest
         Assert::assertArrayHasKey('state', $newResult);
         Assert::assertArrayHasKey('lastFetchedRow', $newResult['state']);
         Assert::assertEquals('21.28637632876382760000', $newResult['state']['lastFetchedRow']);
-        Assert::assertEquals(2, $newResult['imported']['rows']);
+
+        // Last fetched value is also present in the results of the next run ...
+        // so 4 = 2 rows with same timestamp = last fetched value + 2 new rows
+        Assert::assertEquals(4, $newResult['imported']['rows']);
     }
 
     public function testIncrementalFetchingLimit(): void
@@ -797,14 +757,18 @@ class CommonExtractorTest extends ExtractorTest
         //check that output state contains expected information
         Assert::assertArrayHasKey('state', $result);
         Assert::assertArrayHasKey('lastFetchedRow', $result['state']);
-        Assert::assertEquals(2, $result['state']['lastFetchedRow']);
+
+        // Last fetched value is also present in the results of the next run ...
+        // ... and LIMIT = 1   =>  returned same value as in the first run
+        Assert::assertEquals(1, $result['state']['lastFetchedRow']);
     }
 
     public function testIncrementalFetchingDisabled(): void
     {
         $this->createAutoIncrementAndTimestampTable();
         $config = $this->getIncrementalFetchingConfig();
-        $config['parameters']['incrementalFetchingColumn'] = ''; // unset
+        unset($config['parameters']['incremental']);
+        unset($config['parameters']['incrementalFetchingColumn']);
         $result = ($this->getApp($config))->run();
 
         Assert::assertEquals(
@@ -851,7 +815,9 @@ class CommonExtractorTest extends ExtractorTest
         unset($config['parameters']['table']);
 
         $this->expectException(ConfigUserException::class);
-        $this->expectExceptionMessage('Incremental fetching is not supported for advanced queries.');
+        $this->expectExceptionMessage(
+            'The "incrementalFetchingColumn" is configured, but incremental fetching is not supported for custom query.'
+        );
         $app = $this->getApp($config);
         $app->run();
     }
@@ -940,7 +906,9 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['query'] = 'SELECT 1 LIMIT 0';
 
         $this->expectException(ConfigUserException::class);
-        $this->expectExceptionMessage('Incremental fetching is not supported for advanced queries.');
+        $this->expectExceptionMessage(
+            'The "incrementalFetchingColumn" is configured, but incremental fetching is not supported for custom query.'
+        );
 
         ($this->getApp($config))->run();
     }
@@ -952,7 +920,7 @@ class CommonExtractorTest extends ExtractorTest
         unset($config['parameters']['table']);
 
         $this->expectException(ConfigUserException::class);
-        $this->expectExceptionMessage('One of table or query is required');
+        $this->expectExceptionMessage('Table or query must be configured.');
         $app = $this->getApp($config);
         $app->run();
     }
