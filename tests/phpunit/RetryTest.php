@@ -6,6 +6,7 @@ namespace Keboola\DbExtractor\Tests;
 
 use Keboola\Csv\CsvWriter;
 use Keboola\DbExtractor\Application;
+use Keboola\DbExtractor\DbAdapter\PdoDbAdapter;
 use Keboola\DbExtractorConfig\Configuration\ValueObject\ExportConfig;
 use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractor\Extractor\Common;
@@ -15,6 +16,7 @@ use Keboola\Temp\Temp;
 use Monolog\Handler\TestHandler;
 use PDO;
 use PHPUnit\Framework\Assert;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Debug\ErrorHandler;
 
 class RetryTest extends ExtractorTest
@@ -418,11 +420,7 @@ class RetryTest extends ExtractorTest
         $config = $this->getRetryConfig();
         $config['parameters']['tables'][0]['query'] = 'SELECT * FROM sales LIMIT ' . $rowCount;
 
-        $extractor = new Common($config['parameters'], [], $logger);
-        // plant the tainted PDO into the extractor
-        $reflectionProperty = new \ReflectionProperty($extractor, 'db');
-        $reflectionProperty->setAccessible(true);
-        $reflectionProperty->setValue($extractor, $this->taintedPdo);
+        $extractor = $this->createMockedExtractor($config, $logger);
 
         /* Register symfony error handler (used in production) and replace phpunit error handler. This
             is very important to receive correct type of exception (\ErrorException), otherwise Phpunit
@@ -454,11 +452,7 @@ class RetryTest extends ExtractorTest
         $config = $this->getRetryConfig();
         $config['parameters']['tables'][0]['query'] = 'SELECT * FROM sales LIMIT ' . $rowCount;
 
-        $extractor = new Common($config['parameters'], [], $logger);
-        // plant the tainted PDO into the extractor
-        $reflectionProperty = new \ReflectionProperty($extractor, 'db');
-        $reflectionProperty->setAccessible(true);
-        $reflectionProperty->setValue($extractor, $this->taintedPdo);
+        $extractor = $this->createMockedExtractor($config, $logger);
 
         /* Register symfony error handler (used in production) and replace phpunit error handler. This
             is very important to receive correct type of exception (\ErrorException), otherwise Phpunit
@@ -490,11 +484,7 @@ class RetryTest extends ExtractorTest
         $config = $this->getRetryConfig();
         $config['parameters']['tables'][0]['query'] = 'SELECT * FROM sales LIMIT ' . $rowCount;
 
-        $extractor = new Common($config['parameters'], [], $logger);
-        // plant the tainted PDO into the extractor
-        $reflectionProperty = new \ReflectionProperty($extractor, 'db');
-        $reflectionProperty->setAccessible(true);
-        $reflectionProperty->setValue($extractor, $this->taintedPdo);
+        $extractor = $this->createMockedExtractor($config, $logger);
 
         /* Register symfony error handler (used in production) and replace phpunit error handler. This
             is very important to receive correct type of exception (\ErrorException), otherwise Phpunit
@@ -522,18 +512,7 @@ class RetryTest extends ExtractorTest
         $config = $this->getRetryConfig();
         $config['parameters']['tables'][0]['query'] = 'SELECT * FROM sales LIMIT ' . $rowCount;
 
-        // plant the tainted PDO into the createConnection method of the extractor
-        $extractor = self::getMockBuilder(Common::class)
-            ->setMethods(['createConnection'])
-            ->setConstructorArgs([$config['parameters'], [], $logger])
-            ->disableAutoReturnValueGeneration()
-            ->getMock();
-        $extractor->method('createConnection')->willReturn($this->taintedPdo);
-
-        // plant the tainted PDO into the extractor
-        $reflectionProperty = new \ReflectionProperty($extractor, 'db');
-        $reflectionProperty->setAccessible(true);
-        $reflectionProperty->setValue($extractor, $this->taintedPdo);
+        $extractor = $this->createMockedExtractor($config, $logger, true);
 
         /* Both of the above are needed because the DB connection is initialized in the Common::__construct()
             using the `createConnection` method. That means that during instantiation of the mock, the createConnection
@@ -576,11 +555,7 @@ class RetryTest extends ExtractorTest
         $config = $this->getRetryConfig();
         $config['parameters']['tables'][0]['query'] = 'SELECT * FROM non_existent_table';
 
-        $extractor = new Common($config['parameters'], [], $logger);
-        // plant the tainted PDO into the extractor
-        $reflectionProperty = new \ReflectionProperty($extractor, 'db');
-        $reflectionProperty->setAccessible(true);
-        $reflectionProperty->setValue($extractor, $this->taintedPdo);
+        $extractor = $this->createMockedExtractor($config, $logger);
 
         /* Register symfony error handler (used in production) and replace phpunit error handler. This
             is very important to receive correct type of exception (\ErrorException), otherwise Phpunit
@@ -599,5 +574,39 @@ class RetryTest extends ExtractorTest
                 'non_existent_table\' doesn\'t exist. Retrying... [9x]'
             ));
         }
+    }
+
+    private function createMockedExtractor(
+        array $config,
+        LoggerInterface $logger,
+        bool $reconnectShouldFail = false
+    ): Common {
+        $extractor = new Common($config['parameters'], [], $logger);
+
+        // PdoDbAdapter by default reconnect on error, .... If reconnectFail = true,
+        // then is the reconnect blocked (by mocking createConnection), and taintedPdo is preserved
+        if ($reconnectShouldFail) {
+            $dbAdapter = self::createPartialMock(PdoDbAdapter::class, ['createConnection']);
+
+            // Set logger to dbAdapter
+            $dbAdapterLoggerProp = new \ReflectionProperty(PdoDbAdapter::class, 'logger');
+            $dbAdapterLoggerProp->setAccessible(true);
+            $dbAdapterLoggerProp->setValue($dbAdapter, $logger);
+
+            // Replace adapter in extractor
+            $dbAdapterProp = new \ReflectionProperty($extractor, 'dbAdapter');
+            $dbAdapterProp->setAccessible(true);
+            $dbAdapterProp->setValue($extractor, $dbAdapter);
+        } else {
+            $extractorAdapterProp = new \ReflectionProperty(Common::class, 'dbAdapter');
+            $extractorAdapterProp->setAccessible(true);
+            $dbAdapter = $extractorAdapterProp->getValue($extractor);
+        }
+
+        $dbAdapterPdoProp = new \ReflectionProperty(PdoDbAdapter::class, 'pdo');
+        $dbAdapterPdoProp->setAccessible(true);
+        $dbAdapterPdoProp->setValue($dbAdapter, $this->taintedPdo);
+
+        return $extractor;
     }
 }

@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Extractor;
 
-use PDO;
-use PDOStatement;
+use Keboola\DbExtractor\DbAdapter\DbAdapter;
 use Keboola\DbExtractor\Exception\InvalidArgumentException;
 use Keboola\DbExtractorConfig\Configuration\ValueObject\InputTable;
 use Keboola\DbExtractor\TableResultFormat\Metadata\Builder\ColumnBuilder;
@@ -16,13 +15,13 @@ use Keboola\DbExtractor\TableResultFormat\Metadata\ValueObject\TableCollection;
 
 class CommonMetadataProvider implements MetadataProvider
 {
-    private PDO $db;
+    private DbAdapter $dbAdapter;
 
     private string $database;
 
-    public function __construct(PDO $db, string $database)
+    public function __construct(DbAdapter $dbAdapter, string $database)
     {
-        $this->db = $db;
+        $this->dbAdapter = $dbAdapter;
         $this->database = $database;
     }
 
@@ -159,7 +158,7 @@ class CommonMetadataProvider implements MetadataProvider
         $sql = [];
         $sql[] = 'SELECT *';
         $sql[] = 'FROM INFORMATION_SCHEMA.TABLES as c';
-        $sql[] = sprintf('WHERE c.TABLE_SCHEMA = %s', $this->db->quote($this->database));
+        $sql[] = sprintf('WHERE c.TABLE_SCHEMA = %s', $this->dbAdapter->quote($this->database));
 
         if ($whitelist) {
             $sql[] =sprintf('AND c.TABLE_NAME IN (%s)', $this->quoteTables($whitelist));
@@ -182,7 +181,7 @@ class CommonMetadataProvider implements MetadataProvider
         $sql[] = 'FROM INFORMATION_SCHEMA.COLUMNS as c';
         $sql[] = 'LEFT OUTER JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE as kcu';
         $sql[] = 'ON c.TABLE_NAME = kcu.TABLE_NAME AND c.COLUMN_NAME = kcu.COLUMN_NAME';
-        $sql[] = sprintf('WHERE c.TABLE_SCHEMA = %s', $this->db->quote($this->database));
+        $sql[] = sprintf('WHERE c.TABLE_SCHEMA = %s', $this->dbAdapter->quote($this->database));
 
         if ($whitelist) {
             $sql[] =sprintf('AND c.TABLE_NAME IN (%s)', $this->quoteTables($whitelist));
@@ -196,11 +195,7 @@ class CommonMetadataProvider implements MetadataProvider
 
     private function queryAndFetchAll(string $sql): array
     {
-        /** @var PDOStatement $result */
-        $result = $this->db->query($sql);
-        /** @var array $array */
-        $array = $result->fetchAll(PDO::FETCH_ASSOC);
-        return $array;
+        return $this->dbAdapter->query($sql, 1)->fetchAll();
     }
 
     private function quoteTables(array $whitelist): string
@@ -216,7 +211,7 @@ class CommonMetadataProvider implements MetadataProvider
                     ));
                 }
 
-                return $this->db->quote($table->getName());
+                return $this->dbAdapter->quote($table->getName());
             }, $whitelist)
         );
     }

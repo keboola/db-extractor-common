@@ -4,13 +4,15 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Extractor;
 
+use PDO;
+use Psr\Log\LoggerInterface;
 use Keboola\Datatype\Definition\Exception\InvalidLengthException;
 use Keboola\Datatype\Definition\MySQL;
+use Keboola\DbExtractor\DbAdapter\DbAdapter;
+use Keboola\DbExtractor\DbAdapter\PdoDbAdapter;
 use Keboola\DbExtractorConfig\Configuration\ValueObject\ExportConfig;
 use Keboola\DbExtractor\Exception\ApplicationException;
 use Keboola\DbExtractor\Exception\UserException;
-use PDO;
-use Psr\Log\LoggerInterface;
 
 class Common extends BaseExtractor
 {
@@ -18,25 +20,18 @@ class Common extends BaseExtractor
     public const INCREMENT_TYPE_TIMESTAMP = 'timestamp';
     public const NUMERIC_BASE_TYPES = ['INTEGER', 'NUMERIC', 'FLOAT'];
 
-    protected string $database;
+    private CommonMetadataProvider $metadataProvider;
 
     protected string $incrementalFetchingColType;
-
-    private CommonMetadataProvider $metadataProvider;
 
     public function __construct(array $parameters, array $state, LoggerInterface $logger)
     {
         parent::__construct($parameters, $state, $logger);
-        $this->metadataProvider = new CommonMetadataProvider($this->db, $parameters['db']['database']);
+        $this->metadataProvider = new CommonMetadataProvider($this->dbAdapter, $parameters['db']['database']);
     }
 
-    public function createConnection(array $params): PDO
+    public function createDbAdapter(array $params): DbAdapter
     {
-        // convert errors to PDOExceptions
-        $options = [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        ];
-
         // check params
         foreach (['host', 'database', 'user', '#password'] as $r) {
             if (!isset($params[$r])) {
@@ -44,34 +39,33 @@ class Common extends BaseExtractor
             }
         }
 
-        $this->database = $params['database'];
-
         $port = isset($params['port']) ? $params['port'] : '3306';
         $dsn = sprintf('mysql:host=%s;port=%s;dbname=%s;charset=utf8', $params['host'], $port, $params['database']);
-
-        $pdo = new PDO($dsn, $params['user'], $params['#password'], $options);
-        $pdo->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, false);
-        $pdo->exec('SET NAMES utf8;');
-
-        return $pdo;
-    }
-
-    public function testConnection(): void
-    {
-        $this->db->query('SELECT 1');
+        return new PdoDbAdapter(
+            $this->logger,
+            $dsn,
+            $params['user'],
+            $params['#password'],
+            [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, // convert errors to PDOExceptions
+                PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => false,
+            ],
+            function (PDO $pdo): void {
+                $pdo->exec('SET NAMES utf8;');
+            }
+        );
     }
 
     public function validateIncrementalFetching(ExportConfig $exportConfig): void
     {
-        $res = $this->db->query(
-            sprintf(
-                'SELECT * FROM INFORMATION_SCHEMA.COLUMNS as cols 
+        $sql = sprintf(
+            'SELECT * FROM INFORMATION_SCHEMA.COLUMNS as cols 
                             WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND COLUMN_NAME = %s',
-                $this->db->quote($exportConfig->getTable()->getSchema()),
-                $this->db->quote($exportConfig->getTable()->getName()),
-                $this->db->quote($exportConfig->getIncrementalFetchingColumn())
-            )
+            $this->dbAdapter->quote($exportConfig->getTable()->getSchema()),
+            $this->dbAdapter->quote($exportConfig->getTable()->getName()),
+            $this->dbAdapter->quote($exportConfig->getIncrementalFetchingColumn())
         );
+        $res = $this->dbAdapter->query($sql, $exportConfig->getMaxRetries());
         $columns = $res->fetchAll();
         if (count($columns) === 0) {
             throw new UserException(
@@ -106,7 +100,7 @@ class Common extends BaseExtractor
 
         if ($exportConfig->hasColumns()) {
             $sql[] = sprintf('SELECT %s', implode(', ', array_map(
-                fn(string $c) => $this->quote($c),
+                fn(string $c) => $this->dbAdapter->quoteIdentifier($c),
                 $exportConfig->getColumns()
             )));
         } else {
@@ -115,8 +109,8 @@ class Common extends BaseExtractor
 
         $sql[] = sprintf(
             'FROM %s.%s',
-            $this->quote($exportConfig->getTable()->getSchema()),
-            $this->quote($exportConfig->getTable()->getName())
+            $this->dbAdapter->quoteIdentifier($exportConfig->getTable()->getSchema()),
+            $this->dbAdapter->quoteIdentifier($exportConfig->getTable()->getName())
         );
 
         if ($exportConfig->isIncrementalFetching() && isset($this->state['lastFetchedRow'])) {
@@ -124,14 +118,14 @@ class Common extends BaseExtractor
                 $sql[] = sprintf(
                     // intentionally ">=" last row should be included, it is handled by storage deduplication process
                     'WHERE %s >= %d',
-                    $this->quote($exportConfig->getIncrementalFetchingColumn()),
+                    $this->dbAdapter->quoteIdentifier($exportConfig->getIncrementalFetchingColumn()),
                     (int) $this->state['lastFetchedRow']
                 );
             } else if ($this->incrementalFetchingColType === self::INCREMENT_TYPE_TIMESTAMP) {
                 $sql[] = sprintf(
                     // intentionally ">=" last row should be included, it is handled by storage deduplication process
                     'WHERE %s >= \'%s\'',
-                    $this->quote($exportConfig->getIncrementalFetchingColumn()),
+                    $this->dbAdapter->quoteIdentifier($exportConfig->getIncrementalFetchingColumn()),
                     $this->state['lastFetchedRow']
                 );
             } else {
@@ -144,7 +138,7 @@ class Common extends BaseExtractor
         if ($exportConfig->hasIncrementalFetchingLimit()) {
             $sql[] = sprintf(
                 'ORDER BY %s LIMIT %d',
-                $this->quote($exportConfig->getIncrementalFetchingColumn()),
+                $this->dbAdapter->quoteIdentifier($exportConfig->getIncrementalFetchingColumn()),
                 $exportConfig->getIncrementalFetchingLimit()
             );
         }
@@ -161,17 +155,12 @@ class Common extends BaseExtractor
     {
         $sql = sprintf(
             'SELECT MAX(%s) as %s FROM %s.%s',
-            $this->quote($exportConfig->getIncrementalFetchingColumn()),
-            $this->quote($exportConfig->getIncrementalFetchingColumn()),
-            $this->quote($exportConfig->getTable()->getSchema()),
-            $this->quote($exportConfig->getTable()->getName())
+            $this->dbAdapter->quoteIdentifier($exportConfig->getIncrementalFetchingColumn()),
+            $this->dbAdapter->quoteIdentifier($exportConfig->getIncrementalFetchingColumn()),
+            $this->dbAdapter->quoteIdentifier($exportConfig->getTable()->getSchema()),
+            $this->dbAdapter->quoteIdentifier($exportConfig->getTable()->getName())
         );
-        $result = $this->db->query($sql)->fetchAll();
+        $result = $this->dbAdapter->query($sql, $exportConfig->getMaxRetries())->fetchAll();
         return $result ? $result[0][$exportConfig->getIncrementalFetchingColumn()] : null;
-    }
-
-    private function quote(string $obj): string
-    {
-        return "`{$obj}`";
     }
 }

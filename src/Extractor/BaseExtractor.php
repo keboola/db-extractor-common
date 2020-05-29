@@ -4,20 +4,17 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Extractor;
 
+use Keboola\DbExtractor\DbAdapter\DbAdapter;
+use Keboola\DbExtractor\DbAdapter\QueryResult\QueryResult;
+use Keboola\DbExtractor\Exception\DbAdapterException;
 use Throwable;
-use ErrorException;
-use PDO;
-use PDOStatement;
-use PDOException;
 use Psr\Log\LoggerInterface;
 use Keboola\DbExtractor\TableResultFormat\Metadata\GetTables\DefaultGetTablesSerializer;
 use Keboola\DbExtractor\TableResultFormat\Metadata\GetTables\GetTablesSerializer;
 use Keboola\Csv\CsvWriter;
 use Keboola\Csv\Exception as CsvException;
 use Keboola\DbExtractorConfig\Configuration\ValueObject\ExportConfig;
-use Keboola\DbExtractor\DbRetryProxy;
 use Keboola\DbExtractor\Exception\ApplicationException;
-use Keboola\DbExtractor\Exception\DeadConnectionException;
 use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractor\TableResultFormat\Metadata\Manifest\DefaultManifestSerializer;
 use Keboola\DbExtractor\TableResultFormat\Metadata\Manifest\ManifestSerializer;
@@ -27,10 +24,7 @@ use Nette\Utils;
 
 abstract class BaseExtractor
 {
-    public const CONNECT_MAX_RETRIES = 5;
-
-    /** @var PDO|mixed */
-    protected $db;
+    protected DbAdapter $dbAdapter;
 
     protected array $state;
 
@@ -54,29 +48,10 @@ abstract class BaseExtractor
             }
         }
         $this->dbParameters = $parameters['db'];
-
-        $proxy = new DbRetryProxy($this->logger, self::CONNECT_MAX_RETRIES, [PDOException::class]);
-
-        try {
-            $proxy->call(function (): void {
-                $this->db = $this->createConnection($this->dbParameters);
-            });
-        } catch (PDOException $e) {
-            throw new UserException('Error connecting to DB: ' . $e->getMessage(), 0, $e);
-        } catch (Throwable $e) {
-            if (strstr(strtolower($e->getMessage()), 'could not find driver')) {
-                throw new ApplicationException('Missing driver: ' . $e->getMessage());
-            }
-            throw new UserException('Error connecting to DB: ' . $e->getMessage(), 0, $e);
-        }
+        $this->dbAdapter = $this->createDbAdapter($this->dbParameters);
     }
 
-    /**
-     * @return PDO|mixed
-     */
-    abstract public function createConnection(array $params);
-
-    abstract public function testConnection(): void;
+    abstract public function createDbAdapter(array $dbParams): DbAdapter;
 
     abstract public function simpleQuery(ExportConfig $exportConfig): string;
 
@@ -105,6 +80,11 @@ abstract class BaseExtractor
         throw new UserException('Incremental Fetching is not supported by this extractor.');
     }
 
+    public function testConnection(): void
+    {
+        $this->dbAdapter->testConnection();
+    }
+
     public function export(ExportConfig $exportConfig): array
     {
         if ($exportConfig->isIncrementalFetching()) {
@@ -117,27 +97,23 @@ abstract class BaseExtractor
 
         $this->logger->info('Exporting to ' . $exportConfig->getOutputTable());
         $query = $exportConfig->hasQuery() ? $exportConfig->getQuery() : $this->simpleQuery($exportConfig);
-        $proxy = new DbRetryProxy(
-            $this->logger,
-            $exportConfig->getMaxRetries(),
-            [DeadConnectionException::class, ErrorException::class]
-        );
 
         try {
-            $result = $proxy->call(function () use ($query, $exportConfig) {
-                /** @var PDOStatement $stmt */
-                $stmt = $this->executeQuery($query, $exportConfig->getMaxRetries());
-                $csv = $this->createOutputCsv($exportConfig->getOutputTable());
-                $result = $this->writeToCsv($stmt, $csv, $exportConfig);
-                $this->isAlive();
-                return $result;
-            });
+            $result = $this->dbAdapter->queryAndProcess(
+                $query,
+                $exportConfig->getMaxRetries(),
+                function (QueryResult $dbResult) use ($exportConfig) {
+                    $csv = $this->createOutputCsv($exportConfig->getOutputTable());
+                    return $this->writeToCsv($dbResult, $csv, $exportConfig);
+                }
+            );
         } catch (CsvException $e) {
             throw new ApplicationException('Failed writing CSV File: ' . $e->getMessage(), $e->getCode(), $e);
-        } catch (\PDOException | \ErrorException | DeadConnectionException $e) {
+        } catch (DbAdapterException $e) {
             throw $this->handleDbError($e, $exportConfig->getMaxRetries(), $exportConfig->getOutputTable());
         }
 
+        // Write manifest
         if ($result['rows'] > 0) {
             $this->createManifest($exportConfig);
         } else {
@@ -164,15 +140,6 @@ abstract class BaseExtractor
         return $output;
     }
 
-    protected function isAlive(): void
-    {
-        try {
-            $this->testConnection();
-        } catch (Throwable $e) {
-            throw new DeadConnectionException('Dead connection: ' . $e->getMessage());
-        }
-    }
-
     protected function handleDbError(Throwable $e, int $maxRetries, ?string $outputTable = null): UserException
     {
         $message = $outputTable ? sprintf('[%s]: ', $outputTable) : '';
@@ -186,39 +153,20 @@ abstract class BaseExtractor
         return new UserException($message, 0, $e);
     }
 
-    protected function executeQuery(string $query, ?int $maxTries): PDOStatement
-    {
-        $proxy = new DbRetryProxy($this->logger, $maxTries);
-
-        $stmt = $proxy->call(function () use ($query) {
-            try {
-                /** @var \PDOStatement $stmt */
-                $stmt = $this->db->prepare($query);
-                $stmt->execute();
-                return $stmt;
-            } catch (Throwable $e) {
-                try {
-                    $this->db = $this->createConnection($this->dbParameters);
-                } catch (Throwable $e) {
-                };
-                throw $e;
-            }
-        });
-        return $stmt;
-    }
-
     /**
      * @return array ['rows', 'lastFetchedRow']
      */
-    protected function writeToCsv(PDOStatement $stmt, CsvWriter $csv, ExportConfig $exportConfig): array
+    protected function writeToCsv(QueryResult $result, CsvWriter $csv, ExportConfig $exportConfig): array
     {
         // With custom query are no metadata in manifest, so header must be present
         $includeHeader = $exportConfig->hasQuery();
         $output = [];
 
-        $resultRow = $stmt->fetch(PDO::FETCH_ASSOC);
+        $iterator = $result->getIterator();
+        if ($iterator->valid()) {
+            $resultRow = $iterator->current();
+            $iterator->next();
 
-        if (is_array($resultRow) && !empty($resultRow)) {
             // write header and first line
             if ($includeHeader) {
                 $csv->writeRow(array_keys($resultRow));
@@ -229,12 +177,16 @@ abstract class BaseExtractor
             $numRows = 1;
             $lastRow = $resultRow;
 
-            while ($resultRow = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            while ($iterator->valid()) {
+                $resultRow = $iterator->current();
                 $csv->writeRow($resultRow);
+                $iterator->next();
+
                 $lastRow = $resultRow;
                 $numRows++;
             }
-            $stmt->closeCursor();
+
+            $result->closeCursor();
 
             if ($exportConfig->isIncrementalFetching()) {
                 $incrementalColumn = $exportConfig->getIncrementalFetchingConfig()->getColumn();
