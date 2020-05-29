@@ -5,16 +5,18 @@ declare(strict_types=1);
 namespace Keboola\DbExtractor\DbAdapter\QueryResult;
 
 use Iterator;
-use PDO;
-use PDOStatement;
 
-class PdoQueryResult implements QueryResult
+class OdbcQueryResult implements QueryResult
 {
-    protected PDOStatement $stmt;
+    /** @var resource */
+    protected $stmt;
 
     protected bool $closed = false;
 
-    public function __construct(PDOStatement $stmt)
+    /**
+     * @param resource $stmt
+     */
+    public function __construct($stmt)
     {
         $this->stmt = $stmt;
     }
@@ -29,7 +31,7 @@ class PdoQueryResult implements QueryResult
      */
     public function getIterator(): Iterator
     {
-        while ($row = $this->stmt->fetch(PDO::FETCH_ASSOC)) {
+        while ($row = odbc_fetch_array($this->stmt)) {
             yield $row;
         }
     }
@@ -39,7 +41,8 @@ class PdoQueryResult implements QueryResult
      */
     public function fetch(): ?array
     {
-        $result = $this->stmt->fetch(PDO::FETCH_ASSOC);
+        /** @var array|false $result */
+        $result = odbc_fetch_array($this->stmt);
         return $result === false ? null : $result;
     }
 
@@ -48,20 +51,21 @@ class PdoQueryResult implements QueryResult
      */
     public function fetchAll(): array
     {
-        /** @var array $result - errrors are converted to exceptions */
-        $result = $this->stmt->fetchAll(PDO::FETCH_ASSOC);
-        return $result;
+        return iterator_to_array($this->getIterator());
     }
 
     public function closeCursor(): void
     {
         if ($this->closed === false) {
-            $this->stmt->closeCursor();
+            odbc_free_result($this->stmt);
             $this->closed = true;
         }
     }
 
-    public function getResource(): PDOStatement
+    /**
+     * @return resource
+     */
+    public function getResource()
     {
         return $this->stmt;
     }

@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace Keboola\DbExtractor\DbAdapter;
 
 use ErrorException;
+use Keboola\DbExtractor\DbAdapter\QueryResult\OdbcQueryResult;
+use Keboola\DbExtractor\Exception\OdbcException;
 use Throwable;
-use PDO;
 use PDOException;
 use PDOStatement;
 use Psr\Log\LoggerInterface;
@@ -16,7 +17,7 @@ use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractor\Exception\ApplicationException;
 use Keboola\DbExtractor\DbAdapter\QueryResult\QueryResult;
 
-class PdoDbAdapter extends BaseDbAdapter
+class OdbcDbAdapter extends BaseDbAdapter
 {
     private string $dsn;
 
@@ -24,25 +25,22 @@ class PdoDbAdapter extends BaseDbAdapter
 
     private string $password;
 
-    private array $options;
-
     /** @var callable|null */
     private $init;
 
-    private PDO $pdo;
+    /** @var resource */
+    private $connection;
 
     public function __construct(
         LoggerInterface $logger,
         string $dsn,
         string $user,
         string $password,
-        array $options,
         ?callable $init = null
     ) {
         $this->dsn = $dsn;
         $this->user = $user;
         $this->password = $password;
-        $this->options = $options;
         $this->init = $init;
         parent::__construct($logger);
     }
@@ -52,34 +50,36 @@ class PdoDbAdapter extends BaseDbAdapter
         $this->query('SELECT 1', 1);
     }
 
-    public function getConnection(): PDO
+    /**
+     * @return resource
+     */
+    public function getConnection()
     {
-        return $this->pdo;
+        return $this->connection;
     }
 
     protected function createConnection(): void
     {
         try {
-            $this->pdo = $this
+            $this->connection = $this
                 ->createRetryProxy(self::CONNECT_MAX_RETRIES)
-                ->call(function (): PDO {
-                    $pdo = new PDO($this->dsn, $this->user, $this->password, $this->options);
+                ->call(function () {
+                    $connection = $this->checkError(
+                        odbc_connect($this->dsn, $this->user, $this->password) // intentionally @
+                    );
                     if ($this->init) {
-                        ($this->init)($pdo);
+                        ($this->init)($connection);
                     }
-                    return $pdo;
+                    return $connection;
                 });
         } catch (Throwable $e) {
-            if (strstr(strtolower($e->getMessage()), 'could not find driver')) {
-                throw new ApplicationException('Missing driver: ' . $e->getMessage());
-            }
             throw new UserException('Error connecting to DB: ' . $e->getMessage(), 0, $e);
         }
     }
 
     public function quote(string $str): string
     {
-        return $this->pdo->quote($str);
+        return "'" . str_replace("'", "''", $str) . "'";
     }
 
     public function quoteIdentifier(string $str): string
@@ -89,17 +89,32 @@ class PdoDbAdapter extends BaseDbAdapter
 
     protected function doQuery(string $query): QueryResult
     {
-        /** @var PDOStatement $stmt */
-        $stmt = $this->pdo->prepare($query);
-        $stmt->execute();
-        return new PdoQueryResult($stmt);
+        $stmt = $this->checkError(
+            @odbc_exec($this->connection, $query) // intentionally @
+        );
+        return new OdbcQueryResult($stmt);
+    }
+
+    /**
+     * @param resource|false $resource
+     * @return resource
+     */
+    protected function checkError($resource)
+    {
+        if ($resource === false) {
+            throw new OdbcException(
+                odbc_errormsg($this->connection) . ' ' . odbc_error($this->connection),
+                0
+            );
+        }
+
+        return $resource;
     }
 
     protected function getExpectedExceptionClasses(): array
     {
         return [
-            PDOException::class,
-            ErrorException::class, // eg. ErrorException: Warning: Empty row packet body
+            OdbcException::class,
             DeadConnectionException::class, // see BaseDbAdapter:isAlive()
         ];
     }

@@ -12,7 +12,7 @@
   "require": {
     "php": ">=7.4",
     "ext-json": "*",
-    "ext-pdo": "*",
+    "ext-odbc": "*",
     "keboola/common-exceptions": "^1.0",
     "keboola/csv": "^2.1",
     "keboola/db-extractor-config": "^1.3.1",
@@ -29,6 +29,7 @@
     "psr/log": "^1.1"
   },
   "require-dev": {
+    "ext-pdo": "*",
     "php-parallel-lint/php-parallel-lint": "^1.2",
     "keboola/coding-standard": ">=9.0.0",
     "keboola/php-temp": "^2.0",

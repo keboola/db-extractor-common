@@ -20,6 +20,7 @@ class Common extends BaseExtractor
     public const INCREMENT_TYPE_TIMESTAMP = 'timestamp';
     public const NUMERIC_BASE_TYPES = ['INTEGER', 'NUMERIC', 'FLOAT'];
 
+
     private CommonMetadataProvider $metadataProvider;
 
     protected string $incrementalFetchingColType;
