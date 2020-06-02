@@ -290,11 +290,15 @@ abstract class BaseExtractor
             $exportedColumns = $exportConfig->hasColumns() ? $exportConfig->getColumns() : $allTableColumns->getNames();
             foreach ($exportedColumns as $index => $columnName) {
                 $column = $allTableColumns->getByName($columnName);
-                if ($column->isPrimaryKey()) {
+                $columnMetadata[$column->getSanitizedName()] = $metadataSerializer->serializeColumn($column);
+
+                // Sanitize only PKs defined in the configuration
+                if ($column->isPrimaryKey() &&
+                    $exportConfig->hasPrimaryKey() &&
+                    in_array($column->getName(), $exportConfig->getPrimaryKey(), true)
+                ) {
                     $sanitizedPks[] = $column->getSanitizedName();
                 }
-
-                $columnMetadata[$column->getSanitizedName()] = $metadataSerializer->serializeColumn($column);
             }
 
             $manifestData['metadata'] = $metadataSerializer->serializeTable($table);
