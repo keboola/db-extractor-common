@@ -149,6 +149,24 @@ class CommonExtractorTest extends ExtractorTest
         Assert::assertArrayNotHasKey('primary_key', $manifest);
     }
 
+    public function testRunPrimaryKeyDefinedOnlyInConfig(): void
+    {
+        $this->cleanOutputDirectory();
+
+        $config = $this->getConfigRow(self::DRIVER);
+        $config['parameters']['primaryKey'] = ['SãoPaulo'];
+
+        $result = ($this->getApp($config))->run();
+        $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported']['outputTable']);
+        $filename = $this->dataDir . '/out/tables/' . $result['imported']['outputTable'] . '.csv.manifest';
+        $manifest = json_decode(
+            (string) file_get_contents($filename),
+            true
+        );
+        Assert::assertEquals(['weird_I_d', 'SaoPaulo'], $manifest['columns']);
+        Assert::assertEquals(['SaoPaulo'], $manifest['primary_key']);
+    }
+
     public function testRunJsonConfig(): void
     {
         $this->cleanOutputDirectory();
