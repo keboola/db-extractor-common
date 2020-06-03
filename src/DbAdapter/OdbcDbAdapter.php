@@ -19,17 +19,17 @@ use Keboola\DbExtractor\DbAdapter\QueryResult\QueryResult;
 
 class OdbcDbAdapter extends BaseDbAdapter
 {
-    private string $dsn;
+    protected string $dsn;
 
-    private string $user;
+    protected string $user;
 
-    private string $password;
+    protected string $password;
 
     /** @var callable|null */
-    private $init;
+    protected $init;
 
     /** @var resource */
-    private $connection;
+    protected $connection;
 
     public function __construct(
         LoggerInterface $logger,
