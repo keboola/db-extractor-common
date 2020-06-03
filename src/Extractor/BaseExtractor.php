@@ -292,9 +292,8 @@ abstract class BaseExtractor
                 $column = $allTableColumns->getByName($columnName);
                 $columnMetadata[$column->getSanitizedName()] = $metadataSerializer->serializeColumn($column);
 
-                // Sanitize only PKs defined in the configuration
-                if ($column->isPrimaryKey() &&
-                    $exportConfig->hasPrimaryKey() &&
+                // Sanitize PKs defined in the configuration
+                if ($exportConfig->hasPrimaryKey() &&
                     in_array($column->getName(), $exportConfig->getPrimaryKey(), true)
                 ) {
                     $sanitizedPks[] = $column->getSanitizedName();
