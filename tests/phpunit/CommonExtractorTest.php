@@ -131,6 +131,42 @@ class CommonExtractorTest extends ExtractorTest
         Assert::assertEquals(['weird_I_d'], $manifest['primary_key']);
     }
 
+    public function testRunNoPrimaryKey(): void
+    {
+        $this->cleanOutputDirectory();
+
+        $config = $this->getConfigRow(self::DRIVER);
+        $config['parameters']['primaryKey'] = [];
+
+        $result = ($this->getApp($config))->run();
+        $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported']['outputTable']);
+        $filename = $this->dataDir . '/out/tables/' . $result['imported']['outputTable'] . '.csv.manifest';
+        $manifest = json_decode(
+            (string) file_get_contents($filename),
+            true
+        );
+        Assert::assertEquals(['weird_I_d', 'SaoPaulo'], $manifest['columns']);
+        Assert::assertArrayNotHasKey('primary_key', $manifest);
+    }
+
+    public function testRunPrimaryKeyDefinedOnlyInConfig(): void
+    {
+        $this->cleanOutputDirectory();
+
+        $config = $this->getConfigRow(self::DRIVER);
+        $config['parameters']['primaryKey'] = ['SãoPaulo'];
+
+        $result = ($this->getApp($config))->run();
+        $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported']['outputTable']);
+        $filename = $this->dataDir . '/out/tables/' . $result['imported']['outputTable'] . '.csv.manifest';
+        $manifest = json_decode(
+            (string) file_get_contents($filename),
+            true
+        );
+        Assert::assertEquals(['weird_I_d', 'SaoPaulo'], $manifest['columns']);
+        Assert::assertEquals(['SaoPaulo'], $manifest['primary_key']);
+    }
+
     public function testRunJsonConfig(): void
     {
         $this->cleanOutputDirectory();
@@ -440,104 +476,93 @@ class CommonExtractorTest extends ExtractorTest
         $expectedColumnMetadata = [
             'weird_I_d' =>
                 [
-                    0 =>
-                        [
-                            'key' => 'KBC.datatype.type',
-                            'value' => 'varchar',
-                        ],
-                    1 =>
-                        [
-                            'key' => 'KBC.datatype.nullable',
-                            'value' => false,
-                        ],
-                    2 =>
-                        [
-                            'key' => 'KBC.datatype.basetype',
-                            'value' => 'STRING',
-                        ],
-                    3 =>
-                        [
-                            'key' => 'KBC.datatype.length',
-                            'value' => '155',
-                        ],
-                    4 =>
-                        [
-                            'key' => 'KBC.datatype.default',
-                            'value' => 'abc',
-                        ],
-                    5 =>
-                        [
-                            'key' => 'KBC.sourceName',
-                            'value' => '_weird-I-d',
-                        ],
-                    6 =>
-                        [
-                            'key' => 'KBC.sanitizedName',
-                            'value' => 'weird_I_d',
-                        ],
-                    7 =>
-                        [
-                            'key' => 'KBC.primaryKey',
-                            'value' => true,
-                        ],
-                    8 =>
-                        [
-                            'key' => 'KBC.ordinalPosition',
-                            'value' => '1',
-                        ],
-                    9 =>
-                        [
-                            'key' => 'KBC.constraintName',
-                            'value' => 'PRIMARY',
-                        ],
+                    [
+                        'key' => 'KBC.datatype.type',
+                        'value' => 'varchar',
+                    ],
+                    [
+                        'key' => 'KBC.datatype.nullable',
+                        'value' => false,
+                    ],
+                    [
+                        'key' => 'KBC.datatype.basetype',
+                        'value' => 'STRING',
+                    ],
+                    [
+                        'key' => 'KBC.datatype.length',
+                        'value' => '155',
+                    ],
+                    [
+                        'key' => 'KBC.datatype.default',
+                        'value' => 'abc',
+                    ],
+                    [
+                        'key' => 'KBC.sourceName',
+                        'value' => '_weird-I-d',
+                    ],
+                    [
+                        'key' => 'KBC.sanitizedName',
+                        'value' => 'weird_I_d',
+                    ],
+                    [
+                        'key' => 'KBC.primaryKey',
+                        'value' => true,
+                    ],
+                    [
+                        'key' => 'KBC.uniqueKey',
+                        'value' => false,
+                    ],
+                    [
+                        'key' => 'KBC.ordinalPosition',
+                        'value' => '1',
+                    ],
+                    [
+                        'key' => 'KBC.constraintName',
+                        'value' => 'PRIMARY',
+                    ],
                 ],
             'SaoPaulo' =>
                 [
-                    0 =>
-                        [
-                            'key' => 'KBC.datatype.type',
-                            'value' => 'varchar',
-                        ],
-                    1 =>
-                        [
-                            'key' => 'KBC.datatype.nullable',
-                            'value' => false,
-                        ],
-                    2 =>
-                        [
-                            'key' => 'KBC.datatype.basetype',
-                            'value' => 'STRING',
-                        ],
-                    3 =>
-                        [
-                            'key' => 'KBC.datatype.length',
-                            'value' => '155',
-                        ],
-                    4 =>
-                        [
-                            'key' => 'KBC.datatype.default',
-                            'value' => 'abc',
-                        ],
-                    5 =>
-                        [
-                            'key' => 'KBC.sourceName',
-                            'value' => 'SãoPaulo',
-                        ],
-                    6 =>
-                        [
-                            'key' => 'KBC.sanitizedName',
-                            'value' => 'SaoPaulo',
-                        ],
-                    7 =>
-                        [
-                            'key' => 'KBC.primaryKey',
-                            'value' => false,
-                        ],
-                    8 =>
-                        [
-                            'key' => 'KBC.ordinalPosition',
-                            'value' => '2',
-                        ],
+                    [
+                        'key' => 'KBC.datatype.type',
+                        'value' => 'varchar',
+                    ],
+                    [
+                        'key' => 'KBC.datatype.nullable',
+                        'value' => false,
+                    ],
+                    [
+                        'key' => 'KBC.datatype.basetype',
+                        'value' => 'STRING',
+                    ],
+                    [
+                        'key' => 'KBC.datatype.length',
+                        'value' => '155',
+                    ],
+                    [
+                        'key' => 'KBC.datatype.default',
+                        'value' => 'abc',
+                    ],
+                    [
+                        'key' => 'KBC.sourceName',
+                        'value' => 'SãoPaulo',
+                    ],
+                    [
+                        'key' => 'KBC.sanitizedName',
+                        'value' => 'SaoPaulo',
+                    ],
+                    [
+                        'key' => 'KBC.primaryKey',
+                        'value' => false,
+                    ],
+                    [
+                        'key' => 'KBC.uniqueKey',
+                        'value' => false,
+                    ],
+                    [
+                        'key' => 'KBC.ordinalPosition',
+                        'value' => '2',
+                    ],
                 ],
         ];
 
