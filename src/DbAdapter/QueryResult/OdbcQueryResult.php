@@ -31,7 +31,7 @@ class OdbcQueryResult implements QueryResult
      */
     public function getIterator(): Iterator
     {
-        while ($row = odbc_fetch_array($this->stmt)) {
+        while ($row = $this->fetch()) {
             yield $row;
         }
     }
