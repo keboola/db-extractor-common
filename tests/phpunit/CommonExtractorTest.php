@@ -430,6 +430,94 @@ class CommonExtractorTest extends ExtractorTest
         Assert::assertEquals($expectedData, $result['tables']);
     }
 
+    public function testGetTablesWithoutColumns(): void
+    {
+        $config = $this->getConfig(self::DRIVER);
+        $config['action'] = 'getTables';
+        $config['parameters']['tableListFilter'] = [
+            'listColumns' => false,
+            'tablesToList' => [],
+        ];
+
+        $app = $this->getApp($config);
+
+        $result = $app->run();
+
+        Assert::assertArrayHasKey('status', $result);
+        Assert::assertArrayHasKey('tables', $result);
+        Assert::assertEquals('success', $result['status']);
+        Assert::assertCount(3, $result['tables']);
+
+        unset($result['tables'][0]['rowCount']);
+        unset($result['tables'][1]['rowCount']);
+        unset($result['tables'][3]['rowCount']);
+
+        $expectedData = [
+            [
+                'name' => 'escaping',
+                'schema' => 'testdb',
+            ],
+            [
+                'name' => 'escapingPK',
+                'schema' => 'testdb',
+            ],
+            [
+                'name' => 'simple',
+                'schema' => 'testdb',
+            ],
+        ];
+
+        Assert::assertEquals($expectedData, $result['tables']);
+    }
+
+    public function testGetTablesWithColumnsOnlyOneTable(): void
+    {
+        $config = $this->getConfig(self::DRIVER);
+        $config['action'] = 'getTables';
+        $config['parameters']['tableListFilter'] = [
+            'listColumns' => true,
+            'tablesToList' => [
+                [
+                    'tableName' => 'simple',
+                    'schema' => 'testdb',
+                ],
+            ],
+        ];
+
+        $app = $this->getApp($config);
+
+        $result = $app->run();
+
+        Assert::assertArrayHasKey('status', $result);
+        Assert::assertArrayHasKey('tables', $result);
+        Assert::assertEquals('success', $result['status']);
+        Assert::assertCount(1, $result['tables']);
+
+        unset($result['tables'][0]['rowCount']);
+
+        $expectedData = [
+            [
+                'name' => 'simple',
+                'schema' => 'testdb',
+                'columns' =>
+                    [
+                        [
+                            'name' => '_weird-I-d',
+                            'type' => 'varchar',
+                            'primaryKey' => true,
+                        ],
+                        [
+                            'name' => 'SãoPaulo',
+                            'type' => 'varchar',
+                            'primaryKey' => false,
+                        ],
+                    ],
+            ],
+        ];
+
+        Assert::assertEquals($expectedData, $result['tables']);
+    }
+
     public function testMetadataManifest(): void
     {
         $config = $this->getConfig(self::DRIVER);
