@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Extractor;
 
+use Keboola\DbExtractorConfig\Configuration\ValueObject\InputTable;
 use Throwable;
 use ErrorException;
 use PDO;
@@ -38,13 +39,16 @@ abstract class BaseExtractor
 
     protected string $dataDir;
 
-    private array $dbParameters;
+    protected array $parameters;
+
+    protected array $dbParameters;
 
     public function __construct(array $parameters, array $state, LoggerInterface $logger)
     {
-        $this->logger = $logger;
+        $this->parameters = $parameters;
         $this->dataDir = $parameters['data_dir'];
         $this->state = $state;
+        $this->logger = $logger;
         if (isset($parameters['db']['ssh']['enabled']) && $parameters['db']['ssh']['enabled']) {
             try {
                 $sshTunnel = new SSHTunnel($logger);
@@ -96,8 +100,16 @@ abstract class BaseExtractor
 
     public function getTables(): array
     {
+        $loadColumns = $this->parameters['tableListFilter']['listColumns'] ?? true;
+        $whiteList = array_map(
+            function (array $table) {
+                return new InputTable($table['tableName'], $table['schema']);
+            },
+            $this->parameters['tableListFilter']['tablesToList'] ?? []
+        );
+
         $serializer = $this->getGetTablesMetadataSerializer();
-        return $serializer->serialize($this->getMetadataProvider()->listTables());
+        return $serializer->serialize($this->getMetadataProvider()->listTables($whiteList, $loadColumns));
     }
 
     public function validateIncrementalFetching(ExportConfig $exportConfig): void
