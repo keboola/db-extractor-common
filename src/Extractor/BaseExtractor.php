@@ -287,7 +287,7 @@ abstract class BaseExtractor
 
         $manifestData = [
             'destination' => $exportConfig->getOutputTable(),
-            'incremental' => $exportConfig->isIncrementalFetching(),
+            'incremental' => $exportConfig->isIncrementalLoading(),
         ];
 
         if ($exportConfig->hasPrimaryKey()) {
