@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Tests;
 
+use Keboola\Component\JsonHelper;
 use PDO;
 use Monolog\Logger;
 use Keboola\Csv\CsvReader;
@@ -892,9 +893,44 @@ class CommonExtractorTest extends ExtractorTest
             $result['imported']
         );
 
-        //check that output state contains expected information
+        // Check that output state contains expected information
         Assert::assertArrayHasKey('state', $result);
         Assert::assertEmpty($result['state']);
+
+        // Check manifest incremental key
+        $outputManifest = JsonHelper::readFile(
+            $this->dataDir . '/out/tables/in.c-main.auto-increment-timestamp.csv.manifest'
+        );
+        Assert::assertFalse($outputManifest['incremental']);
+    }
+
+    public function testIncrementalLoadingEnabledIncrementalFetchingDisabled(): void
+    {
+        $config = $this->getConfigRow(self::DRIVER);
+        $config['parameters']['incremental'] = true;
+        unset($config['parameters']['incrementalFetchingColumn']);
+        $result = ($this->getApp($config))->run();
+
+        Assert::assertEquals(
+            [
+                'outputTable' => 'in.c-main.simple',
+                'rows' => 2,
+            ],
+            $result['imported']
+        );
+
+        // Check that output state contains expected information
+        Assert::assertArrayHasKey('state', $result);
+        Assert::assertEmpty($result['state']);
+
+        // Check extracted data
+        $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported']['outputTable']);
+
+        // Check manifest incremental key
+        $outputManifest = JsonHelper::readFile(
+            $this->dataDir . '/out/tables/in.c-main.simple.csv.manifest'
+        );
+        Assert::assertTrue($outputManifest['incremental']);
     }
 
     public function testIncrementalFetchingInvalidColumns(): void
