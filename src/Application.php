@@ -49,32 +49,6 @@ class Application extends Container
         };
     }
 
-    protected function buildConfig(array $config): void
-    {
-        if ($this->isRowConfiguration($config)) {
-            if ($this['action'] === 'run') {
-                $this->config = new Config($config, new ConfigRowDefinition());
-            } else {
-                $this->config = new Config($config, new ActionConfigRowDefinition());
-            }
-        } else {
-            $this->config = new Config($config, new ConfigDefinition());
-        }
-    }
-
-    protected function isRowConfiguration(array $config): bool
-    {
-        if (isset($config['parameters']['table']) || isset($config['parameters']['query'])) {
-            return true;
-        }
-
-        if (!isset($config['parameters']['tables'])) {
-            return true;
-        }
-
-        return false;
-    }
-
     public function run(): array
     {
         // Setup logger, copied from php-component/src/BaseComponent.php
@@ -98,6 +72,37 @@ class Application extends Container
         return $this->$actionMethod();
     }
 
+    protected function buildConfig(array $config): void
+    {
+        if ($this->isRowConfiguration($config)) {
+            if ($this['action'] === 'run') {
+                $this->config = new Config($config, new ConfigRowDefinition());
+            } else {
+                $this->config = new Config($config, new ActionConfigRowDefinition());
+            }
+        } else {
+            $this->config = new Config($config, new ConfigDefinition());
+        }
+    }
+
+    protected function createExportConfig(array $data): ExportConfig
+    {
+        return ExportConfig::fromArray($data);
+    }
+
+    protected function isRowConfiguration(array $config): bool
+    {
+        if (isset($config['parameters']['table']) || isset($config['parameters']['query'])) {
+            return true;
+        }
+
+        if (!isset($config['parameters']['tables'])) {
+            return true;
+        }
+
+        return false;
+    }
+
     private function runAction(): array
     {
         $configData = $this->config->getData();
@@ -111,11 +116,11 @@ class Application extends Container
                 }
             );
             foreach ($tables as $table) {
-                $exportResults = $this['extractor']->export(ExportConfig::fromArray($table));
+                $exportResults = $this['extractor']->export($this->createExportConfig($table));
                 $imported[] = $exportResults;
             }
         } else {
-            $exportResults = $this['extractor']->export(ExportConfig::fromArray($configData['parameters']));
+            $exportResults = $this['extractor']->export($this->createExportConfig($configData['parameters']));
             if (isset($exportResults['state'])) {
                 $outputState = $exportResults['state'];
                 unset($exportResults['state']);
