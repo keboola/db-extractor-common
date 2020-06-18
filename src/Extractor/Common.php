@@ -80,6 +80,7 @@ class Common extends BaseExtractor
         $pdo->exec('SET NAMES utf8;');
 
         if ($databaseConfig->hasSSLConnection()) {
+            /** @var \PDOStatement $res */
             $res = $pdo->query("SHOW STATUS LIKE 'Ssl_cipher';");
             $status = $res->fetch(PDO::FETCH_ASSOC);
 
