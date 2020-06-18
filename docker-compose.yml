@@ -21,6 +21,7 @@ services:
       - mysql
     volumes:
       - ssh-keys:/root/.ssh:ro
+      - ./tests/phpunit/data/common/ssl:/ssl-cert
 
   dev:
     <<: *tests
@@ -28,6 +29,7 @@ services:
     volumes:
       - ./:/code
       - ssh-keys:/root/.ssh:ro
+      - ./tests/phpunit/data/common/ssl:/ssl-cert
 
 
   wait:
