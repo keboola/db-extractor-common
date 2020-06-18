@@ -6,6 +6,7 @@ namespace Keboola\DbExtractor\Extractor;
 
 use Keboola\Datatype\Definition\Exception\InvalidLengthException;
 use Keboola\Datatype\Definition\MySQL;
+use Keboola\DbExtractorConfig\Configuration\ValueObject\DatabaseConfig;
 use Keboola\DbExtractorConfig\Configuration\ValueObject\ExportConfig;
 use Keboola\DbExtractor\Exception\ApplicationException;
 use Keboola\DbExtractor\Exception\UserException;
@@ -30,7 +31,7 @@ class Common extends BaseExtractor
         $this->metadataProvider = new CommonMetadataProvider($this->db, $parameters['db']['database']);
     }
 
-    public function createConnection(array $params): PDO
+    public function createConnection(DatabaseConfig $databaseConfig): PDO
     {
         // convert errors to PDOExceptions
         $options = [
@@ -38,18 +39,20 @@ class Common extends BaseExtractor
         ];
 
         // check params
-        foreach (['host', 'database', 'user', '#password'] as $r) {
-            if (!isset($params[$r])) {
-                throw new UserException(sprintf('Parameter "%s" is missing.', $r));
-            }
+        if (!$databaseConfig->hasDatabase()) {
+            throw new UserException(sprintf('Parameter "database" is missing.'));
         }
 
-        $this->database = $params['database'];
+        $this->database = $databaseConfig->getDatabase();
 
-        $port = isset($params['port']) ? $params['port'] : '3306';
-        $dsn = sprintf('mysql:host=%s;port=%s;dbname=%s;charset=utf8', $params['host'], $port, $params['database']);
+        $dsn = sprintf(
+            'mysql:host=%s;port=%s;dbname=%s;charset=utf8',
+            $databaseConfig->getHost(),
+            !$databaseConfig->hasPort() ? $databaseConfig->getPort() : '3306',
+            $databaseConfig->getDatabase()
+        );
 
-        $pdo = new PDO($dsn, $params['user'], $params['#password'], $options);
+        $pdo = new PDO($dsn, $databaseConfig->getUsername(), $databaseConfig->getPassword(), $options);
         $pdo->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, false);
         $pdo->exec('SET NAMES utf8;');
 

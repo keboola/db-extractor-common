@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Extractor;
 
+use Keboola\DbExtractorConfig\Configuration\ValueObject\DatabaseConfig;
 use Keboola\DbExtractorConfig\Configuration\ValueObject\InputTable;
 use Throwable;
 use ErrorException;
@@ -63,7 +64,7 @@ abstract class BaseExtractor
 
         try {
             $proxy->call(function (): void {
-                $this->db = $this->createConnection($this->dbParameters);
+                $this->db = $this->createConnection($this->createDatabaseConfig($this->dbParameters));
             });
         } catch (PDOException $e) {
             throw new UserException('Error connecting to DB: ' . $e->getMessage(), 0, $e);
@@ -78,7 +79,7 @@ abstract class BaseExtractor
     /**
      * @return PDO|mixed
      */
-    abstract public function createConnection(array $params);
+    abstract public function createConnection(DatabaseConfig $databaseConfig);
 
     abstract public function testConnection(): void;
 
@@ -210,7 +211,7 @@ abstract class BaseExtractor
                 return $stmt;
             } catch (Throwable $e) {
                 try {
-                    $this->db = $this->createConnection($this->dbParameters);
+                    $this->db = $this->createConnection($this->createDatabaseConfig($this->dbParameters));
                 } catch (Throwable $e) {
                 };
                 throw $e;
@@ -340,5 +341,10 @@ abstract class BaseExtractor
             !$exportConfig->hasQuery() &&
             $exportConfig->isIncrementalFetching() &&
             !$exportConfig->hasIncrementalFetchingLimit();
+    }
+
+    protected function createDatabaseConfig(array $data): DatabaseConfig
+    {
+        return DatabaseConfig::fromArray($data);
     }
 }
