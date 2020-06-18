@@ -10,6 +10,7 @@ use Keboola\DbExtractorConfig\Configuration\ValueObject\DatabaseConfig;
 use Keboola\DbExtractorConfig\Configuration\ValueObject\ExportConfig;
 use Keboola\DbExtractor\Exception\ApplicationException;
 use Keboola\DbExtractor\Exception\UserException;
+use Keboola\Temp\Temp;
 use PDO;
 use Psr\Log\LoggerInterface;
 
@@ -43,6 +44,28 @@ class Common extends BaseExtractor
             throw new UserException(sprintf('Parameter "database" is missing.'));
         }
 
+        // ssl encryption
+        if ($databaseConfig->hasSSLConnection()) {
+            $sslConnectionConfig = $databaseConfig->getSslConnectionConfig();
+            $temp = new Temp();
+
+            if ($sslConnectionConfig->hasKey()) {
+                $options[PDO::MYSQL_ATTR_SSL_KEY] = SslHelper::createSSLFile($temp, $sslConnectionConfig->getKey());
+            }
+            if ($sslConnectionConfig->hasCert()) {
+                $options[PDO::MYSQL_ATTR_SSL_CERT] = SslHelper::createSSLFile($temp, $sslConnectionConfig->getCert());
+            }
+            if ($sslConnectionConfig->hasCa()) {
+                $options[PDO::MYSQL_ATTR_SSL_CA] = SslHelper::createSSLFile($temp, $sslConnectionConfig->getCa());
+            }
+            if ($sslConnectionConfig->hasCipher()) {
+                $options[PDO::MYSQL_ATTR_SSL_CIPHER] = (string) $sslConnectionConfig->getCipher();
+            } else {
+                $options[PDO::MYSQL_ATTR_SSL_CIPHER] = 'DEFAULT@SECLEVEL=1';
+            }
+            $options[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = $sslConnectionConfig->isVerifyServerCert();
+        }
+
         $this->database = $databaseConfig->getDatabase();
 
         $dsn = sprintf(
@@ -55,6 +78,17 @@ class Common extends BaseExtractor
         $pdo = new PDO($dsn, $databaseConfig->getUsername(), $databaseConfig->getPassword(), $options);
         $pdo->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, false);
         $pdo->exec('SET NAMES utf8;');
+
+        if ($databaseConfig->hasSSLConnection()) {
+            $res = $pdo->query("SHOW STATUS LIKE 'Ssl_cipher';");
+            $status = $res->fetch(PDO::FETCH_ASSOC);
+
+            if (empty($status['Value'])) {
+                throw new UserException(sprintf('Connection is not encrypted'));
+            } else {
+                $this->logger->info('Using SSL cipher: ' . $status['Value']);
+            }
+        }
 
         return $pdo;
     }
