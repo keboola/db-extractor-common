@@ -71,7 +71,7 @@ class Common extends BaseExtractor
         $dsn = sprintf(
             'mysql:host=%s;port=%s;dbname=%s;charset=utf8',
             $databaseConfig->getHost(),
-            !$databaseConfig->hasPort() ? $databaseConfig->getPort() : '3306',
+            $databaseConfig->hasPort() ? $databaseConfig->getPort() : '3306',
             $databaseConfig->getDatabase()
         );
 
