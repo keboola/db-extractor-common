@@ -42,7 +42,7 @@ abstract class BaseExtractor
 
     protected array $parameters;
 
-    protected DatabaseConfig $databaseConfig;
+    private DatabaseConfig $databaseConfig;
 
     public function __construct(array $parameters, array $state, LoggerInterface $logger)
     {
@@ -330,7 +330,7 @@ abstract class BaseExtractor
         return $this->dataDir . '/out/tables/' . $sanitizedTablename . '.csv';
     }
 
-    protected function getDbParameters(): DatabaseConfig
+    protected function getDatabaseConfig(): DatabaseConfig
     {
         return $this->databaseConfig;
     }
