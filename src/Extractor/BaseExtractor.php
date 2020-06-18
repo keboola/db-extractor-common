@@ -42,7 +42,7 @@ abstract class BaseExtractor
 
     protected array $parameters;
 
-    protected array $dbParameters;
+    protected DatabaseConfig $databaseConfig;
 
     public function __construct(array $parameters, array $state, LoggerInterface $logger)
     {
@@ -58,13 +58,13 @@ abstract class BaseExtractor
                 throw new UserException($e->getMessage(), 0, $e);
             }
         }
-        $this->dbParameters = $parameters['db'];
+        $this->databaseConfig = $this->createDatabaseConfig($parameters['db']);
 
         $proxy = new DbRetryProxy($this->logger, self::CONNECT_MAX_RETRIES, [PDOException::class]);
 
         try {
             $proxy->call(function (): void {
-                $this->db = $this->createConnection($this->createDatabaseConfig($this->dbParameters));
+                $this->db = $this->createConnection($this->databaseConfig);
             });
         } catch (PDOException $e) {
             throw new UserException('Error connecting to DB: ' . $e->getMessage(), 0, $e);
@@ -211,7 +211,7 @@ abstract class BaseExtractor
                 return $stmt;
             } catch (Throwable $e) {
                 try {
-                    $this->db = $this->createConnection($this->createDatabaseConfig($this->dbParameters));
+                    $this->db = $this->createConnection($this->databaseConfig);
                 } catch (Throwable $e) {
                 };
                 throw $e;
@@ -330,9 +330,9 @@ abstract class BaseExtractor
         return $this->dataDir . '/out/tables/' . $sanitizedTablename . '.csv';
     }
 
-    protected function getDbParameters(): array
+    protected function getDbParameters(): DatabaseConfig
     {
-        return $this->dbParameters;
+        return $this->databaseConfig;
     }
 
     protected function canFetchMaxIncrementalValueSeparately(ExportConfig $exportConfig): bool
