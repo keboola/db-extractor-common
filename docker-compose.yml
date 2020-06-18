@@ -42,6 +42,9 @@ services:
   mysql:
     image: mysql:5.6
     command: mysqld --local-infile=1
+    volumes:
+      - ./tests/phpunit/data/common/conf.d:/etc/mysql/conf.d
+      - ./tests/phpunit/data/common/ssl:/ssl-cert
     environment:
       MYSQL_DATABASE: testdb
       MYSQL_ROOT_PASSWORD: somePassword
