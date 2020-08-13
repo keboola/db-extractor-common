@@ -1,7 +1,3 @@
 parameters:
     checkMissingIterableValueType: false
-    excludes_analyse:
-        - 'tests/phpunit/TaintedPDO.php'
-        - 'tests/phpunit/TaintedPDOStatement.php'
-    ignoreErrors:
-        - '#Cannot call method .*\(\) on bool\|PDOStatement\.#'
+    ignoreErrors: []

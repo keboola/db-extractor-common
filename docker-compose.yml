@@ -8,14 +8,6 @@ services:
       COMMON_DB_HOST: mysql
       COMMON_DB_PORT: 3306
       COMMON_DB_DATABASE: testdb
-      TEST_RDS_USERNAME:
-      TEST_RDS_PASSWORD:
-      TEST_RDS_DATABASE:
-      TEST_RDS_HOST:
-      TEST_RDS_PORT:
-      TEST_RDS_ID:
-      TEST_RDS_ACCESS_KEY:
-      TEST_RDS_ACCESS_SECRET:
     depends_on:
       - sshproxy
       - mysql
