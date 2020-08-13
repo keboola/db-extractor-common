@@ -69,25 +69,30 @@ abstract class BaseExtractor
         }
     }
 
-    /**
-     * @return PDO|mixed
-     */
-    abstract public function createConnection(DatabaseConfig $databaseConfig);
-
     abstract public function testConnection(): void;
 
     abstract public function simpleQuery(ExportConfig $exportConfig): string;
 
-    abstract public function getMaxOfIncrementalFetchingColumn(ExportConfig $exportConfig): ?string;
+    /**
+     * @return PDO|mixed
+     */
+    abstract protected function createConnection(DatabaseConfig $databaseConfig);
 
-    abstract public function getMetadataProvider(): MetadataProvider;
+    abstract protected function getMetadataProvider(): MetadataProvider;
 
-    public function getManifestMetadataSerializer(): ManifestSerializer
+    abstract protected function getMaxOfIncrementalFetchingColumn(ExportConfig $exportConfig): ?string;
+
+    protected function validateIncrementalFetching(ExportConfig $exportConfig): void
+    {
+        throw new UserException('Incremental Fetching is not supported by this extractor.');
+    }
+
+    protected function getManifestMetadataSerializer(): ManifestSerializer
     {
         return new DefaultManifestSerializer();
     }
 
-    public function getGetTablesMetadataSerializer(): GetTablesSerializer
+    protected function getGetTablesMetadataSerializer(): GetTablesSerializer
     {
         return new DefaultGetTablesSerializer();
     }
@@ -104,11 +109,6 @@ abstract class BaseExtractor
 
         $serializer = $this->getGetTablesMetadataSerializer();
         return $serializer->serialize($this->getMetadataProvider()->listTables($whiteList, $loadColumns));
-    }
-
-    public function validateIncrementalFetching(ExportConfig $exportConfig): void
-    {
-        throw new UserException('Incremental Fetching is not supported by this extractor.');
     }
 
     public function export(ExportConfig $exportConfig): array
