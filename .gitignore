@@ -5,5 +5,6 @@ vendor/
 composer.phar
 composer.lock
 runtests.sh
+/.phpunit.result.cache
 /ssh.*
 /tests/phpunit/data/out/tables/

@@ -3,4 +3,5 @@ parameters:
     excludes_analyse:
         - 'tests/phpunit/TaintedPDO.php'
         - 'tests/phpunit/TaintedPDOStatement.php'
-    ignoreErrors: []
+    ignoreErrors:
+        - '#Cannot call method .*\(\) on bool\|PDOStatement\.#'
