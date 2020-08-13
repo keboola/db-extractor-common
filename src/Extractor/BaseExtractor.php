@@ -50,14 +50,7 @@ abstract class BaseExtractor
         $this->dataDir = $parameters['data_dir'];
         $this->state = $state;
         $this->logger = $logger;
-        if (isset($parameters['db']['ssh']['enabled']) && $parameters['db']['ssh']['enabled']) {
-            try {
-                $sshTunnel = new SSHTunnel($logger);
-                $parameters['db'] = $sshTunnel->createSshTunnel($parameters['db']);
-            } catch (SSHTunnelUserException $e) {
-                throw new UserException($e->getMessage(), 0, $e);
-            }
-        }
+        $parameters = $this->createSshTunnel($parameters);
         $this->databaseConfig = $this->createDatabaseConfig($parameters['db']);
 
         $proxy = new DbRetryProxy($this->logger, self::CONNECT_MAX_RETRIES, [PDOException::class]);
@@ -341,6 +334,19 @@ abstract class BaseExtractor
             !$exportConfig->hasQuery() &&
             $exportConfig->isIncrementalFetching() &&
             !$exportConfig->hasIncrementalFetchingLimit();
+    }
+
+    protected function createSshTunnel(array $parameters): array
+    {
+        if (isset($parameters['db']['ssh']['enabled']) && $parameters['db']['ssh']['enabled']) {
+            try {
+                $sshTunnel = new SSHTunnel($this->logger);
+                $parameters['db'] = $sshTunnel->createSshTunnel($parameters['db']);
+            } catch (SSHTunnelUserException $e) {
+                throw new UserException($e->getMessage(), 0, $e);
+            }
+        }
+        return $parameters;
     }
 
     protected function createDatabaseConfig(array $data): DatabaseConfig
