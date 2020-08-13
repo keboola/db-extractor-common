@@ -25,7 +25,7 @@ class RetryTest extends ExtractorTest
 
     private array $dbParams;
 
-    private PDO $taintedPdo;
+    private TaintedPDO $taintedPdo;
 
     private int $fetchCount = 0;
 
@@ -89,7 +89,7 @@ class RetryTest extends ExtractorTest
         }
     }
 
-    private function getConnection(): PDO
+    private function getConnection(): TaintedPDO
     {
         $this->dbParams = [
             'user' => (string) getenv('TEST_RDS_USERNAME'),
