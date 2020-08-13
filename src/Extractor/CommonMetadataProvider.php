@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Extractor;
 
-use PDO;
-use PDOStatement;
+use Keboola\DbExtractor\Adapter\PDO\PdoConnection;
 use Keboola\DbExtractor\Exception\InvalidArgumentException;
 use Keboola\DbExtractorConfig\Configuration\ValueObject\InputTable;
 use Keboola\DbExtractor\TableResultFormat\Metadata\Builder\ColumnBuilder;
@@ -16,13 +15,13 @@ use Keboola\DbExtractor\TableResultFormat\Metadata\ValueObject\TableCollection;
 
 class CommonMetadataProvider implements MetadataProvider
 {
-    private PDO $db;
+    private PdoConnection $connection;
 
     private string $database;
 
-    public function __construct(PDO $db, string $database)
+    public function __construct(PdoConnection $connection, string $database)
     {
-        $this->db = $db;
+        $this->connection = $connection;
         $this->database = $database;
     }
 
@@ -159,7 +158,7 @@ class CommonMetadataProvider implements MetadataProvider
         $sql = [];
         $sql[] = 'SELECT *';
         $sql[] = 'FROM INFORMATION_SCHEMA.TABLES as c';
-        $sql[] = sprintf('WHERE c.TABLE_SCHEMA = %s', $this->db->quote($this->database));
+        $sql[] = sprintf('WHERE c.TABLE_SCHEMA = %s', $this->connection->quote($this->database));
 
         if ($whitelist) {
             $sql[] =sprintf('AND c.TABLE_NAME IN (%s)', $this->quoteTables($whitelist));
@@ -168,7 +167,7 @@ class CommonMetadataProvider implements MetadataProvider
         $sql[] = 'ORDER BY TABLE_SCHEMA, TABLE_NAME';
 
         // Run query
-        return $this->queryAndFetchAll(implode(' ', $sql));
+        return $this->connection->query(implode(' ', $sql))->fetchAll();
     }
 
     /**
@@ -182,26 +181,18 @@ class CommonMetadataProvider implements MetadataProvider
         $sql[] = 'FROM INFORMATION_SCHEMA.COLUMNS as c';
         $sql[] = 'LEFT OUTER JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE as kcu';
         $sql[] = 'ON c.TABLE_NAME = kcu.TABLE_NAME AND c.COLUMN_NAME = kcu.COLUMN_NAME';
-        $sql[] = sprintf('WHERE c.TABLE_SCHEMA = %s', $this->db->quote($this->database));
+        $sql[] = sprintf('WHERE c.TABLE_SCHEMA = %s', $this->connection->quote($this->database));
 
         if ($whitelist) {
-            $sql[] =sprintf('AND c.TABLE_NAME IN (%s)', $this->quoteTables($whitelist));
+            $sql[] = sprintf('AND c.TABLE_NAME IN (%s)', $this->quoteTables($whitelist));
         }
 
         $sql[] = ' ORDER BY c.TABLE_SCHEMA, c.TABLE_NAME, ORDINAL_POSITION';
 
         // Run query
-        return $this->queryAndFetchAll(implode(' ', $sql));
+        return $this->connection->query(implode(' ', $sql))->fetchAll();
     }
 
-    private function queryAndFetchAll(string $sql): array
-    {
-        /** @var PDOStatement $result */
-        $result = $this->db->query($sql);
-        /** @var array $array */
-        $array = $result->fetchAll(PDO::FETCH_ASSOC);
-        return $array;
-    }
 
     private function quoteTables(array $whitelist): string
     {
@@ -216,7 +207,7 @@ class CommonMetadataProvider implements MetadataProvider
                     ));
                 }
 
-                return $this->db->quote($table->getName());
+                return $this->connection->quote($table->getName());
             }, $whitelist)
         );
     }

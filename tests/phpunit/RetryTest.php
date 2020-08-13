@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Tests;
 
+use Keboola\CommonExceptions\UserExceptionInterface;
 use Keboola\Csv\CsvWriter;
+use Keboola\DbExtractor\Adapter\PDO\PdoConnection;
+use Keboola\DbExtractor\Adapter\PDO\PdoExportAdapter;
 use Keboola\DbExtractor\Application;
 use Keboola\DbExtractorConfig\Configuration\ValueObject\ExportConfig;
 use Keboola\DbExtractor\Exception\UserException;
@@ -456,9 +459,13 @@ class RetryTest extends ExtractorTest
 
         $extractor = new Common($config['parameters'], [], $logger);
         // plant the tainted PDO into the extractor
-        $reflectionProperty = new \ReflectionProperty($extractor, 'db');
-        $reflectionProperty->setAccessible(true);
-        $reflectionProperty->setValue($extractor, $this->taintedPdo);
+        $connectionProperty = new \ReflectionProperty($extractor, 'connection');
+        $connectionProperty->setAccessible(true);
+        $connection = $connectionProperty->getValue($extractor);
+        Assert::assertTrue($connection instanceof PdoConnection);
+        $pdoProperty = new \ReflectionProperty($connection, 'pdo');
+        $pdoProperty->setAccessible(true);
+        $pdoProperty->setValue($connection, $this->taintedPdo);
 
         /* Register symfony error handler (used in production) and replace phpunit error handler. This
             is very important to receive correct type of exception (\ErrorException), otherwise Phpunit
@@ -492,9 +499,13 @@ class RetryTest extends ExtractorTest
 
         $extractor = new Common($config['parameters'], [], $logger);
         // plant the tainted PDO into the extractor
-        $reflectionProperty = new \ReflectionProperty($extractor, 'db');
-        $reflectionProperty->setAccessible(true);
-        $reflectionProperty->setValue($extractor, $this->taintedPdo);
+        $connectionProperty = new \ReflectionProperty($extractor, 'connection');
+        $connectionProperty->setAccessible(true);
+        $connection = $connectionProperty->getValue($extractor);
+        Assert::assertTrue($connection instanceof PdoConnection);
+        $pdoProperty = new \ReflectionProperty($connection, 'pdo');
+        $pdoProperty->setAccessible(true);
+        $pdoProperty->setValue($connection, $this->taintedPdo);
 
         /* Register symfony error handler (used in production) and replace phpunit error handler. This
             is very important to receive correct type of exception (\ErrorException), otherwise Phpunit
@@ -522,29 +533,21 @@ class RetryTest extends ExtractorTest
         $config = $this->getRetryConfig();
         $config['parameters']['tables'][0]['query'] = 'SELECT * FROM sales LIMIT ' . $rowCount;
 
-        // plant the tainted PDO into the createConnection method of the extractor
-        $extractor = self::getMockBuilder(Common::class)
-            ->setMethods(['createConnection'])
-            ->setConstructorArgs([$config['parameters'], [], $logger])
-            ->disableAutoReturnValueGeneration()
-            ->getMock();
-        $extractor->method('createConnection')->willReturn($this->taintedPdo);
+        $extractor = new Common($config['parameters'], [], $logger);
 
-        // plant the tainted PDO into the extractor
-        $reflectionProperty = new \ReflectionProperty($extractor, 'db');
-        $reflectionProperty->setAccessible(true);
-        $reflectionProperty->setValue($extractor, $this->taintedPdo);
-
-        /* Both of the above are needed because the DB connection is initialized in the Common::__construct()
-            using the `createConnection` method. That means that during instantiation of the mock, the createConnection
-            method is called and returns garbage (because it's a mock with yet undefined value). The original
-            constructor cannot be disabled, because it does other things (and even if it weren't, it still has to
-            set the connection internally. That's why we need to use reflection to plant our PDO into the extractor.
-            (so that overwrites the mock garbage which gets there in the ctor).
-            However, when the connection is broken, and retried, the `createConnection` method is called again, by
-            making it return the tainted PDO too, we'll ensure that the extractor will be unable to recreate the
-            connection, thus testing that it does fail after certain number of retries.
-        */
+        // Plant the tainted PDO connection into the extractor and db adapter,
+        // ... so on reconnect is preserved taintedPdo and retry fails
+        $connection = new TaintedPDOConnection($this->taintedPdo, $logger);
+        $connectionProperty = new \ReflectionProperty($extractor, 'connection');
+        $connectionProperty->setAccessible(true);
+        $connectionProperty->setValue($extractor, $connection);
+        $dbAdapterProperty = new \ReflectionProperty($extractor, 'adapter');
+        $dbAdapterProperty->setAccessible(true);
+        $dbAdapter = $dbAdapterProperty->getValue($extractor);
+        Assert::assertTrue($dbAdapter instanceof PdoExportAdapter);
+        $dbAdapterConnectionProperty = new \ReflectionProperty($dbAdapter, 'connection');
+        $dbAdapterConnectionProperty->setAccessible(true);
+        $dbAdapterConnectionProperty->setValue($dbAdapter, $connection);
 
         /* Register symfony error handler (used in production) and replace phpunit error handler. This
             is very important to receive correct type of exception (\ErrorException), otherwise Phpunit
@@ -555,7 +558,7 @@ class RetryTest extends ExtractorTest
             /** @var Common $extractor */
             $extractor->export(ExportConfig::fromArray($config['parameters']['tables'][0]));
             Assert::fail('Must raise exception.');
-        } catch (UserException $e) {
+        } catch (UserExceptionInterface $e) {
             Assert::assertTrue($handler->hasInfoThatContains('Retrying...'));
             Assert::assertTrue($handler->hasInfoThatContains(
                 'SQLSTATE[HY000]: General error: 2006 MySQL server has gone away. Retrying... [9x]'
