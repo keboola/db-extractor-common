@@ -9,8 +9,8 @@ use PDO;
 use Monolog\Logger;
 use Keboola\Csv\CsvReader;
 use Keboola\DbExtractor\Application;
-use Keboola\DbExtractor\Exception\ApplicationException;
-use Keboola\DbExtractor\Exception\UserException;
+use Keboola\CommonExceptions\UserExceptionInterface;
+use Keboola\CommonExceptions\ApplicationExceptionInterface;
 use Keboola\DbExtractorConfig\Exception\UserException as ConfigUserException;
 use Monolog\Handler\TestHandler;
 use PHPUnit\Framework\Assert;
@@ -250,7 +250,7 @@ class CommonExtractorTest extends ExtractorTest
     public function testRunWithSSHUserException(): void
     {
         $this->cleanOutputDirectory();
-        $this->expectException(UserException::class);
+        $this->expectException(UserExceptionInterface::class);
 
         $config = $this->getConfig(self::DRIVER);
         $config['parameters']['db']['ssh'] = [
@@ -274,7 +274,7 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['db']['#password'] = 'somecrap';
 
         $this->expectExceptionMessage('Error connecting to DB: SQLSTATE[HY000] [1045] Access denied for user');
-        $this->expectException(UserException::class);
+        $this->expectException(UserExceptionInterface::class);
         ($this->getApp($config))->run();
     }
 
@@ -286,7 +286,7 @@ class CommonExtractorTest extends ExtractorTest
 
         try {
             ($this->getApp($config))->run();
-        } catch (UserException $e) {
+        } catch (UserExceptionInterface $e) {
             Assert::assertStringContainsString('Tried 3 times', $e->getMessage());
         }
     }
@@ -330,7 +330,7 @@ class CommonExtractorTest extends ExtractorTest
         try {
             ($this->getApp($config))->run();
             $this->fail('Failing query must raise exception.');
-        } catch (\Keboola\DbExtractor\Exception\UserException $e) {
+        } catch (UserExceptionInterface $e) {
             // test that the error message contains the query name
             Assert::assertStringContainsString('[dummy]', $e->getMessage());
         }
@@ -346,7 +346,7 @@ class CommonExtractorTest extends ExtractorTest
         $exceptionThrown = false;
         try {
             $app->run();
-        } catch (\Keboola\DbExtractor\Exception\UserException $e) {
+        } catch (UserExceptionInterface $e) {
             $exceptionThrown = true;
         }
 
@@ -665,7 +665,7 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['tables'] = [];
 
         $this->expectExceptionMessage('Action "sample" does not exist.');
-        $this->expectException(UserException::class);
+        $this->expectException(UserExceptionInterface::class);
         $app = $this->getApp($config);
         $app->run();
     }
@@ -942,7 +942,7 @@ class CommonExtractorTest extends ExtractorTest
         try {
             $result = ($this->getApp($config))->run();
             $this->fail('specified autoIncrement column does not exist, should fail.');
-        } catch (UserException $e) {
+        } catch (UserExceptionInterface $e) {
             Assert::assertStringStartsWith('Column [fakeCol]', $e->getMessage());
         }
 
@@ -951,7 +951,7 @@ class CommonExtractorTest extends ExtractorTest
         try {
             $result = ($this->getApp($config))->run();
             $this->fail('specified column is not auto increment nor timestamp, should fail.');
-        } catch (UserException $e) {
+        } catch (UserExceptionInterface $e) {
             Assert::assertStringStartsWith('Column [name] specified for incremental fetching', $e->getMessage());
         }
     }
@@ -1100,7 +1100,7 @@ class CommonExtractorTest extends ExtractorTest
         try {
             $app->run();
             self::fail('Must raise exception');
-        } catch (ApplicationException $e) {
+        } catch (ApplicationExceptionInterface $e) {
             Assert::assertStringContainsString('Failed writing CSV File', $e->getMessage());
             Assert::assertFalse($handler->hasInfoThatContains('Retrying'));
         }
@@ -1201,7 +1201,7 @@ class CommonExtractorTest extends ExtractorTest
         try {
             $app->run();
             self::fail('Must raise exception.');
-        } catch (UserException $e) {
+        } catch (UserExceptionInterface $e) {
             Assert::assertTrue($handler->hasInfoThatContains('Retrying...'));
             Assert::assertStringContainsString('Error connecting to ' .
                 'DB: SQLSTATE[HY000] [2002] ' .

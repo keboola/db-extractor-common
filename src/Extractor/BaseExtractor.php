@@ -50,14 +50,7 @@ abstract class BaseExtractor
         $this->dataDir = $parameters['data_dir'];
         $this->state = $state;
         $this->logger = $logger;
-        if (isset($parameters['db']['ssh']['enabled']) && $parameters['db']['ssh']['enabled']) {
-            try {
-                $sshTunnel = new SSHTunnel($logger);
-                $parameters['db'] = $sshTunnel->createSshTunnel($parameters['db']);
-            } catch (SSHTunnelUserException $e) {
-                throw new UserException($e->getMessage(), 0, $e);
-            }
-        }
+        $parameters = $this->createSshTunnel($parameters);
         $this->databaseConfig = $this->createDatabaseConfig($parameters['db']);
 
         $proxy = new DbRetryProxy($this->logger, self::CONNECT_MAX_RETRIES, [PDOException::class]);
@@ -76,25 +69,30 @@ abstract class BaseExtractor
         }
     }
 
-    /**
-     * @return PDO|mixed
-     */
-    abstract public function createConnection(DatabaseConfig $databaseConfig);
-
     abstract public function testConnection(): void;
 
     abstract public function simpleQuery(ExportConfig $exportConfig): string;
 
-    abstract public function getMaxOfIncrementalFetchingColumn(ExportConfig $exportConfig): ?string;
+    /**
+     * @return PDO|mixed
+     */
+    abstract protected function createConnection(DatabaseConfig $databaseConfig);
 
-    abstract public function getMetadataProvider(): MetadataProvider;
+    abstract protected function getMetadataProvider(): MetadataProvider;
 
-    public function getManifestMetadataSerializer(): ManifestSerializer
+    abstract protected function getMaxOfIncrementalFetchingColumn(ExportConfig $exportConfig): ?string;
+
+    protected function validateIncrementalFetching(ExportConfig $exportConfig): void
+    {
+        throw new UserException('Incremental Fetching is not supported by this extractor.');
+    }
+
+    protected function getManifestMetadataSerializer(): ManifestSerializer
     {
         return new DefaultManifestSerializer();
     }
 
-    public function getGetTablesMetadataSerializer(): GetTablesSerializer
+    protected function getGetTablesMetadataSerializer(): GetTablesSerializer
     {
         return new DefaultGetTablesSerializer();
     }
@@ -111,11 +109,6 @@ abstract class BaseExtractor
 
         $serializer = $this->getGetTablesMetadataSerializer();
         return $serializer->serialize($this->getMetadataProvider()->listTables($whiteList, $loadColumns));
-    }
-
-    public function validateIncrementalFetching(ExportConfig $exportConfig): void
-    {
-        throw new UserException('Incremental Fetching is not supported by this extractor.');
     }
 
     public function export(ExportConfig $exportConfig): array
@@ -341,6 +334,19 @@ abstract class BaseExtractor
             !$exportConfig->hasQuery() &&
             $exportConfig->isIncrementalFetching() &&
             !$exportConfig->hasIncrementalFetchingLimit();
+    }
+
+    protected function createSshTunnel(array $parameters): array
+    {
+        if (isset($parameters['db']['ssh']['enabled']) && $parameters['db']['ssh']['enabled']) {
+            try {
+                $sshTunnel = new SSHTunnel($this->logger);
+                $parameters['db'] = $sshTunnel->createSshTunnel($parameters['db']);
+            } catch (SSHTunnelUserException $e) {
+                throw new UserException($e->getMessage(), 0, $e);
+            }
+        }
+        return $parameters;
     }
 
     protected function createDatabaseConfig(array $data): DatabaseConfig
