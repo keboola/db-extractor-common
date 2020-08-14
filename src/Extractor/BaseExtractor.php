@@ -42,7 +42,7 @@ abstract class BaseExtractor
         $this->logger = $logger;
         $this->parameters = $this->createSshTunnel($this->parameters);
         $this->databaseConfig = $this->createDatabaseConfig($parameters['db']);
-        $this->connect();
+        $this->createConnection($this->databaseConfig);
         $this->adapter = $this->createExportAdapter();
     }
 
@@ -125,15 +125,6 @@ abstract class BaseExtractor
             }
         }
         return $output;
-    }
-
-    protected function connect(): void
-    {
-        try {
-            $this->createConnection($this->databaseConfig);
-        } catch (Throwable $e) {
-            throw new UserException('Error connecting to DB: ' . $e->getMessage(), 0, $e);
-        }
     }
 
     protected function createManifest(ExportConfig $exportConfig): void
