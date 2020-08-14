@@ -31,10 +31,10 @@
   },
   "require-dev": {
     "php-parallel-lint/php-parallel-lint": "^1.2",
+    "ihsw/toxiproxy-php-client": "^2.0",
     "keboola/coding-standard": ">=9.0.0",
     "keboola/php-temp": "^2.0",
     "phpstan/phpstan": "^0.12.14",
-    "aws/aws-sdk-php": "^3.107",
     "symfony/debug": "^4.3"
   },
   "autoload": {
