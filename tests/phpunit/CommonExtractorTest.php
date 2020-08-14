@@ -17,104 +17,32 @@ use PHPUnit\Framework\Assert;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
 use Keboola\DbExtractor\Test\ExtractorTest;
-use Keboola\DbExtractor\Test\DataLoader;
-use Symfony\Component\Process\Process;
 
 class CommonExtractorTest extends ExtractorTest
 {
+    use TestDataTrait;
+
     public const DRIVER = 'common';
 
     protected string $appName = 'ex-db-common';
 
-    private PDO $db;
+    protected PDO $db;
 
     protected function setUp(): void
     {
+        parent::setUp();
         $this->initDatabase();
     }
 
     protected function tearDown(): void
     {
-        # Close SSH tunnel if created
-        $process = new Process(['sh', '-c', 'pgrep ssh | xargs -r kill']);
-        $process->mustRun();
+        parent::tearDown();
+        $this->closeSshTunnels();
     }
 
     private function getApp(array $config, array $state = []): Application
     {
         return parent::getApplication($this->appName, $config, $state);
-    }
-
-    private function initDatabase(): void
-    {
-        $dataLoader = new DataLoader(
-            $this->getEnv(self::DRIVER, 'DB_HOST'),
-            $this->getEnv(self::DRIVER, 'DB_PORT'),
-            $this->getEnv(self::DRIVER, 'DB_DATABASE'),
-            $this->getEnv(self::DRIVER, 'DB_USER'),
-            $this->getEnv(self::DRIVER, 'DB_PASSWORD')
-        );
-
-        $dataLoader->getPdo()->exec(
-            sprintf(
-                'DROP DATABASE IF EXISTS `%s`',
-                $this->getEnv(self::DRIVER, 'DB_DATABASE')
-            )
-        );
-        $dataLoader->getPdo()->exec(
-            sprintf(
-                '
-                    CREATE DATABASE `%s`
-                    DEFAULT CHARACTER SET utf8
-                    DEFAULT COLLATE utf8_general_ci
-                ',
-                $this->getEnv(self::DRIVER, 'DB_DATABASE')
-            )
-        );
-
-        $dataLoader->getPdo()->exec('USE ' . $this->getEnv(self::DRIVER, 'DB_DATABASE'));
-
-        $dataLoader->getPdo()->exec('SET NAMES utf8;');
-        $dataLoader->getPdo()->exec(
-            'CREATE TABLE escapingPK (
-                                    col1 VARCHAR(155),
-                                    col2 VARCHAR(155),
-                                    PRIMARY KEY (col1, col2))'
-        );
-
-        $dataLoader->getPdo()->exec(
-            "CREATE TABLE escaping (
-                                  col1 VARCHAR(155) NOT NULL DEFAULT 'abc',
-                                  col2 VARCHAR(155) NOT NULL DEFAULT 'abc',
-                                  FOREIGN KEY (col1, col2) REFERENCES escapingPK(col1, col2))"
-        );
-
-        $dataLoader->getPdo()->exec(
-            "CREATE TABLE simple (
-                                  `_weird-I-d` VARCHAR(155) NOT NULL DEFAULT 'abc',
-                                  `SãoPaulo` VARCHAR(155) NOT NULL DEFAULT 'abc',
-                                  PRIMARY KEY (`_weird-I-d`))"
-        );
-
-        $inputFile = $this->dataDir . '/escaping.csv';
-        $simpleFile = $this->dataDir . '/simple.csv';
-        $dataLoader->load($inputFile, 'escapingPK');
-        $dataLoader->load($inputFile, 'escaping');
-        $dataLoader->load($simpleFile, 'simple', 0);
-        // let other methods use the db connection
-        $this->db = $dataLoader->getPdo();
-    }
-
-    private function cleanOutputDirectory(): void
-    {
-        $finder = new Finder();
-        if (file_exists($this->dataDir . '/out/tables')) {
-            $finder->files()->in($this->dataDir . '/out/tables');
-            $fs = new Filesystem();
-            foreach ($finder as $file) {
-                $fs->remove((string) $file);
-            }
-        }
     }
 
     public function testRunSimple(): void
@@ -1143,21 +1071,24 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported']['outputTable']);
     }
 
-    private function getIncrementalFetchingConfig(): array
+    public function testWillRetryConnectingToServer(): void
     {
+        $handler = new TestHandler();
+        $logger = new Logger('test');
+        $logger->pushHandler($handler);
         $config = $this->getConfigRow(self::DRIVER);
-        unset($config['parameters']['query']);
-        unset($config['parameters']['columns']);
-        $config['parameters']['table'] = [
-            'tableName' => 'auto_increment_timestamp',
-            'schema' => 'testdb',
-        ];
-        $config['parameters']['incremental'] = true;
-        $config['parameters']['name'] = 'auto-increment-timestamp';
-        $config['parameters']['outputTable'] = 'in.c-main.auto-increment-timestamp';
-        $config['parameters']['primaryKey'] = ['id'];
-        $config['parameters']['incrementalFetchingColumn'] = 'id';
-        return $config;
+        $config['parameters']['db']['host'] = 'nonexistenthost.example';
+        $app = new Application($config, $logger, []);
+        try {
+            $app->run();
+            self::fail('Must raise exception.');
+        } catch (UserExceptionInterface $e) {
+            Assert::assertTrue($handler->hasInfoThatContains('Retrying...'));
+            Assert::assertStringContainsString('Error connecting to ' .
+                'DB: SQLSTATE[HY000] [2002] ' .
+                'php_network_getaddresses: getaddrinfo ' .
+                'failed: Name or service not known', $e->getMessage());
+        }
     }
 
     protected function createAutoIncrementAndTimestampTable(): void
@@ -1190,23 +1121,32 @@ class CommonExtractorTest extends ExtractorTest
     }
 
 
-    public function testWillRetryConnectingToServer(): void
+    private function getIncrementalFetchingConfig(): array
     {
-        $handler = new TestHandler();
-        $logger = new Logger('test');
-        $logger->pushHandler($handler);
         $config = $this->getConfigRow(self::DRIVER);
-        $config['parameters']['db']['host'] = 'nonexistenthost.example';
-        $app = new Application($config, $logger, []);
-        try {
-            $app->run();
-            self::fail('Must raise exception.');
-        } catch (UserExceptionInterface $e) {
-            Assert::assertTrue($handler->hasInfoThatContains('Retrying...'));
-            Assert::assertStringContainsString('Error connecting to ' .
-                'DB: SQLSTATE[HY000] [2002] ' .
-                'php_network_getaddresses: getaddrinfo ' .
-                'failed: Name or service not known', $e->getMessage());
+        unset($config['parameters']['query']);
+        unset($config['parameters']['columns']);
+        $config['parameters']['table'] = [
+            'tableName' => 'auto_increment_timestamp',
+            'schema' => 'testdb',
+        ];
+        $config['parameters']['incremental'] = true;
+        $config['parameters']['name'] = 'auto-increment-timestamp';
+        $config['parameters']['outputTable'] = 'in.c-main.auto-increment-timestamp';
+        $config['parameters']['primaryKey'] = ['id'];
+        $config['parameters']['incrementalFetchingColumn'] = 'id';
+        return $config;
+    }
+
+    private function cleanOutputDirectory(): void
+    {
+        $finder = new Finder();
+        if (file_exists($this->dataDir . '/out/tables')) {
+            $finder->files()->in($this->dataDir . '/out/tables');
+            $fs = new Filesystem();
+            foreach ($finder as $file) {
+                $fs->remove((string) $file);
+            }
         }
     }
 }
