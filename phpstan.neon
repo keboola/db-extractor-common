@@ -1,3 +1,7 @@
 parameters:
     checkMissingIterableValueType: false
-    ignoreErrors: []
+    excludes_analyse:
+        - 'tests/phpunit/Fixtures/run.php'
+    ignoreErrors:
+        # Bad phpdoc in library
+        - '#\$toxicity of method Ihsw\\Toxiproxy\\Proxy::create\(\) expects string, float given#'
