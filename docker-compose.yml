@@ -11,6 +11,7 @@ services:
     depends_on:
       - sshproxy
       - mysql
+      - toxiproxy
     volumes:
       - ssh-keys:/root/.ssh:ro
       - ./tests/phpunit/data/common/ssl:/ssl-cert
@@ -32,6 +33,11 @@ services:
     environment:
       - TARGETS=mysql:3306,sshproxy:22
       - TIMEOUT=60
+
+  toxiproxy:
+    image: shopify/toxiproxy
+    depends_on:
+      - mysql
 
   mysql:
     image: mysql:5.6
