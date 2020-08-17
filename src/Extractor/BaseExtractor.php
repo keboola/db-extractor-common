@@ -46,6 +46,8 @@ abstract class BaseExtractor
         $this->adapter = $this->createExportAdapter();
     }
 
+    abstract public function testConnection(): void;
+
     abstract protected function createConnection(DatabaseConfig $databaseConfig): void;
 
     abstract protected function createExportAdapter(): ExportAdapter;
