@@ -95,7 +95,9 @@ abstract class BaseExtractor
             $maxValue = null;
         }
 
-        $this->logger->info('Exporting to ' . $exportConfig->getOutputTable());
+        $this->logger->info($exportConfig->hasConfigName() ?
+            sprintf('Exporting "%s" to "%s".', $exportConfig->getConfigName(), $exportConfig->getOutputTable()) :
+            sprintf('Exporting to "%s".', $exportConfig->getOutputTable()));
         $csvFilePath = $this->getOutputFilename($exportConfig->getOutputTable());
         $result = $this->adapter->export($exportConfig, $csvFilePath);
         return $this->processExportResult($exportConfig, $maxValue, $result);
@@ -108,7 +110,7 @@ abstract class BaseExtractor
         } else {
             @unlink($this->getOutputFilename($exportConfig->getOutputTable())); // no rows, no file
             $this->logger->warning(sprintf(
-                'Query returned empty result. Nothing was imported to [%s]',
+                'Query returned empty result. Nothing was imported to "%s".',
                 $exportConfig->getOutputTable()
             ));
         }
