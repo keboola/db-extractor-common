@@ -41,7 +41,7 @@ abstract class BaseExtractor
         $this->state = $state;
         $this->logger = $logger;
         $this->parameters = $this->createSshTunnel($this->parameters);
-        $this->databaseConfig = $this->createDatabaseConfig($parameters['db']);
+        $this->databaseConfig = $this->createDatabaseConfig($this->parameters['db']);
         $this->createConnection($this->databaseConfig);
         $this->adapter = $this->createExportAdapter();
     }
