@@ -14,6 +14,8 @@ use Keboola\CommonExceptions\ApplicationExceptionInterface;
 use Keboola\DbExtractorConfig\Exception\UserException as ConfigUserException;
 use Monolog\Handler\TestHandler;
 use PHPUnit\Framework\Assert;
+use Psr\Log\LoggerInterface;
+use Psr\Log\Test\TestLogger;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
 use Keboola\DbExtractor\Test\ExtractorTest;
@@ -40,9 +42,9 @@ class CommonExtractorTest extends ExtractorTest
         $this->closeSshTunnels();
     }
 
-    private function getApp(array $config, array $state = []): Application
+    private function getApp(array $config, array $state = [], ?LoggerInterface $logger = null): Application
     {
-        return parent::getApplication($this->appName, $config, $state);
+        return parent::getApplication($this->appName, $config, $state, $logger);
     }
 
     public function testRunSimple(): void
@@ -149,9 +151,15 @@ class CommonExtractorTest extends ExtractorTest
             ],
             'sshHost' => 'sshproxy',
         ];
-        $result = ($this->getApp($config))->run();
+
+        $logger = new TestLogger();
+        $result = ($this->getApp($config, [], $logger))->run();
         $this->assertExtractedData($this->dataDir . '/escaping.csv', $result['imported'][0]['outputTable']);
         $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][1]['outputTable']);
+
+        // Connecting to SSH proxy, not to database directly
+        $this->assertTrue($logger->hasInfoThatContains("Creating SSH tunnel to 'sshproxy' on local port '33006'"));
+        $this->assertTrue($logger->hasInfoThatContains('Creating PDO connection to "mysql:host=127.0.0.1;port=33006'));
     }
 
     public function testRunWithSSHDeprecated(): void
@@ -165,14 +173,19 @@ class CommonExtractorTest extends ExtractorTest
                 'public' => $this->getPublicKey(),
             ],
             'sshHost' => 'sshproxy',
-            'localPort' => '33306',
+            'localPort' => '12345',
             'remoteHost' => 'mysql',
             'remotePort' => '3306',
         ];
 
-        $result = ($this->getApp($config))->run();
+        $logger = new TestLogger();
+        $result = ($this->getApp($config, [], $logger))->run();
         $this->assertExtractedData($this->dataDir . '/escaping.csv', $result['imported'][0]['outputTable']);
         $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][1]['outputTable']);
+
+        // Connecting to SSH proxy, not to database directly
+        $this->assertTrue($logger->hasInfoThatContains("Creating SSH tunnel to 'sshproxy' on local port '12345'"));
+        $this->assertTrue($logger->hasInfoThatContains('Creating PDO connection to "mysql:host=127.0.0.1;port=12345'));
     }
 
     public function testRunWithSSHUserException(): void
@@ -1048,9 +1061,15 @@ class CommonExtractorTest extends ExtractorTest
             'localPort' => '33056',
             'compression' => true,
         ];
-        $result = ($this->getApp($config))->run();
+
+        $logger = new TestLogger();
+        $result = ($this->getApp($config, [], $logger))->run();
         $this->assertExtractedData($this->dataDir . '/escaping.csv', $result['imported'][0]['outputTable']);
         $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][1]['outputTable']);
+
+        // Connecting to SSH proxy, not to database directly
+        $this->assertTrue($logger->hasInfoThatContains("Creating SSH tunnel to 'sshproxy' on local port '33056'"));
+        $this->assertTrue($logger->hasInfoThatContains('Creating PDO connection to "mysql:host=127.0.0.1;port=33056'));
     }
 
     public function testSshWithCompressionConfigRow(): void
@@ -1067,8 +1086,14 @@ class CommonExtractorTest extends ExtractorTest
             'localPort' => '33066',
             'compression' => true,
         ];
-        $result = ($this->getApp($config))->run();
+
+        $logger = new TestLogger();
+        $result = ($this->getApp($config, [], $logger))->run();
         $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported']['outputTable']);
+
+        // Connecting to SSH proxy, not to database directly
+        $this->assertTrue($logger->hasInfoThatContains("Creating SSH tunnel to 'sshproxy' on local port '33066'"));
+        $this->assertTrue($logger->hasInfoThatContains('Creating PDO connection to "mysql:host=127.0.0.1;port=33066'));
     }
 
     public function testWillRetryConnectingToServer(): void

@@ -7,6 +7,7 @@ namespace Keboola\DbExtractor\Test;
 use Keboola\DbExtractor\Application;
 use Monolog\Logger;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
 
 class ExtractorTest extends TestCase
 {
@@ -85,8 +86,13 @@ class ExtractorTest extends TestCase
         return (string) file_get_contents('/root/.ssh/id_rsa.pub');
     }
 
-    protected function getApplication(string $appName, array $config, array $state = []): Application
-    {
-        return new Application($config, new Logger($appName), $state);
+    protected function getApplication(
+        string $appName,
+        array $config,
+        array $state = [],
+        ?LoggerInterface $logger = null
+    ): Application {
+        $logger = $logger ?? new Logger($appName);
+        return new Application($config, $logger, $state);
     }
 }
