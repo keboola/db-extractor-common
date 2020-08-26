@@ -89,6 +89,9 @@ class Common extends BaseExtractor
             $databaseConfig->getDatabase()
         );
 
+        // Disable connect retries for sync actions
+        $connectRetries = $this->isSyncAction() ? 1 : PdoConnection::CONNECT_DEFAULT_MAX_RETRIES;
+
         // Create connection
         $this->connection = new PdoConnection(
             $this->logger,
@@ -100,6 +103,7 @@ class Common extends BaseExtractor
                 $pdo->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, false);
                 $pdo->exec('SET NAMES utf8;');
             },
+            $connectRetries
         );
 
         // Check SSL
