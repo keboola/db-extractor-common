@@ -194,12 +194,35 @@ class RetryTest extends TestCase
         $this->assertOutputCsvValid();
     }
 
-    private function createProcess(Proxy $proxy): Process
+    public function testRetriesDisabledForSyncActions(): void
+    {
+        $proxy = $this->createToxiproxyToDb();
+
+        // Network is down
+        $this->simulateNetworkLimitDataThenDown($proxy, 10);
+
+        // Extractor process is started
+        $process = $this->createProcess($proxy, 'testConnection');
+        $process->start();
+
+        // Extractor process ended, network is still down
+        $process->wait();
+
+        // No retries
+        $output = $process->getOutput();
+        $errorOutput = $process->getErrorOutput();
+        Assert::assertFalse($process->isSuccessful());
+        Assert::assertSame(1, $process->getExitCode());
+        Assert::assertStringNotContainsString('Retrying', $output); // NOT contains
+        Assert::assertStringContainsString('MySQL server has gone away', $errorOutput);
+    }
+
+    private function createProcess(Proxy $proxy, string $action = 'run'): Process
     {
         // Create config file
         file_put_contents(
             $this->temp->getTmpFolder() . '/config.json',
-            json_encode($this->createConfig($proxy))
+            json_encode($this->createConfig($proxy, $action))
         );
 
         // We run the extractor in a asynchronous process
@@ -211,9 +234,9 @@ class RetryTest extends TestCase
         );
     }
 
-    private function createConfig(Proxy $proxy): array
+    private function createConfig(Proxy $proxy, string $action = 'run'): array
     {
-        return [
+        $config = [
             'parameters' => [
                 'db' => [
                     'host' => $this->getToxiproxyHost(),
@@ -231,6 +254,12 @@ class RetryTest extends TestCase
                 'outputTable' => 'output',
             ],
         ];
+
+        if ($action !== 'run') {
+            $config['action'] = $action;
+        }
+
+        return $config;
     }
 
     private function assertOutputCsvValid(): void

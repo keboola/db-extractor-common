@@ -32,6 +32,8 @@ abstract class BaseExtractor
 
     protected ExportAdapter $adapter;
 
+    private bool $syncAction;
+
     private DatabaseConfig $databaseConfig;
 
     public function __construct(array $parameters, array $state, LoggerInterface $logger)
@@ -41,6 +43,8 @@ abstract class BaseExtractor
         $this->state = $state;
         $this->logger = $logger;
         $this->parameters = $this->createSshTunnel($this->parameters);
+        $this->syncAction = isset($this->parameters['action']) && $this->parameters['action'] !== 'run';
+
         $this->databaseConfig = $this->createDatabaseConfig($this->parameters['db']);
         $this->createConnection($this->databaseConfig);
         $this->adapter = $this->createExportAdapter();
@@ -210,5 +214,10 @@ abstract class BaseExtractor
     protected function createDatabaseConfig(array $data): DatabaseConfig
     {
         return DatabaseConfig::fromArray($data);
+    }
+
+    protected function isSyncAction(): bool
+    {
+        return $this->syncAction;
     }
 }
