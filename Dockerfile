@@ -20,6 +20,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     unzip \
     libzip-dev \
+    zlib1g-dev \
+    libicu-dev \
     && rm -r /var/lib/apt/lists/* \
     && sed -i 's/^# *\(en_US.UTF-8\)/\1/' /etc/locale.gen \
     && locale-gen \
@@ -38,6 +40,9 @@ RUN pecl channel-update pecl.php.net \
     && pecl config-set php_ini /usr/local/etc/php.ini \
     && pecl install xdebug \
     && docker-php-ext-enable xdebug
+
+RUN docker-php-ext-configure intl \
+    && docker-php-ext-install intl
 
 
 ## Composer - deps always cached unless changed
