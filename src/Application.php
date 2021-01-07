@@ -37,6 +37,8 @@ class Application extends Container
 
         $this['logger'] = $logger;
 
+        $this->setupLogger();
+
         $this->buildConfig($config);
 
         $this['extractor_factory'] = function () use ($app) {
@@ -51,19 +53,6 @@ class Application extends Container
 
     public function run(): array
     {
-        // Setup logger, copied from php-component/src/BaseComponent.php
-        // Will be removed in next refactoring steps,
-        // ... when Application will be replace by standard BaseComponent
-        if ($this['action'] !== 'run') { // $this->isSyncAction()
-            if ($this['logger'] instanceof SyncActionLogging) {
-                $this['logger']->setupSyncActionLogging();
-            }
-        } else {
-            if ($this['logger']instanceof AsyncActionLogging) {
-                $this['logger']->setupAsyncActionLogging();
-            }
-        }
-
         $actionMethod = $this['action'] . 'Action';
         if (!method_exists($this, $actionMethod)) {
             throw new UserException(sprintf('Action "%s" does not exist.', $this['action']));
@@ -169,5 +158,21 @@ class Application extends Container
             }
             throw new ErrorException($errstr, 0, $errno, $errfile, $errline);
         });
+    }
+
+    private function setupLogger(): void
+    {
+        // Setup logger, copied from php-component/src/BaseComponent.php
+        // Will be removed in next refactoring steps,
+        // ... when Application will be replace by standard BaseComponent
+        if ($this['action'] !== 'run') { // $this->isSyncAction()
+            if ($this['logger'] instanceof SyncActionLogging) {
+                $this['logger']->setupSyncActionLogging();
+            }
+        } else {
+            if ($this['logger']instanceof AsyncActionLogging) {
+                $this['logger']->setupAsyncActionLogging();
+            }
+        }
     }
 }
