@@ -1022,7 +1022,7 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['table'] = ['tableName' => 'sales'];
 
         $this->expectException(ConfigUserException::class);
-        $this->expectExceptionMessage('The child node "schema" at path "root.parameters.table" must be configured.');
+        $this->expectExceptionMessage('The child config "schema" under "root.parameters.table" must be configured.');
         $app = $this->getApp($config);
         $app->run();
     }

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Extractor;
 
+use Keboola\DbExtractor\Adapter\Metadata\MetadataProvider;
 use Keboola\DbExtractor\Adapter\Query\DefaultQueryFactory;
+use Keboola\DbExtractor\Adapter\ResultWriter\DefaultResultWriter;
 use PDO;
 use Psr\Log\LoggerInterface;
 use Keboola\Temp\Temp;
@@ -39,11 +41,13 @@ class Common extends BaseExtractor
 
     protected function createExportAdapter(): ExportAdapter
     {
+        $resultWriter = new DefaultResultWriter($this->state);
         $simpleQueryFactory = new DefaultQueryFactory($this->state);
         return new PdoExportAdapter(
             $this->logger,
             $this->connection,
             $simpleQueryFactory,
+            $resultWriter,
             $this->dataDir,
             $this->state
         );
