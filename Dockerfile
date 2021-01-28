@@ -20,6 +20,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     unzip \
     libzip-dev \
+    libicu-dev \
     && rm -r /var/lib/apt/lists/* \
     && sed -i 's/^# *\(en_US.UTF-8\)/\1/' /etc/locale.gen \
     && locale-gen \
@@ -29,6 +30,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ENV LANGUAGE=en_US.UTF-8
 ENV LANG=en_US.UTF-8
 ENV LC_ALL=en_US.UTF-8
+
+# INTL
+RUN docker-php-ext-configure intl \
+    && docker-php-ext-install intl
 
 # PDO mysql
 RUN docker-php-ext-install pdo_mysql

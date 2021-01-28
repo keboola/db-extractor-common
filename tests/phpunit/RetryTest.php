@@ -134,13 +134,13 @@ class RetryTest extends TestCase
         $errorOutput = $process->getErrorOutput();
         Assert::assertFalse($process->isSuccessful());
         Assert::assertSame(1, $process->getExitCode());
-        Assert::assertStringContainsString('Empty row packet body', $output);
+        Assert::assertStringContainsString('MySQL server has gone away', $output);
         Assert::assertStringContainsString('Retrying... [1x]', $output);
         Assert::assertStringContainsString('Retrying... [2x]', $output);
         Assert::assertStringContainsString('Retrying... [3x]', $output);
         Assert::assertStringContainsString('Retrying... [4x]', $output);
         Assert::assertStringContainsString('DB query failed:', $errorOutput);
-        Assert::assertStringContainsString('Empty row packet body Tried 5 times.', $errorOutput);
+        Assert::assertStringContainsString('MySQL server has gone away Tried 5 times.', $errorOutput);
     }
 
     /**
@@ -183,7 +183,7 @@ class RetryTest extends TestCase
         $errorOutput = $process->getErrorOutput();
         Assert::assertTrue($process->isSuccessful());
         Assert::assertSame(0, $process->getExitCode());
-        Assert::assertStringContainsString('Empty row packet body', $output);
+        Assert::assertStringContainsString('MySQL server has gone away', $output);
         Assert::assertStringContainsString('Retrying... [1x]', $output);
         Assert::assertStringContainsString('Retrying... [2x]', $output);
         Assert::assertStringNotContainsString('DB query failed:', $errorOutput); // not
