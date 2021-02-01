@@ -6,6 +6,7 @@ namespace Keboola\DbExtractor;
 
 use Keboola\Component\Logger\AsyncActionLogging;
 use Keboola\Component\Logger\SyncActionLogging;
+use Keboola\DbExtractor\Exception\BadPermissionException;
 use Keboola\DbExtractorConfig\Configuration\ValueObject\ExportConfig;
 use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractor\Extractor\BaseExtractor;
@@ -38,6 +39,8 @@ class Application extends Container
         $this['logger'] = $logger;
 
         $this->buildConfig($config);
+
+        $this->checkUserPermissions();
 
         $this['extractor_factory'] = function () use ($app) {
             $configData = $app->config->getData();
@@ -169,5 +172,33 @@ class Application extends Container
             }
             throw new ErrorException($errstr, 0, $errno, $errfile, $errline);
         });
+    }
+
+    protected function checkUserPermissions(): void
+    {
+        $realUser = getenv('KBC_REALUSER');
+        $dbUsername = $this->config->getData()['parameters']['db']['user'] ?? null;
+
+        if (!$realUser) {
+            return;
+        }
+
+        if ($this->isTechnicalUsername($dbUsername)) {
+            return;
+        }
+
+        if ($realUser !== $dbUsername) {
+            throw new BadPermissionException(
+                sprintf(
+                    'You do not have permission to run configuration with the database username "%s"',
+                    $dbUsername
+                )
+            );
+        }
+    }
+
+    protected function isTechnicalUsername(string $username): bool
+    {
+        return substr($username, 0, 1) === '_';
     }
 }
