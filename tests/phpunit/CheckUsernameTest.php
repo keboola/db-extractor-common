@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Tests;
@@ -63,7 +64,6 @@ class CheckUsernameTest extends TestCase
             'You do not have permission to run configuration with the database username "root"',
             $process->getErrorOutput()
         );
-
     }
 
     private function createProcess(string $action = 'run', array $additionalEnv = []): Process
@@ -113,7 +113,4 @@ class CheckUsernameTest extends TestCase
 
         return $config;
     }
-
-
-
 }
