@@ -6,6 +6,7 @@ namespace Keboola\DbExtractor;
 
 use Keboola\Component\Logger\AsyncActionLogging;
 use Keboola\Component\Logger\SyncActionLogging;
+use Keboola\DbExtractor\Exception\BadUsernameException;
 use Keboola\DbExtractorConfig\Configuration\ValueObject\ExportConfig;
 use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractor\Extractor\BaseExtractor;
@@ -37,20 +38,6 @@ class Application extends Container
 
         $this['logger'] = $logger;
 
-        $this->buildConfig($config);
-
-        $this['extractor_factory'] = function () use ($app) {
-            $configData = $app->config->getData();
-            return new ExtractorFactory($configData['parameters'], $app['state']);
-        };
-
-        $this['extractor'] = function () use ($app) {
-            return $app['extractor_factory']->create($app['logger']);
-        };
-    }
-
-    public function run(): array
-    {
         // Setup logger, copied from php-component/src/BaseComponent.php
         // Will be removed in next refactoring steps,
         // ... when Application will be replace by standard BaseComponent
@@ -64,6 +51,25 @@ class Application extends Container
             }
         }
 
+        $this->buildConfig($config);
+
+        $checkKbcRealuser = $config['image_parameters']['check_kbc_realuser'] ?? false;
+        if ($checkKbcRealuser) {
+            $this->checkUsername();
+        }
+
+        $this['extractor_factory'] = function () use ($app) {
+            $configData = $app->config->getData();
+            return new ExtractorFactory($configData['parameters'], $app['state']);
+        };
+
+        $this['extractor'] = function () use ($app) {
+            return $app['extractor_factory']->create($app['logger']);
+        };
+    }
+
+    public function run(): array
+    {
         $actionMethod = $this['action'] . 'Action';
         if (!method_exists($this, $actionMethod)) {
             throw new UserException(sprintf('Action "%s" does not exist.', $this['action']));
@@ -169,5 +175,45 @@ class Application extends Container
             }
             throw new ErrorException($errstr, 0, $errno, $errfile, $errline);
         });
+    }
+
+    protected function checkUsername(): void
+    {
+        $realUsername = $this->getRealUsername();
+        $dbUsername = $this->getDbUsername();
+
+        if ($this->isTechnicalUsername($dbUsername)) {
+            $this['logger']->info(sprintf(
+                'Starting export data with a technical username "%s".',
+                $dbUsername
+            ));
+            return;
+        }
+
+        if ($realUsername !== $dbUsername) {
+            throw new BadUsernameException(
+                sprintf(
+                    'Your username "%s" does not have permission to ' .
+                    'run configuration with the database username "%s"',
+                    $realUsername,
+                    $dbUsername
+                )
+            );
+        }
+    }
+
+    protected function isTechnicalUsername(string $username): bool
+    {
+        return substr($username, 0, 1) === '_';
+    }
+
+    protected function getDbUsername(): string
+    {
+        return $this->config->getData()['parameters']['db']['user'];
+    }
+
+    protected function getRealUsername(): string
+    {
+        return (string) getenv('KBC_REALUSER');
     }
 }
