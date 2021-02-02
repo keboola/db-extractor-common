@@ -6,7 +6,7 @@ namespace Keboola\DbExtractor;
 
 use Keboola\Component\Logger\AsyncActionLogging;
 use Keboola\Component\Logger\SyncActionLogging;
-use Keboola\DbExtractor\Exception\BadPermissionException;
+use Keboola\DbExtractor\Exception\BadUsernameException;
 use Keboola\DbExtractorConfig\Configuration\ValueObject\ExportConfig;
 use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractor\Extractor\BaseExtractor;
@@ -53,7 +53,10 @@ class Application extends Container
 
         $this->buildConfig($config);
 
-        $this->checkUserPermissions();
+        $checkKbcRealuser = $config['image_parameters']['check_kbc_realuser'] ?? false;
+        if ($checkKbcRealuser) {
+            $this->checkUsername();
+        }
 
         $this['extractor_factory'] = function () use ($app) {
             $configData = $app->config->getData();
@@ -174,23 +177,25 @@ class Application extends Container
         });
     }
 
-    protected function checkUserPermissions(): void
+    protected function checkUsername(): void
     {
-        $realUser = getenv('KBC_REALUSER');
-        $dbUsername = $this->config->getData()['parameters']['db']['user'] ?? null;
-
-        if (!$realUser) {
-            return;
-        }
+        $realUsername = $this->getRealUsername();
+        $dbUsername = $this->getDbUsername();
 
         if ($this->isTechnicalUsername($dbUsername)) {
+            $this['logger']->info(sprintf(
+                'Starting export data with a technical username "%s".',
+                $dbUsername
+            ));
             return;
         }
 
-        if ($realUser !== $dbUsername) {
-            throw new BadPermissionException(
+        if ($realUsername !== $dbUsername) {
+            throw new BadUsernameException(
                 sprintf(
-                    'You do not have permission to run configuration with the database username "%s"',
+                    'Your username "%s" does not have permission to ' .
+                    'run configuration with the database username "%s"',
+                    $realUsername,
                     $dbUsername
                 )
             );
@@ -200,5 +205,15 @@ class Application extends Container
     protected function isTechnicalUsername(string $username): bool
     {
         return substr($username, 0, 1) === '_';
+    }
+
+    protected function getDbUsername(): string
+    {
+        return $this->config->getData()['parameters']['db']['user'];
+    }
+
+    protected function getRealUsername(): string
+    {
+        return (string) getenv('KBC_REALUSER');
     }
 }

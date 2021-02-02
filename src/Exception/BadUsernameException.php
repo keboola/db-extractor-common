@@ -7,7 +7,7 @@ namespace Keboola\DbExtractor\Exception;
 use Exception;
 use Keboola\CommonExceptions\UserExceptionInterface;
 
-class BadPermissionException extends Exception implements UserExceptionInterface
+class BadUsernameException extends Exception implements UserExceptionInterface
 {
 
 }

@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Tests;
 
+use Keboola\DbExtractor\Application;
+use Keboola\DbExtractor\Exception\BadUsernameException;
 use Keboola\Temp\Temp;
 use PHPUnit\Framework\Assert;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Process\Process;
+use Psr\Log\Test\TestLogger;
 
 class CheckUsernameTest extends TestCase
 {
@@ -25,71 +27,53 @@ class CheckUsernameTest extends TestCase
 
     public function testValidCheckUsername(): void
     {
-        $process = $this->createProcess(
-            'run',
-            ['KBC_REALUSER' => (string) getEnv('COMMON_DB_USER')]
-        );
-        $process->run();
-
-        Assert::assertEquals(0, $process->getExitCode());
+        putenv('KBC_REALUSER=' . (string) getEnv('COMMON_DB_USER'));
+        new Application($this->createConfig(), new TestLogger());
+        $this->expectNotToPerformAssertions();
     }
 
     public function testInvalidCheckUsername(): void
     {
-        $process = $this->createProcess(
-            'run',
-            ['KBC_REALUSER' => 'invalidUsername']
-        );
-        $process->run();
+        putenv('KBC_REALUSER=invalidUsername');
 
-        Assert::assertEquals(1, $process->getExitCode());
-        Assert::assertStringContainsString(
-            'You do not have permission to run configuration with the database username "root"',
-            $process->getErrorOutput()
+        $this->expectException(BadUsernameException::class);
+        $this->expectExceptionMessage(
+            'Your username "invalidUsername" does not have permission ' .
+            'to run configuration with the database username "root"'
         );
+        new Application($this->createConfig(), new TestLogger());
     }
 
     public function testTechnicalUsername(): void
     {
-        $this->dbUsername = '_technicalUsername';
+        putenv('KBC_REALUSER=invalidUsername');
+        $config = $this->createConfig();
+        $config['parameters']['db']['user'] = '_technicalUsername';
 
-        $process = $this->createProcess(
-            'run',
-            ['KBC_REALUSER' => 'invalidUsername']
-        );
-        $process->run();
+        $logger = new TestLogger();
+        new Application($config, $logger);
 
-        Assert::assertEquals(1, $process->getExitCode());
-        Assert::assertStringNotContainsString(
-            'You do not have permission to run configuration with the database username "root"',
-            $process->getErrorOutput()
+        Assert::assertTrue(
+            $logger->hasInfoThatContains('Starting export data with a technical username "_technicalUsername".')
         );
     }
 
-    private function createProcess(string $action = 'run', array $additionalEnv = []): Process
+    public function testDisableChecking(): void
     {
-        // Create config file
-        file_put_contents(
-            $this->temp->getTmpFolder() . '/config.json',
-            json_encode($this->createConfig($action))
-        );
+        putenv('KBC_REALUSER=invalidUsername');
+        $config = $this->createConfig();
+        $config['image_parameters']['check_kbc_realuser'] = false;
+        new Application($config, new TestLogger());
 
-        // We run the extractor in a asynchronous process
-        // so we can change the network parameters via Toxiproxy.
-        return Process::fromShellCommandline(
-            'php ' . __DIR__ . '/Fixtures/run.php',
-            null,
-            array_merge(
-                ['KBC_DATADIR' => $this->temp->getTmpFolder()],
-                $additionalEnv
-            )
-        );
+        $this->expectNotToPerformAssertions();
     }
 
     private function createConfig(string $action = 'run'): array
     {
         $config = [
             'parameters' => [
+                'data_dir' => 'testDatadir',
+                'extractor_class' => 'test',
                 'db' => [
                     'host' => (string) getEnv('COMMON_DB_HOST'),
                     'port' => (string) getEnv('COMMON_DB_PORT'),
@@ -104,6 +88,9 @@ class CheckUsernameTest extends TestCase
                     'schema' => (string) getEnv('COMMON_DB_DATABASE'),
                 ],
                 'outputTable' => 'output',
+            ],
+            'image_parameters' => [
+                'check_kbc_realuser' => true,
             ],
         ];
 
