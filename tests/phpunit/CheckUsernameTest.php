@@ -54,7 +54,7 @@ class CheckUsernameTest extends TestCase
         new Application($config, $logger);
 
         Assert::assertTrue(
-            $logger->hasInfoThatContains('Starting export data with a technical username "_technicalUsername".')
+            $logger->hasInfoThatContains('Starting export data with a service account "_technicalUsername".')
         );
     }
 

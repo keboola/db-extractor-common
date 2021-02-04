@@ -184,7 +184,7 @@ class Application extends Container
 
         if ($this->isTechnicalUsername($dbUsername)) {
             $this['logger']->info(sprintf(
-                'Starting export data with a technical username "%s".',
+                'Starting export data with a service account "%s".',
                 $dbUsername
             ));
             return;
@@ -200,6 +200,8 @@ class Application extends Container
                 )
             );
         }
+
+        $this['logger']->info(sprintf('Username "%s" has been verified.', $realUsername));
     }
 
     protected function isTechnicalUsername(string $username): bool
