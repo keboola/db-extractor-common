@@ -52,11 +52,7 @@ class Application extends Container
         }
 
         $this->buildConfig($config);
-
-        $checkKbcRealuser = $config['image_parameters']['check_kbc_realuser'] ?? false;
-        if ($checkKbcRealuser) {
-            $this->checkUsername();
-        }
+        $this->checkUsername();
 
         $this['extractor_factory'] = function () use ($app) {
             $configData = $app->config->getData();
@@ -107,6 +103,12 @@ class Application extends Container
         }
 
         return false;
+    }
+
+    protected function checkUsername(): void
+    {
+        $usernameChecker = new UsernameChecker($this['logger'], $this->config);
+        $usernameChecker->checkUsername();
     }
 
     private function runAction(): array
@@ -175,47 +177,5 @@ class Application extends Container
             }
             throw new ErrorException($errstr, 0, $errno, $errfile, $errline);
         });
-    }
-
-    protected function checkUsername(): void
-    {
-        $realUsername = $this->getRealUsername();
-        $dbUsername = $this->getDbUsername();
-
-        if ($this->isTechnicalUsername($dbUsername)) {
-            $this['logger']->info(sprintf(
-                'Starting export data with a service account "%s".',
-                $dbUsername
-            ));
-            return;
-        }
-
-        if ($realUsername !== $dbUsername) {
-            throw new BadUsernameException(
-                sprintf(
-                    'Your username "%s" does not have permission to ' .
-                    'run configuration with the database username "%s"',
-                    $realUsername,
-                    $dbUsername
-                )
-            );
-        }
-
-        $this['logger']->info(sprintf('Username "%s" has been verified.', $realUsername));
-    }
-
-    protected function isTechnicalUsername(string $username): bool
-    {
-        return substr($username, 0, 1) === '_';
-    }
-
-    protected function getDbUsername(): string
-    {
-        return $this->config->getData()['parameters']['db']['user'];
-    }
-
-    protected function getRealUsername(): string
-    {
-        return (string) getenv('KBC_REALUSER');
     }
 }

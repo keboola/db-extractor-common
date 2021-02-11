@@ -56,3 +56,42 @@ Please see the sample in the `Common` class: https://github.com/keboola/db-extra
 The namespace of your extractor class shoud be `Keboola\DbExtractor\Extractor` and the name of the class should corespond to DB vendor name i.e. PgSQL, Oracle, Impala, Firebrid, DB2 and so on.
 
 Please check the existing implementations above for help getting started.
+
+## Check username
+
+Check username functionality compares 
+    - value of the `KBC_REALUSER` environment variable 
+    - and username of the database user from the configuration.
+
+If enabled, values must be same to run the component.
+
+If a service account is used, check is skipped. For more information see `UsernameChecker` class.
+
+**Example image / stack parameters**
+```json
+{
+  "checkUsername": {
+    "enabled": true
+  }
+}
+```
+
+Service account can be defined by regular expression:
+```json
+{
+  "checkUsername": {
+    "enabled": true,
+    "serviceAccountRegexp": "~^service_~i"
+  }
+}
+```
+
+Or user account can be defined by regular expression (inverted logic):
+```json
+{
+  "checkUsername": {
+    "enabled": true,
+    "userAccountRegexp": "~^[0-9]{3}_"
+  }
+}
+```
