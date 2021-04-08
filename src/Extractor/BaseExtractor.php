@@ -112,6 +112,11 @@ abstract class BaseExtractor
     {
         if ($result->getRowsCount() > 0) {
             $this->createManifest($exportConfig);
+            $this->logger->info(sprintf(
+                'Exported "%d" rows to "%s".',
+                $result->getRowsCount(),
+                $exportConfig->getOutputTable()
+            ));
         } else {
             @unlink($this->getOutputFilename($exportConfig->getOutputTable())); // no rows, no file
             $this->logger->warning(sprintf(

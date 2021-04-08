@@ -50,7 +50,8 @@ class CommonExtractorTest extends ExtractorTest
     public function testRunSimple(): void
     {
         $this->cleanOutputDirectory();
-        $result = ($this->getApp($this->getConfig(self::DRIVER)))->run();
+        $logger = new TestLogger();
+        $result = ($this->getApp($this->getConfig(self::DRIVER), [], $logger))->run();
         $this->assertExtractedData($this->dataDir . '/escaping.csv', $result['imported'][0]['outputTable']);
         $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][1]['outputTable']);
         $filename = $this->dataDir . '/out/tables/' . $result['imported'][1]['outputTable'] . '.csv.manifest';
@@ -60,6 +61,7 @@ class CommonExtractorTest extends ExtractorTest
         );
         Assert::assertEquals(['weird_I_d', 'SaoPaulo'], $manifest['columns']);
         Assert::assertEquals(['weird_I_d'], $manifest['primary_key']);
+        Assert::assertTrue($logger->hasInfoThatContains('Exported "2" rows to "in.c-main.simple".'));
     }
 
     public function testRunNoPrimaryKey(): void
