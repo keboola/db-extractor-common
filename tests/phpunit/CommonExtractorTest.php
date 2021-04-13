@@ -246,8 +246,15 @@ class CommonExtractorTest extends ExtractorTest
         $result = ($this->getApp($config))->run();
 
         Assert::assertEquals('success', $result['status']);
-        Assert::assertFileDoesNotExist($outputCsvFile);
-        Assert::assertFileDoesNotExist($outputManifestFile);
+        Assert::assertFileExists($outputCsvFile);
+        Assert::assertFileExists($outputManifestFile);
+
+        // Csv file contains header (because custom query)
+        Assert::assertSame("\"col1\",\"col2\"\n", file_get_contents($outputCsvFile));
+
+        // Manifest doesn't contain columns
+        $manifest = json_decode((string) file_get_contents($outputManifestFile), true);
+        Assert::assertArrayNotHasKey('columns', $manifest);
     }
 
     public function testTestConnection(): void

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Keboola\DbExtractor\Extractor;
 
 use Keboola\DbExtractor\Adapter\Metadata\MetadataProvider;
-use Throwable;
 use Psr\Log\LoggerInterface;
 use Nette\Utils;
 use Keboola\DbExtractor\Adapter\ValueObject\ExportResult;
@@ -110,17 +109,16 @@ abstract class BaseExtractor
 
     protected function processExportResult(ExportConfig $exportConfig, ?string $maxValue, ExportResult $result): array
     {
+        $this->createManifest($exportConfig);
         if ($result->getRowsCount() > 0) {
-            $this->createManifest($exportConfig);
             $this->logger->info(sprintf(
                 'Exported "%d" rows to "%s".',
                 $result->getRowsCount(),
                 $exportConfig->getOutputTable()
             ));
         } else {
-            @unlink($this->getOutputFilename($exportConfig->getOutputTable())); // no rows, no file
             $this->logger->warning(sprintf(
-                'Query returned empty result. Nothing was imported to "%s".',
+                'Query result set is empty. Exported "0" rows to "%s".',
                 $exportConfig->getOutputTable()
             ));
         }
@@ -138,6 +136,7 @@ abstract class BaseExtractor
                 $output['state']['lastFetchedRow'] = $result->getIncFetchingColMaxValue();
             }
         }
+
         return $output;
     }
 
