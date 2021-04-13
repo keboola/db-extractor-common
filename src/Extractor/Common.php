@@ -150,7 +150,7 @@ class Common extends BaseExtractor
             $datatype = new MySQL($columns[0]['DATA_TYPE']);
             if (in_array($datatype->getBasetype(), self::NUMERIC_BASE_TYPES)) {
                 $this->incrementalFetchingColType = self::INCREMENT_TYPE_NUMERIC;
-            } else if ($datatype->getBasetype() === 'TIMESTAMP') {
+            } elseif ($datatype->getBasetype() === 'TIMESTAMP') {
                 $this->incrementalFetchingColType = self::INCREMENT_TYPE_TIMESTAMP;
             } else {
                 throw new UserException('invalid incremental fetching column type');
