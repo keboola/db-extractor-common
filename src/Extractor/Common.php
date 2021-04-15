@@ -8,7 +8,6 @@ use Keboola\DbExtractor\Adapter\Metadata\MetadataProvider;
 use Keboola\DbExtractor\Adapter\Query\DefaultQueryFactory;
 use Keboola\DbExtractor\Adapter\ResultWriter\DefaultResultWriter;
 use PDO;
-use Psr\Log\LoggerInterface;
 use Keboola\Temp\Temp;
 use Keboola\DbExtractor\Adapter\ExportAdapter;
 use Keboola\DbExtractor\Adapter\PDO\PdoConnection;
@@ -25,18 +24,13 @@ class Common extends BaseExtractor
     public const INCREMENT_TYPE_TIMESTAMP = 'timestamp';
     public const NUMERIC_BASE_TYPES = ['INTEGER', 'NUMERIC', 'FLOAT'];
 
-    protected string $database;
-
     protected string $incrementalFetchingColType;
-
-    protected CommonMetadataProvider $metadataProvider;
 
     protected PdoConnection $connection;
 
-    public function __construct(array $parameters, array $state, LoggerInterface $logger)
+    protected function createMetadataProvider(): MetadataProvider
     {
-        parent::__construct($parameters, $state, $logger);
-        $this->metadataProvider = new CommonMetadataProvider($this->connection, $parameters['db']['database']);
+        return new CommonMetadataProvider($this->connection, $this->getDatabaseConfig()->getDatabase());
     }
 
     protected function createExportAdapter(): ExportAdapter
@@ -83,8 +77,6 @@ class Common extends BaseExtractor
             }
             $options[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = $sslConnectionConfig->isVerifyServerCert();
         }
-
-        $this->database = $databaseConfig->getDatabase();
 
         $dsn = sprintf(
             'mysql:host=%s;port=%s;dbname=%s;charset=utf8',
@@ -163,11 +155,6 @@ class Common extends BaseExtractor
                 )
             );
         }
-    }
-
-    public function getMetadataProvider(): MetadataProvider
-    {
-        return $this->metadataProvider;
     }
 
     public function getMaxOfIncrementalFetchingColumn(ExportConfig $exportConfig): ?string

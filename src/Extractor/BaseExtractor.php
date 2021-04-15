@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Keboola\DbExtractor\Extractor;
 
 use Keboola\DbExtractor\Adapter\Metadata\MetadataProvider;
+use Keboola\DbExtractor\Manifest\DefaultManifestGenerator;
+use Keboola\DbExtractor\Manifest\ManifestGenerator;
 use Psr\Log\LoggerInterface;
 use Nette\Utils;
 use Keboola\DbExtractor\Adapter\ValueObject\ExportResult;
@@ -16,7 +18,6 @@ use Keboola\DbExtractor\TableResultFormat\Metadata\GetTables\GetTablesSerializer
 use Keboola\DbExtractorConfig\Configuration\ValueObject\ExportConfig;
 use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractor\TableResultFormat\Metadata\Manifest\DefaultManifestSerializer;
-use Keboola\DbExtractor\TableResultFormat\Metadata\Manifest\ManifestSerializer;
 use Keboola\DbExtractorSSHTunnel\SSHTunnel;
 use Keboola\DbExtractorSSHTunnel\Exception\UserException as SSHTunnelUserException;
 
@@ -31,6 +32,12 @@ abstract class BaseExtractor
     protected LoggerInterface $logger;
 
     protected ExportAdapter $adapter;
+
+    protected MetadataProvider $metadataProvider;
+
+    protected GetTablesSerializer $getTablesSerializer;
+
+    protected ManifestGenerator $manifestGenerator;
 
     private bool $syncAction;
 
@@ -47,6 +54,9 @@ abstract class BaseExtractor
 
         $this->databaseConfig = $this->createDatabaseConfig($this->parameters['db']);
         $this->createConnection($this->databaseConfig);
+        $this->metadataProvider = $this->createMetadataProvider();
+        $this->getTablesSerializer = $this->createGetTablesSerializer();
+        $this->manifestGenerator = $this->createManifestGenerator();
         $this->adapter = $this->createExportAdapter();
     }
 
@@ -56,23 +66,41 @@ abstract class BaseExtractor
 
     abstract protected function createExportAdapter(): ExportAdapter;
 
-    abstract protected function getMetadataProvider(): MetadataProvider;
+    abstract protected function createMetadataProvider(): MetadataProvider;
 
     abstract protected function getMaxOfIncrementalFetchingColumn(ExportConfig $exportConfig): ?string;
+
+    public function getMetadataProvider(): MetadataProvider
+    {
+        return $this->metadataProvider;
+    }
+
+    public function getGetTablesSerializer(): GetTablesSerializer
+    {
+        return $this->getTablesSerializer;
+    }
+
+    public function getManifestGenerator(): ManifestGenerator
+    {
+        return $this->manifestGenerator;
+    }
+
+    protected function createManifestGenerator(): ManifestGenerator
+    {
+        return new DefaultManifestGenerator(
+            $this->getMetadataProvider(),
+            new DefaultManifestSerializer()
+        );
+    }
+
+    protected function createGetTablesSerializer(): GetTablesSerializer
+    {
+        return new DefaultGetTablesSerializer();
+    }
 
     protected function validateIncrementalFetching(ExportConfig $exportConfig): void
     {
         throw new UserException('Incremental Fetching is not supported by this extractor.');
-    }
-
-    protected function getManifestMetadataSerializer(): ManifestSerializer
-    {
-        return new DefaultManifestSerializer();
-    }
-
-    protected function getGetTablesMetadataSerializer(): GetTablesSerializer
-    {
-        return new DefaultGetTablesSerializer();
     }
 
     public function getTables(): array
@@ -85,8 +113,8 @@ abstract class BaseExtractor
             $this->parameters['tableListFilter']['tablesToList'] ?? []
         );
 
-        $serializer = $this->getGetTablesMetadataSerializer();
-        return $serializer->serialize($this->getMetadataProvider()->listTables($whiteList, $loadColumns));
+        $tables = $this->getMetadataProvider()->listTables($whiteList, $loadColumns);
+        return $this->getGetTablesSerializer()->serialize($tables);
     }
 
     public function export(ExportConfig $exportConfig): array
@@ -109,7 +137,7 @@ abstract class BaseExtractor
 
     protected function processExportResult(ExportConfig $exportConfig, ?string $maxValue, ExportResult $result): array
     {
-        $this->createManifest($exportConfig);
+        $this->createManifest($exportConfig, $result);
         if ($result->getRowsCount() > 0) {
             $this->logger->info(sprintf(
                 'Exported "%d" rows to "%s".',
@@ -140,46 +168,10 @@ abstract class BaseExtractor
         return $output;
     }
 
-    protected function createManifest(ExportConfig $exportConfig): void
+    protected function createManifest(ExportConfig $exportConfig, ExportResult $exportResult): void
     {
-        $metadataSerializer = $this->getManifestMetadataSerializer();
         $outFilename = $this->getOutputFilename($exportConfig->getOutputTable()) . '.manifest';
-
-        $manifestData = [
-            'destination' => $exportConfig->getOutputTable(),
-            'incremental' => $exportConfig->isIncrementalLoading(),
-        ];
-
-        if ($exportConfig->hasPrimaryKey()) {
-            $manifestData['primary_key'] = $exportConfig->getPrimaryKey();
-        }
-
-        if (!$exportConfig->hasQuery()) {
-            $table = $this->getMetadataProvider()->getTable($exportConfig->getTable());
-            $allTableColumns = $table->getColumns();
-            $columnMetadata = [];
-            $sanitizedPks = [];
-            $exportedColumns = $exportConfig->hasColumns() ? $exportConfig->getColumns() : $allTableColumns->getNames();
-            foreach ($exportedColumns as $index => $columnName) {
-                $column = $allTableColumns->getByName($columnName);
-                $columnMetadata[$column->getSanitizedName()] = $metadataSerializer->serializeColumn($column);
-
-                // Sanitize PKs defined in the configuration
-                if ($exportConfig->hasPrimaryKey() &&
-                    in_array($column->getName(), $exportConfig->getPrimaryKey(), true)
-                ) {
-                    $sanitizedPks[] = $column->getSanitizedName();
-                }
-            }
-
-            $manifestData['metadata'] = $metadataSerializer->serializeTable($table);
-            $manifestData['column_metadata'] = $columnMetadata;
-            $manifestData['columns'] = array_keys($columnMetadata);
-            if (!empty($sanitizedPks)) {
-                $manifestData['primary_key'] = $sanitizedPks;
-            }
-        }
-
+        $manifestData = $this->manifestGenerator->generate($exportConfig, $exportResult);
         file_put_contents($outFilename, json_encode($manifestData));
     }
 
