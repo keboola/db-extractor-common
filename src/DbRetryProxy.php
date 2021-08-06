@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Keboola\DbExtractor;
 
 use Psr\Log\LoggerInterface;
-use Retry\RetryProxy;
-use Retry\Policy\RetryPolicyInterface;
-use Retry\Policy\SimpleRetryPolicy;
 use Retry\BackOff\BackOffPolicyInterface;
 use Retry\BackOff\ExponentialBackOffPolicy;
+use Retry\Policy\RetryPolicyInterface;
+use Retry\Policy\SimpleRetryPolicy;
+use Retry\RetryProxy;
 
 class DbRetryProxy extends RetryProxy
 {

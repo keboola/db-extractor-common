@@ -7,6 +7,7 @@ namespace Keboola\DbExtractor\Tests;
 use Keboola\DbExtractor\DbRetryProxy;
 use Monolog\Handler\TestHandler;
 use Monolog\Logger;
+use PDOException;
 use PHPUnit\Framework\Assert;
 use PHPUnit\Framework\TestCase;
 
@@ -34,7 +35,7 @@ class DbRetryProxyTest extends TestCase
         $res = $retryProxy->call(function () use (&$i): int {
             $i++;
             if ($i < 5) {
-                throw new \PDOException('test throw ' . $i);
+                throw new PDOException('test throw ' . $i);
             } else {
                 return $i;
             }

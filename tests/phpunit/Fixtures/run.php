@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-use Keboola\DbExtractor\Exception\UserException;
-use Keboola\Component\Logger;
-use Keboola\Component\JsonHelper;
 use Keboola\CommonExceptions\UserExceptionInterface;
-use \Keboola\DbExtractor\Application;
+use Keboola\Component\JsonHelper;
+use Keboola\Component\Logger;
+use Keboola\DbExtractor\Application;
+use Keboola\DbExtractor\Exception\UserException;
 
 require __DIR__ . '/../../../vendor/autoload.php';
 
@@ -49,7 +49,7 @@ try {
 } catch (UserExceptionInterface $e) {
     $logger->error($e->getMessage());
     exit(1);
-} catch (\Throwable $e) {
+} catch (Throwable $e) {
     $logger->critical(
         get_class($e) . ':' . $e->getMessage(),
         [

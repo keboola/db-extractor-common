@@ -4,19 +4,19 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Extractor;
 
-use Keboola\DbExtractor\Adapter\Metadata\MetadataProvider;
-use Keboola\DbExtractor\Adapter\Query\DefaultQueryFactory;
-use Keboola\DbExtractor\Adapter\ResultWriter\DefaultResultWriter;
-use PDO;
-use Keboola\Temp\Temp;
-use Keboola\DbExtractor\Adapter\ExportAdapter;
-use Keboola\DbExtractor\Adapter\PDO\PdoConnection;
-use Keboola\DbExtractor\Adapter\PDO\PdoExportAdapter;
 use Keboola\Datatype\Definition\Exception\InvalidLengthException;
 use Keboola\Datatype\Definition\MySQL;
+use Keboola\DbExtractor\Adapter\ExportAdapter;
+use Keboola\DbExtractor\Adapter\Metadata\MetadataProvider;
+use Keboola\DbExtractor\Adapter\PDO\PdoConnection;
+use Keboola\DbExtractor\Adapter\PDO\PdoExportAdapter;
+use Keboola\DbExtractor\Adapter\Query\DefaultQueryFactory;
+use Keboola\DbExtractor\Adapter\ResultWriter\DefaultResultWriter;
+use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractorConfig\Configuration\ValueObject\DatabaseConfig;
 use Keboola\DbExtractorConfig\Configuration\ValueObject\ExportConfig;
-use Keboola\DbExtractor\Exception\UserException;
+use Keboola\Temp\Temp;
+use PDO;
 
 class Common extends BaseExtractor
 {

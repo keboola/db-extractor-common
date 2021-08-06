@@ -4,22 +4,22 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Extractor;
 
+use Keboola\DbExtractor\Adapter\ExportAdapter;
 use Keboola\DbExtractor\Adapter\Metadata\MetadataProvider;
+use Keboola\DbExtractor\Adapter\ValueObject\ExportResult;
+use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractor\Manifest\DefaultManifestGenerator;
 use Keboola\DbExtractor\Manifest\ManifestGenerator;
-use Psr\Log\LoggerInterface;
-use Nette\Utils;
-use Keboola\DbExtractor\Adapter\ValueObject\ExportResult;
-use Keboola\DbExtractor\Adapter\ExportAdapter;
-use Keboola\DbExtractorConfig\Configuration\ValueObject\DatabaseConfig;
-use Keboola\DbExtractorConfig\Configuration\ValueObject\InputTable;
 use Keboola\DbExtractor\TableResultFormat\Metadata\GetTables\DefaultGetTablesSerializer;
 use Keboola\DbExtractor\TableResultFormat\Metadata\GetTables\GetTablesSerializer;
-use Keboola\DbExtractorConfig\Configuration\ValueObject\ExportConfig;
-use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractor\TableResultFormat\Metadata\Manifest\DefaultManifestSerializer;
-use Keboola\DbExtractorSSHTunnel\SSHTunnel;
+use Keboola\DbExtractorConfig\Configuration\ValueObject\DatabaseConfig;
+use Keboola\DbExtractorConfig\Configuration\ValueObject\ExportConfig;
+use Keboola\DbExtractorConfig\Configuration\ValueObject\InputTable;
 use Keboola\DbExtractorSSHTunnel\Exception\UserException as SSHTunnelUserException;
+use Keboola\DbExtractorSSHTunnel\SSHTunnel;
+use Nette\Utils;
+use Psr\Log\LoggerInterface;
 
 abstract class BaseExtractor
 {

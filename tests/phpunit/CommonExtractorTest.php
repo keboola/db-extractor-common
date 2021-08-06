@@ -4,21 +4,21 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Tests;
 
+use Keboola\CommonExceptions\ApplicationExceptionInterface;
+use Keboola\CommonExceptions\UserExceptionInterface;
 use Keboola\Component\JsonHelper;
-use PDO;
-use Monolog\Logger;
 use Keboola\Csv\CsvReader;
 use Keboola\DbExtractor\Application;
-use Keboola\CommonExceptions\UserExceptionInterface;
-use Keboola\CommonExceptions\ApplicationExceptionInterface;
+use Keboola\DbExtractor\Test\ExtractorTest;
 use Keboola\DbExtractorConfig\Exception\UserException as ConfigUserException;
 use Monolog\Handler\TestHandler;
+use Monolog\Logger;
+use PDO;
 use PHPUnit\Framework\Assert;
 use Psr\Log\LoggerInterface;
 use Psr\Log\Test\TestLogger;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
-use Keboola\DbExtractor\Test\ExtractorTest;
 
 class CommonExtractorTest extends ExtractorTest
 {

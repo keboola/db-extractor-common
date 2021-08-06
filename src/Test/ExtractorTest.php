@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Test;
 
+use Exception;
 use Keboola\DbExtractor\Application;
 use Monolog\Logger;
 use PHPUnit\Framework\TestCase;
@@ -70,7 +71,7 @@ class ExtractorTest extends TestCase
         $env = strtoupper($driver) . '_' . $suffix;
         if ($required) {
             if (!getenv($env)) {
-                throw new \Exception($env . ' environment variable must be set.');
+                throw new Exception($env . ' environment variable must be set.');
             }
         }
         return (string) getenv($env);
