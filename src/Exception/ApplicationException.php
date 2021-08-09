@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Exception;
 
+use Exception;
 use Keboola\CommonExceptions\ApplicationExceptionInterface;
 use Throwable;
 
-class ApplicationException extends \Exception implements ApplicationExceptionInterface
+class ApplicationException extends Exception implements ApplicationExceptionInterface
 {
-    /** @var array */
-    protected $data;
+    protected array $data;
 
     public function __construct(string $message = '', int $code = 0, ?Throwable $previous = null, array $data = [])
     {

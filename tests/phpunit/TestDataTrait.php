@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Tests;
 
-use PDO;
 use Keboola\Csv\CsvWriter;
-use Keboola\Temp\Temp;
 use Keboola\DbExtractor\Test\DataLoader;
+use Keboola\Temp\Temp;
+use PDO;
 use Symfony\Component\Process\Process;
 
 trait TestDataTrait

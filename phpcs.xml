@@ -3,6 +3,9 @@
     <rule ref="vendor/keboola/coding-standard/src/ruleset.xml">
         <exclude name="SlevomatCodingStandard.Classes.UnusedPrivateElements.UnusedMethod"/>
         <exclude name="SlevomatCodingStandard.Exceptions.ReferenceThrowableOnly.ReferencedGeneralException"/>
+        <exclude name="SlevomatCodingStandard.TypeHints.PropertyTypeHint.MissingTraversableTypeHintSpecification"/>
+        <exclude name="SlevomatCodingStandard.TypeHints.ParameterTypeHint.MissingTraversableTypeHintSpecification"/>
+        <exclude name="SlevomatCodingStandard.TypeHints.ReturnTypeHint.MissingTraversableTypeHintSpecification"/>
     </rule>
     <exclude-pattern>tests/phpunit/TaintedPDO.php</exclude-pattern>
     <exclude-pattern>tests/phpunit/TaintedPDOStatement.php</exclude-pattern>

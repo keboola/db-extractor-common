@@ -4,19 +4,19 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor;
 
+use ErrorException;
 use Keboola\Component\Logger\AsyncActionLogging;
 use Keboola\Component\Logger\SyncActionLogging;
-use Keboola\DbExtractor\Exception\BadUsernameException;
-use Keboola\DbExtractorConfig\Configuration\ValueObject\ExportConfig;
 use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractor\Extractor\BaseExtractor;
 use Keboola\DbExtractorConfig\Config;
 use Keboola\DbExtractorConfig\Configuration\ActionConfigRowDefinition;
 use Keboola\DbExtractorConfig\Configuration\ConfigDefinition;
 use Keboola\DbExtractorConfig\Configuration\ConfigRowDefinition;
+use Keboola\DbExtractorConfig\Configuration\ValueObject\ExportConfig;
 use Pimple\Container;
-use ErrorException;
 use Psr\Log\LoggerInterface;
+use Throwable;
 
 class Application extends Container
 {
@@ -147,7 +147,7 @@ class Application extends Container
     {
         try {
             $this['extractor']->testConnection();
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             throw new UserException(sprintf("Connection failed: '%s'", $e->getMessage()), 0, $e);
         }
 
