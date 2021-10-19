@@ -99,7 +99,8 @@ class Common extends BaseExtractor
                 $pdo->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, false);
                 $pdo->exec('SET NAMES utf8;');
             },
-            $connectRetries
+            $connectRetries,
+            $databaseConfig->getInitQueries()
         );
 
         // Check SSL

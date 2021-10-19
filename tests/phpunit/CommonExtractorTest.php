@@ -64,6 +64,48 @@ class CommonExtractorTest extends ExtractorTest
         Assert::assertTrue($logger->hasInfoThatContains('Exported "2" rows to "in.c-main.simple".'));
     }
 
+    public function testRunUserInitQueries(): void
+    {
+        $this->cleanOutputDirectory();
+        $logger = new TestLogger();
+        $config = $this->getConfigRow(self::DRIVER);
+        $config['parameters']['db']['initQueries'] = [
+            'TRUNCATE TABLE `simple`',
+        ];
+        $result = ($this->getApp($config, [], $logger))->run();
+        Assert::assertEquals(
+            '',
+            file_get_contents($this->dataDir . '/out/tables/' . $result['imported']['outputTable'] . '.csv')
+        );
+        $filename = $this->dataDir . '/out/tables/' . $result['imported']['outputTable'] . '.csv.manifest';
+        $manifest = json_decode(
+            (string) file_get_contents($filename),
+            true
+        );
+        Assert::assertEquals(['weird_I_d', 'SaoPaulo'], $manifest['columns']);
+        Assert::assertEquals(['weird_I_d'], $manifest['primary_key']);
+        Assert::assertTrue($logger->hasInfoThatContains('Running query "TRUNCATE TABLE `simple`".'));
+        Assert::assertTrue($logger->hasWarningThatContains('Exported "0" rows to "in.c-main.simple".'));
+    }
+
+    public function testFailingUserInitQueries(): void
+    {
+        $this->cleanOutputDirectory();
+        $logger = new TestLogger();
+        $config = $this->getConfigRow(self::DRIVER);
+        $config['parameters']['db']['initQueries'] = [
+            'failed user init query',
+        ];
+        $app = $this->getApp($config, [], $logger);
+        try {
+            $app->run();
+            Assert::fail('Failing query must raise exception.');
+        } catch (UserExceptionInterface $e) {
+            Assert::assertStringContainsString('Syntax error or access violation', $e->getMessage());
+            Assert::assertStringContainsString('syntax to use near \'failed user init query\'', $e->getMessage());
+        }
+    }
+
     public function testRunNoPrimaryKey(): void
     {
         $this->cleanOutputDirectory();
