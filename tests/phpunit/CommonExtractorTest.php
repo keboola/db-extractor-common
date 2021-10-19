@@ -84,6 +84,7 @@ class CommonExtractorTest extends ExtractorTest
         );
         Assert::assertEquals(['weird_I_d', 'SaoPaulo'], $manifest['columns']);
         Assert::assertEquals(['weird_I_d'], $manifest['primary_key']);
+        Assert::assertTrue($logger->hasInfoThatContains('Running query "TRUNCATE TABLE `simple`".'));
         Assert::assertTrue($logger->hasWarningThatContains('Exported "0" rows to "in.c-main.simple".'));
     }
 
