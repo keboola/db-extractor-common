@@ -64,6 +64,29 @@ class CommonExtractorTest extends ExtractorTest
         Assert::assertTrue($logger->hasInfoThatContains('Exported "2" rows to "in.c-main.simple".'));
     }
 
+    public function testRunUserInitQueries(): void
+    {
+        $this->cleanOutputDirectory();
+        $logger = new TestLogger();
+        $config = $this->getConfigRow(self::DRIVER);
+        $config['parameters']['db']['initQueries'] = [
+            'TRUNCATE TABLE `simple`',
+        ];
+        $result = ($this->getApp($config, [], $logger))->run();
+        Assert::assertEquals(
+            '',
+            file_get_contents($this->dataDir . '/out/tables/' . $result['imported']['outputTable'] . '.csv')
+        );
+        $filename = $this->dataDir . '/out/tables/' . $result['imported']['outputTable'] . '.csv.manifest';
+        $manifest = json_decode(
+            (string) file_get_contents($filename),
+            true
+        );
+        Assert::assertEquals(['weird_I_d', 'SaoPaulo'], $manifest['columns']);
+        Assert::assertEquals(['weird_I_d'], $manifest['primary_key']);
+        Assert::assertTrue($logger->hasWarningThatContains('Exported "0" rows to "in.c-main.simple".'));
+    }
+
     public function testRunNoPrimaryKey(): void
     {
         $this->cleanOutputDirectory();
