@@ -88,6 +88,23 @@ class CommonExtractorTest extends ExtractorTest
         Assert::assertTrue($logger->hasWarningThatContains('Exported "0" rows to "in.c-main.simple".'));
     }
 
+    public function testFailingUserInitQueries(): void
+    {
+        $this->cleanOutputDirectory();
+        $logger = new TestLogger();
+        $config = $this->getConfigRow(self::DRIVER);
+        $config['parameters']['db']['initQueries'] = [
+            'failed user init query',
+        ];
+        $app = $this->getApp($config, [], $logger);
+        try {
+            $app->run();
+        } catch (UserExceptionInterface $e) {
+            Assert::assertStringContainsString('Syntax error or access violation', $e->getMessage());
+            Assert::assertStringContainsString('syntax to use near \'failed user init query\'', $e->getMessage());
+        }
+    }
+
     public function testRunNoPrimaryKey(): void
     {
         $this->cleanOutputDirectory();
