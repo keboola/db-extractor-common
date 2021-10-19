@@ -99,6 +99,7 @@ class CommonExtractorTest extends ExtractorTest
         $app = $this->getApp($config, [], $logger);
         try {
             $app->run();
+            Assert::fail('Failing query must raise exception.');
         } catch (UserExceptionInterface $e) {
             Assert::assertStringContainsString('Syntax error or access violation', $e->getMessage());
             Assert::assertStringContainsString('syntax to use near \'failed user init query\'', $e->getMessage());
