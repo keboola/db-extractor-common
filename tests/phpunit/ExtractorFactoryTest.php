@@ -15,7 +15,7 @@ class ExtractorFactoryTest extends ExtractorTest
 {
     public function testCreateExtractor(): void
     {
-        $config = $this->getConfig('Common');
+        $config = $this->getConfig('common');
         $factory = new ExtractorFactory($config['parameters'], []);
 
         $extractor = $factory->create(
@@ -28,7 +28,7 @@ class ExtractorFactoryTest extends ExtractorTest
 
     public function testUnexistsExtractorClass(): void
     {
-        $config = $this->getConfig('Common');
+        $config = $this->getConfig('common');
         $config['parameters']['extractor_class'] = 'unexists';
 
         $factory = new ExtractorFactory($config['parameters'], []);
