@@ -43,14 +43,14 @@ abstract class BaseExtractor
 
     private DatabaseConfig $databaseConfig;
 
-    public function __construct(array $parameters, array $state, LoggerInterface $logger)
+    public function __construct(array $parameters, array $state, LoggerInterface $logger, string $action)
     {
         $this->parameters = $parameters;
         $this->dataDir = $parameters['data_dir'];
         $this->state = $state;
         $this->logger = $logger;
         $this->parameters = $this->createSshTunnel($this->parameters);
-        $this->syncAction = isset($this->parameters['action']) && $this->parameters['action'] !== 'run';
+        $this->syncAction = $action !== 'run';
 
         $this->databaseConfig = $this->createDatabaseConfig($this->parameters['db']);
         $this->createConnection($this->databaseConfig);

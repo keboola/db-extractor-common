@@ -60,7 +60,7 @@ class Application extends Container
         };
 
         $this['extractor'] = function () use ($app) {
-            return $app['extractor_factory']->create($app['logger']);
+            return $app['extractor_factory']->create($app['logger'], $app['action']);
         };
     }
 
