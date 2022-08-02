@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Keboola\DbExtractor\Test;
 
 use Exception;
+use Keboola\Component\JsonHelper;
 use Keboola\DbExtractor\Application;
 use Monolog\Logger;
 use PHPUnit\Framework\TestCase;
@@ -12,7 +13,14 @@ use Psr\Log\LoggerInterface;
 
 class ExtractorTest extends TestCase
 {
-    protected string $dataDir = __DIR__ . '/../../tests/phpunit/data';
+    protected string $dataDir = '/code/tests/phpunit/data';
+
+    protected string $appName = 'ex-db-common';
+
+    protected function setUp(): void
+    {
+        putenv('KBC_DATADIR=' . $this->dataDir);
+    }
 
     protected function getConfigDbNode(string $driver): array
     {
@@ -87,13 +95,20 @@ class ExtractorTest extends TestCase
         return (string) file_get_contents('/root/.ssh/id_rsa.pub');
     }
 
+    protected function getApp(array $config, ?LoggerInterface $logger = null, array $state = []): Application
+    {
+        JsonHelper::writeFile($this->dataDir . '/config.json', $config);
+        if ($state) {
+            JsonHelper::writeFile($this->dataDir . '/in/state.json', $state);
+        }
+        return self::getApplication($this->appName, $logger);
+    }
+
     protected function getApplication(
         string $appName,
-        array $config,
-        array $state = [],
         ?LoggerInterface $logger = null
     ): Application {
         $logger = $logger ?? new Logger($appName);
-        return new Application($config, $logger, $state);
+        return new Application($logger);
     }
 }

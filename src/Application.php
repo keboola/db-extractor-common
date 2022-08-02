@@ -4,87 +4,62 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor;
 
-use ErrorException;
-use Keboola\Component\Logger\AsyncActionLogging;
-use Keboola\Component\Logger\SyncActionLogging;
+use Keboola\Component\BaseComponent;
 use Keboola\DbExtractor\Exception\UserException;
-use Keboola\DbExtractor\Extractor\BaseExtractor;
-use Keboola\DbExtractorConfig\Config;
 use Keboola\DbExtractorConfig\Configuration\ActionConfigRowDefinition;
 use Keboola\DbExtractorConfig\Configuration\ConfigDefinition;
 use Keboola\DbExtractorConfig\Configuration\ConfigRowDefinition;
 use Keboola\DbExtractorConfig\Configuration\ValueObject\ExportConfig;
-use Pimple\Container;
 use Psr\Log\LoggerInterface;
 use Throwable;
 
-class Application extends Container
+class Application extends BaseComponent
 {
-    protected Config $config;
-
-    public function __construct(array $config, LoggerInterface $logger, array $state = [])
+    public function __construct(LoggerInterface $logger)
     {
-        static::setEnvironment();
-
-        parent::__construct();
-
-        $app = $this;
-
-        $this['action'] = isset($config['action']) ? $config['action'] : 'run';
-
-        $this['parameters'] = $config['parameters'];
-
-        $this['state'] = $state;
-
-        $this['logger'] = $logger;
-
-        // Setup logger, copied from php-component/src/BaseComponent.php
-        // Will be removed in next refactoring steps,
-        // ... when Application will be replace by standard BaseComponent
-        if ($this['action'] !== 'run') { // $this->isSyncAction()
-            if ($this['logger'] instanceof SyncActionLogging) {
-                $this['logger']->setupSyncActionLogging();
-            }
-        } else {
-            if ($this['logger']instanceof AsyncActionLogging) {
-                $this['logger']->setupAsyncActionLogging();
-            }
-        }
-
-        $this->buildConfig($config);
+        parent::__construct($logger);
         $this->checkUsername();
-
-        $this['extractor_factory'] = function () use ($app) {
-            $configData = $app->config->getData();
-            return new ExtractorFactory($configData['parameters'], $app['state']);
-        };
-
-        $this['extractor'] = function () use ($app) {
-            return $app['extractor_factory']->create($app['logger'], $app['action']);
-        };
     }
 
-    public function run(): array
+    protected function run(): void
     {
-        $actionMethod = $this['action'] . 'Action';
-        if (!method_exists($this, $actionMethod)) {
-            throw new UserException(sprintf('Action "%s" does not exist.', $this['action']));
-        }
+        $extractorFactory = new ExtractorFactory(
+            $this->getConfig()->getParameters(),
+            $this->getInputState()
+        );
 
-        return $this->$actionMethod();
-    }
+        $extractor = $extractorFactory->create($this->getLogger(), $this->getConfig()->getAction());
 
-    protected function buildConfig(array $config): void
-    {
-        if ($this->isRowConfiguration($config)) {
-            if ($this['action'] === 'run') {
-                $this->config = new Config($config, new ConfigRowDefinition());
-            } else {
-                $this->config = new Config($config, new ActionConfigRowDefinition());
+        if (!$this->isRowConfiguration($this->getConfig()->getData())) {
+            $tables = array_filter(
+                $this->getConfig()->getParameters()['tables'],
+                function ($table) {
+                    return ($table['enabled']);
+                }
+            );
+            foreach ($tables as $table) {
+                $extractor->export($this->createExportConfig($table));
             }
         } else {
-            $this->config = new Config($config, new ConfigDefinition());
+            $exportResults = $extractor->export($this->createExportConfig($this->getConfig()->getParameters()));
+            if (isset($exportResults['state'])) {
+                $this->writeOutputStateToFile($exportResults['state']);
+            }
         }
+    }
+
+    protected function getConfigDefinitionClass(): string
+    {
+        if ($this->isRowConfiguration($this->getRawConfig())) {
+            $action = $this->getRawConfig()['action'] ?? 'run';
+            if ($action === 'run') {
+                return ConfigRowDefinition::class;
+            } else {
+                return ActionConfigRowDefinition::class;
+            }
+        }
+
+        return ConfigDefinition::class;
     }
 
     protected function createExportConfig(array $data): ExportConfig
@@ -94,11 +69,12 @@ class Application extends Container
 
     protected function isRowConfiguration(array $config): bool
     {
-        if (isset($config['parameters']['table']) || isset($config['parameters']['query'])) {
+        $parameters = $config['parameters'];
+        if (isset($parameters['table']) || isset($parameters['query'])) {
             return true;
         }
 
-        if (!isset($config['parameters']['tables'])) {
+        if (!isset($parameters['tables'])) {
             return true;
         }
 
@@ -107,46 +83,29 @@ class Application extends Container
 
     protected function checkUsername(): void
     {
-        $usernameChecker = new UsernameChecker($this['logger'], $this->config);
+        $usernameChecker = new UsernameChecker($this->getLogger(), $this->getConfig());
         $usernameChecker->checkUsername();
     }
 
-    private function runAction(): array
+    protected function getSyncActions(): array
     {
-        $configData = $this->config->getData();
-        $imported = [];
-        $outputState = [];
-        if (!$this->isRowConfiguration($configData)) {
-            $tables = (array) array_filter(
-                $configData['parameters']['tables'],
-                function ($table) {
-                    return ($table['enabled']);
-                }
-            );
-            foreach ($tables as $table) {
-                $exportResults = $this['extractor']->export($this->createExportConfig($table));
-                $imported[] = $exportResults;
-            }
-        } else {
-            $exportResults = $this['extractor']->export($this->createExportConfig($configData['parameters']));
-            if (isset($exportResults['state'])) {
-                $outputState = $exportResults['state'];
-                unset($exportResults['state']);
-            }
-            $imported = $exportResults;
-        }
-
         return [
-            'status' => 'success',
-            'imported' => $imported,
-            'state' => $outputState,
+            'getTables' => 'getTablesAction',
+            'testConnection' => 'testConnectionAction',
         ];
     }
 
-    private function testConnectionAction(): array
+    protected function testConnectionAction(): array
     {
+        $extractorFactory = new ExtractorFactory(
+            $this->getConfig()->getParameters(),
+            $this->getInputState()
+        );
+
+        $extractor = $extractorFactory->create($this->getLogger(), $this->getConfig()->getAction());
+
         try {
-            $this['extractor']->testConnection();
+            $extractor->testConnection();
         } catch (Throwable $e) {
             throw new UserException(sprintf("Connection failed: '%s'", $e->getMessage()), 0, $e);
         }
@@ -156,26 +115,19 @@ class Application extends Container
         ];
     }
 
-    private function getTablesAction(): array
+    protected function getTablesAction(): array
     {
-        /** @var BaseExtractor $extractor */
-        $extractor = $this['extractor'];
-        $output = [];
-        $output['tables'] = $extractor->getTables();
-        $output['status'] = 'success';
-        return $output;
-    }
+        $extractorFactory = new ExtractorFactory(
+            $this->getConfig()->getParameters(),
+            $this->getInputState()
+        );
 
-    public static function setEnvironment(): void
-    {
-        error_reporting(E_ALL);
-        set_error_handler(function ($errno, $errstr, $errfile, $errline, array $errcontext): bool {
-            if (!(error_reporting() & $errno)) {
-                // respect error_reporting() level
-                // libraries used in custom components may emit notices that cannot be fixed
-                return false;
-            }
-            throw new ErrorException($errstr, 0, $errno, $errfile, $errline);
-        });
+        $extractor = $extractorFactory->create($this->getLogger(), $this->getConfig()->getAction());
+
+        $output = [
+            'tables' => $extractor->getTables(),
+            'status' => 'success',
+        ];
+        return $output;
     }
 }

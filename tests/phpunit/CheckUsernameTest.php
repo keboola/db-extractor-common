@@ -6,12 +6,12 @@ namespace Keboola\DbExtractor\Tests;
 
 use Keboola\DbExtractor\Application;
 use Keboola\DbExtractor\Exception\BadUsernameException;
+use Keboola\DbExtractor\Test\ExtractorTest;
 use Keboola\Temp\Temp;
 use PHPUnit\Framework\Assert;
-use PHPUnit\Framework\TestCase;
 use Psr\Log\Test\TestLogger;
 
-class CheckUsernameTest extends TestCase
+class CheckUsernameTest extends ExtractorTest
 {
     use TestDataTrait;
 
@@ -33,7 +33,7 @@ class CheckUsernameTest extends TestCase
             'enabled' => true,
         ];
         putenv('KBC_REALUSER=' . (string) getEnv('COMMON_DB_USER'));
-        new Application($config, $logger);
+        $this->getApp($config, $logger);
 
         Assert::assertTrue(
             $logger->hasInfoThatContains('Your username "root" and database username are same. Running allowed.')
@@ -54,7 +54,7 @@ class CheckUsernameTest extends TestCase
             'Your username "dbUsername" does not have permission ' .
             'to run configuration with the database username "root"'
         );
-        new Application($config, $logger);
+        $this->getApp($config, $logger);
     }
 
     public function testServiceAccountRegexpMatch(): void
@@ -68,7 +68,7 @@ class CheckUsernameTest extends TestCase
         ];
         putenv('KBC_REALUSER=dbUsername');
 
-        new Application($config, $logger);
+        $this->getApp($config, $logger);
 
         Assert::assertTrue(
             $logger->hasInfoThatContains('Database username "service__abc" is service account, username check skipped.')
@@ -91,7 +91,7 @@ class CheckUsernameTest extends TestCase
             'Your username "dbUsername" does not have permission ' .
             'to run configuration with the database username "user123"'
         );
-        new Application($config, $logger);
+        $this->getApp($config, $logger);
     }
 
     public function testUserAccountRegexpMatch(): void
@@ -110,7 +110,7 @@ class CheckUsernameTest extends TestCase
             'Your username "dbUsername" does not have permission ' .
             'to run configuration with the database username "user_abc"'
         );
-        new Application($config, $logger);
+        $this->getApp($config, $logger);
     }
 
     public function testUserAccountRegexpDontMatch(): void
@@ -124,7 +124,7 @@ class CheckUsernameTest extends TestCase
         ];
         putenv('KBC_REALUSER=dbUsername');
 
-        new Application($config, $logger);
+        $this->getApp($config, $logger);
 
         Assert::assertTrue(
             $logger->hasInfoThatContains('Database username "service__abc" is service account, username check skipped.')
@@ -136,9 +136,9 @@ class CheckUsernameTest extends TestCase
         $logger = new TestLogger();
         $config = $this->createConfig();
         putenv('KBC_REALUSER=' . (string) getEnv('COMMON_DB_USER'));
-        new Application($config, $logger);
+        $this->getApp($config, $logger);
 
-        Assert::assertEquals([], $logger->records);
+        Assert::assertCount(1, $logger->records);
     }
 
     private function createConfig(string $action = 'run'): array

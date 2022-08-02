@@ -6,16 +6,15 @@ namespace Keboola\DbExtractor\Tests;
 
 use Keboola\CommonExceptions\ApplicationExceptionInterface;
 use Keboola\CommonExceptions\UserExceptionInterface;
+use Keboola\Component\Exception\BaseComponentException;
 use Keboola\Component\JsonHelper;
+use Keboola\Component\UserException;
 use Keboola\Csv\CsvReader;
-use Keboola\DbExtractor\Application;
 use Keboola\DbExtractor\Test\ExtractorTest;
-use Keboola\DbExtractorConfig\Exception\UserException as ConfigUserException;
 use Monolog\Handler\TestHandler;
 use Monolog\Logger;
 use PDO;
 use PHPUnit\Framework\Assert;
-use Psr\Log\LoggerInterface;
 use Psr\Log\Test\TestLogger;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
@@ -26,13 +25,12 @@ class CommonExtractorTest extends ExtractorTest
 
     public const DRIVER = 'common';
 
-    protected string $appName = 'ex-db-common';
-
     protected PDO $db;
 
     protected function setUp(): void
     {
         parent::setUp();
+        $this->cleanStateFiles();
         $this->initDatabase();
     }
 
@@ -42,19 +40,19 @@ class CommonExtractorTest extends ExtractorTest
         $this->closeSshTunnels();
     }
 
-    private function getApp(array $config, array $state = [], ?LoggerInterface $logger = null): Application
-    {
-        return parent::getApplication($this->appName, $config, $state, $logger);
-    }
-
     public function testRunSimple(): void
     {
         $this->cleanOutputDirectory();
         $logger = new TestLogger();
-        $result = ($this->getApp($this->getConfig(self::DRIVER), [], $logger))->run();
-        $this->assertExtractedData($this->dataDir . '/escaping.csv', $result['imported'][0]['outputTable']);
-        $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][1]['outputTable']);
-        $filename = $this->dataDir . '/out/tables/' . $result['imported'][1]['outputTable'] . '.csv.manifest';
+        $this->getApp(
+            $this->getConfig(self::DRIVER),
+            $logger
+        )->execute();
+
+        Assert::assertTrue($logger->hasInfo('Exporting "escaping" to "in.c-main.escaping".'));
+        Assert::assertTrue($logger->hasInfo('Exporting "simple" to "in.c-main.simple".'));
+
+        $filename = $this->dataDir . '/out/tables/in.c-main.simple.csv.manifest';
         $manifest = json_decode(
             (string) file_get_contents($filename),
             true
@@ -72,12 +70,12 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['db']['initQueries'] = [
             'TRUNCATE TABLE `simple`',
         ];
-        $result = ($this->getApp($config, [], $logger))->run();
+        $this->getApp($config, $logger)->execute();
         Assert::assertEquals(
             '',
-            file_get_contents($this->dataDir . '/out/tables/' . $result['imported']['outputTable'] . '.csv')
+            file_get_contents($this->dataDir . '/out/tables/in.c-main.simple.csv')
         );
-        $filename = $this->dataDir . '/out/tables/' . $result['imported']['outputTable'] . '.csv.manifest';
+        $filename = $this->dataDir . '/out/tables/in.c-main.simple.csv.manifest';
         $manifest = json_decode(
             (string) file_get_contents($filename),
             true
@@ -96,9 +94,9 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['db']['initQueries'] = [
             'failed user init query',
         ];
-        $app = $this->getApp($config, [], $logger);
+        $app = $this->getApp($config, $logger);
         try {
-            $app->run();
+            $app->execute();
             Assert::fail('Failing query must raise exception.');
         } catch (UserExceptionInterface $e) {
             Assert::assertStringContainsString('Syntax error or access violation', $e->getMessage());
@@ -113,9 +111,11 @@ class CommonExtractorTest extends ExtractorTest
         $config = $this->getConfigRow(self::DRIVER);
         $config['parameters']['primaryKey'] = [];
 
-        $result = ($this->getApp($config))->run();
-        $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported']['outputTable']);
-        $filename = $this->dataDir . '/out/tables/' . $result['imported']['outputTable'] . '.csv.manifest';
+        $logger = new TestLogger();
+
+        $this->getApp($config, $logger)->execute();
+        Assert::assertTrue($logger->hasInfo('Exporting "escaping" to "in.c-main.simple".'));
+        $filename = $this->dataDir . '/out/tables/in.c-main.simple.csv.manifest';
         $manifest = json_decode(
             (string) file_get_contents($filename),
             true
@@ -131,9 +131,13 @@ class CommonExtractorTest extends ExtractorTest
         $config = $this->getConfigRow(self::DRIVER);
         $config['parameters']['primaryKey'] = ['SãoPaulo'];
 
-        $result = ($this->getApp($config))->run();
-        $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported']['outputTable']);
-        $filename = $this->dataDir . '/out/tables/' . $result['imported']['outputTable'] . '.csv.manifest';
+        $logger = new TestLogger();
+
+        $this->getApp($config, $logger)->execute();
+
+        Assert::assertTrue($logger->hasInfo('Exporting "escaping" to "in.c-main.simple".'));
+
+        $filename = $this->dataDir . '/out/tables/in.c-main.simple.csv.manifest';
         $manifest = json_decode(
             (string) file_get_contents($filename),
             true
@@ -145,19 +149,23 @@ class CommonExtractorTest extends ExtractorTest
     public function testRunJsonConfig(): void
     {
         $this->cleanOutputDirectory();
-        $result = ($this->getApp($this->getConfig(self::DRIVER)))->run();
 
-        $this->assertExtractedData($this->dataDir . '/escaping.csv', $result['imported'][0]['outputTable']);
-        $filename = $this->dataDir . '/out/tables/' . $result['imported'][0]['outputTable'] . '.csv.manifest';
+        $logger = new TestLogger();
+
+        $this->getApp($this->getConfig(self::DRIVER), $logger)->execute();
+        Assert::assertTrue($logger->hasInfo('Exporting "escaping" to "in.c-main.escaping".'));
+        Assert::assertTrue($logger->hasInfo('Exporting "simple" to "in.c-main.simple".'));
+
+        $filename = $this->dataDir . '/out/tables/in.c-main.escaping.csv.manifest';
         $manifest = json_decode(
             (string) file_get_contents($filename),
             true
         );
+
         Assert::assertArrayNotHasKey('columns', $manifest);
         Assert::assertArrayNotHasKey('primary_key', $manifest);
 
-        $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][1]['outputTable']);
-        $filename = $this->dataDir . '/out/tables/' . $result['imported'][1]['outputTable'] . '.csv.manifest';
+        $filename = $this->dataDir . '/out/tables/in.c-main.simple.csv.manifest';
         $manifest = json_decode(
             (string) file_get_contents($filename),
             true
@@ -169,12 +177,15 @@ class CommonExtractorTest extends ExtractorTest
     public function testRunConfigRow(): void
     {
         $this->cleanOutputDirectory();
-        $result = ($this->getApp($this->getConfigRow(self::DRIVER)))->run();
-        Assert::assertEquals('success', $result['status']);
-        Assert::assertEquals('in.c-main.simple', $result['imported']['outputTable']);
-        Assert::assertEquals(2, $result['imported']['rows']);
-        $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported']['outputTable']);
-        $filename = $this->dataDir . '/out/tables/' . $result['imported']['outputTable'] . '.csv.manifest';
+
+        $logger = new TestLogger();
+
+        $this->getApp($this->getConfigRow(self::DRIVER), $logger)->execute();
+        Assert::assertTrue($logger->hasInfo('Exporting "escaping" to "in.c-main.simple".'));
+        Assert::assertTrue($logger->hasInfo('Exported "2" rows to "in.c-main.simple".'));
+
+        $this->assertExtractedData($this->dataDir . '/simple.csv', 'in.c-main.simple');
+        $filename = $this->dataDir . '/out/tables/in.c-main.simple.csv.manifest';
         $manifest = json_decode(
             (string) file_get_contents($filename),
             true
@@ -195,11 +206,11 @@ class CommonExtractorTest extends ExtractorTest
             ],
             'sshHost' => 'sshproxy',
         ];
-
         $logger = new TestLogger();
-        $result = ($this->getApp($config, [], $logger))->run();
-        $this->assertExtractedData($this->dataDir . '/escaping.csv', $result['imported'][0]['outputTable']);
-        $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][1]['outputTable']);
+
+        $this->getApp($config, $logger)->execute();
+        Assert::assertTrue($logger->hasInfo('Exporting "simple" to "in.c-main.simple".'));
+        Assert::assertTrue($logger->hasInfo('Exporting "escaping" to "in.c-main.escaping".'));
 
         // Connecting to SSH proxy, not to database directly
         $this->assertTrue($logger->hasInfoThatContains("Creating SSH tunnel to 'sshproxy' on local port '33006'"));
@@ -223,9 +234,10 @@ class CommonExtractorTest extends ExtractorTest
         ];
 
         $logger = new TestLogger();
-        $result = ($this->getApp($config, [], $logger))->run();
-        $this->assertExtractedData($this->dataDir . '/escaping.csv', $result['imported'][0]['outputTable']);
-        $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][1]['outputTable']);
+
+        $this->getApp($config, $logger)->execute();
+        Assert::assertTrue($logger->hasInfo('Exporting "escaping" to "in.c-main.escaping".'));
+        Assert::assertTrue($logger->hasInfo('Exporting "simple" to "in.c-main.simple".'));
 
         // Connecting to SSH proxy, not to database directly
         $this->assertTrue($logger->hasInfoThatContains("Creating SSH tunnel to 'sshproxy' on local port '12345'"));
@@ -250,7 +262,10 @@ class CommonExtractorTest extends ExtractorTest
             'remotePort' => '3306',
         ];
 
-        ($this->getApp($config))->run();
+        $logger = new TestLogger();
+
+        $this->getApp($config, $logger)->execute();
+        Assert::assertTrue($logger->hasInfo('Exporting "escaping" to "in.c-main.simple".'));
     }
 
     public function testRunWithWrongCredentials(): void
@@ -260,7 +275,7 @@ class CommonExtractorTest extends ExtractorTest
 
         $this->expectExceptionMessage('Error connecting to DB: SQLSTATE[HY000] [1045] Access denied for user');
         $this->expectException(UserExceptionInterface::class);
-        ($this->getApp($config))->run();
+        $this->getApp($config)->execute();
     }
 
     public function testRetries(): void
@@ -270,7 +285,7 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['tables'][0]['retries'] = 3;
 
         try {
-            ($this->getApp($config))->run();
+            $this->getApp($config)->execute();
         } catch (UserExceptionInterface $e) {
             Assert::assertStringContainsString('Tried 3 times', $e->getMessage());
         }
@@ -285,9 +300,10 @@ class CommonExtractorTest extends ExtractorTest
         $config = $this->getConfig(self::DRIVER);
         $config['parameters']['tables'][0]['query'] = 'SELECT * FROM escaping WHERE col1 = \'123\'';
 
-        $result = ($this->getApp($config))->run();
+        $logger = new TestLogger();
 
-        Assert::assertEquals('success', $result['status']);
+        $this->getApp($config, $logger)->execute();
+
         Assert::assertFileExists($outputCsvFile);
         Assert::assertFileExists($outputManifestFile);
 
@@ -304,8 +320,12 @@ class CommonExtractorTest extends ExtractorTest
         $config = $this->getConfig(self::DRIVER);
         $config['action'] = 'testConnection';
         $config['parameters']['tables'] = [];
-        $app = $this->getApp($config);
-        $res = $app->run();
+        $logger = new TestLogger();
+
+        ob_start();
+        $this->getApp($config, $logger)->execute();
+        $res = json_decode((string) ob_get_contents(), true);
+        ob_end_clean();
 
         Assert::assertEquals('success', $res['status']);
     }
@@ -320,7 +340,7 @@ class CommonExtractorTest extends ExtractorTest
             'outputTable' => 'dummy',
         ];
         try {
-            ($this->getApp($config))->run();
+            $this->getApp($config)->execute();
             $this->fail('Failing query must raise exception.');
         } catch (UserExceptionInterface $e) {
             // test that the error message contains the query name
@@ -337,7 +357,7 @@ class CommonExtractorTest extends ExtractorTest
         $app = $this->getApp($config);
         $exceptionThrown = false;
         try {
-            $app->run();
+            $app->execute();
         } catch (UserExceptionInterface $e) {
             $exceptionThrown = true;
         }
@@ -352,7 +372,10 @@ class CommonExtractorTest extends ExtractorTest
 
         $app = $this->getApp($config);
 
-        $result = $app->run();
+        ob_start();
+        $app->execute();
+        $result = json_decode((string) ob_get_contents(), true);
+        ob_end_clean();
 
         Assert::assertArrayHasKey('status', $result);
         Assert::assertArrayHasKey('tables', $result);
@@ -434,7 +457,10 @@ class CommonExtractorTest extends ExtractorTest
 
         $app = $this->getApp($config);
 
-        $result = $app->run();
+        ob_start();
+        $app->execute();
+        $result = json_decode((string) ob_get_contents(), true);
+        ob_end_clean();
 
         Assert::assertArrayHasKey('status', $result);
         Assert::assertArrayHasKey('tables', $result);
@@ -479,7 +505,10 @@ class CommonExtractorTest extends ExtractorTest
 
         $app = $this->getApp($config);
 
-        $result = $app->run();
+        ob_start();
+        $app->execute();
+        $result = json_decode((string) ob_get_contents(), true);
+        ob_end_clean();
 
         Assert::assertArrayHasKey('status', $result);
         Assert::assertArrayHasKey('tables', $result);
@@ -518,10 +547,11 @@ class CommonExtractorTest extends ExtractorTest
 
         $manifestFile = $this->dataDir . '/out/tables/in.c-main.simple.csv.manifest';
 
-        $app = $this->getApp($config);
+        $logger = new TestLogger();
 
-        $result = $app->run();
-        $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][0]['outputTable']);
+        $this->getApp($config, $logger)->execute();
+
+        $this->assertExtractedData($this->dataDir . '/simple.csv', 'in.c-main.simple');
 
         $outputManifest = json_decode(
             (string) file_get_contents($manifestFile),
@@ -656,10 +686,10 @@ class CommonExtractorTest extends ExtractorTest
         $config['action'] = 'sample';
         $config['parameters']['tables'] = [];
 
-        $this->expectExceptionMessage('Action "sample" does not exist.');
-        $this->expectException(UserExceptionInterface::class);
+        $this->expectExceptionMessage('Unknown sync action "sample", method does not exist in class');
+        $this->expectException(BaseComponentException::class);
         $app = $this->getApp($config);
-        $app->run();
+        $app->execute();
     }
 
     public function testTableColumnsQuery(): void
@@ -667,13 +697,11 @@ class CommonExtractorTest extends ExtractorTest
         $config = $this->getConfig(self::DRIVER);
         unset($config['parameters']['tables'][0]);
 
-        $app = $this->getApp($config);
-        $result = $app->run();
+        $this->getApp($config)->execute();
 
-        $outputTableName = $result['imported'][0]['outputTable'];
-        $this->assertExtractedData($this->dataDir . '/simple.csv', $outputTableName);
+        $this->assertExtractedData($this->dataDir . '/simple.csv', 'in.c-main.simple');
         $manifest = json_decode(
-            (string) file_get_contents($this->dataDir . '/out/tables/' . $outputTableName . '.csv.manifest'),
+            (string) file_get_contents($this->dataDir . '/out/tables/in.c-main.simple.csv.manifest'),
             true
         );
         Assert::assertEquals(['weird_I_d', 'SaoPaulo'], $manifest['columns']);
@@ -684,20 +712,18 @@ class CommonExtractorTest extends ExtractorTest
     {
         $config = $this->getConfig(self::DRIVER);
         $config['parameters']['tables'][0]['table'] = ['schema' => 'testdb', 'tableName' => 'escaping'];
-        $this->expectException(ConfigUserException::class);
+        $this->expectException(UserException::class);
         $this->expectExceptionMessage('Both table and query cannot be set together.');
-        $app = $this->getApp($config);
-        $app->run();
+        $this->getApp($config)->execute();
     }
 
     public function testInvalidConfigurationQueryNorTable(): void
     {
         $config = $this->getConfig(self::DRIVER);
         unset($config['parameters']['tables'][0]['query']);
-        $this->expectException(ConfigUserException::class);
+        $this->expectException(UserException::class);
         $this->expectExceptionMessage('Table or query must be configured.');
-        $app = $this->getApp($config);
-        $app->run();
+        $this->getApp($config)->execute();
     }
 
     public function testStrangeTableName(): void
@@ -705,9 +731,10 @@ class CommonExtractorTest extends ExtractorTest
         $config = $this->getConfig(self::DRIVER);
         $config['parameters']['tables'][0]['outputTable'] = 'in.c-main.something/ weird';
         unset($config['parameters']['tables'][1]);
-        $result = ($this->getApp($config))->run();
+        $logger = new TestLogger();
+        $this->getApp($config, $logger)->execute();
 
-        Assert::assertEquals('success', $result['status']);
+        Assert::assertTrue($logger->hasInfo('Exported "7" rows to "in.c-main.something/ weird".'));
         Assert::assertFileExists($this->dataDir . '/out/tables/in.c-main.something-weird.csv');
         Assert::assertFileExists($this->dataDir . '/out/tables/in.c-main.something-weird.csv.manifest');
     }
@@ -718,39 +745,42 @@ class CommonExtractorTest extends ExtractorTest
         $config['incrementalFethcingColumn'] = 'timestamp';
         $this->createAutoIncrementAndTimestampTable();
 
-        $result = ($this->getApp($config))->run();
+        $logger = new TestLogger();
+        $this->getApp($config, $logger)->execute();
 
-        Assert::assertEquals('success', $result['status']);
-        Assert::assertEquals(
-            [
-                'outputTable' => 'in.c-main.auto-increment-timestamp',
-                'rows' => 2,
-            ],
-            $result['imported']
-        );
+        Assert::assertTrue($logger->hasInfo('Exported "2" rows to "in.c-main.auto-increment-timestamp".'));
+
+        $stateFile = $this->dataDir . '/out/state.json';
+
+        Assert::assertFileExists($stateFile);
+        $state = json_decode((string) file_get_contents($stateFile), true);
 
         //check that output state contains expected information
-        Assert::assertArrayHasKey('state', $result);
-        Assert::assertArrayHasKey('lastFetchedRow', $result['state']);
-        Assert::assertNotEmpty($result['state']['lastFetchedRow']);
+        Assert::assertArrayHasKey('lastFetchedRow', $state);
+        Assert::assertNotEmpty($state['lastFetchedRow']);
 
         sleep(2);
         // the next fetch should return row with last fetched value
-        $emptyResult = ($this->getApp($config, $result['state']))->run();
-        Assert::assertEquals(1, $emptyResult['imported']['rows']);
+        $logger->reset();
+        $this->cleanStateFiles();
+        $this->getApp($config, $logger, $state)->execute();
+        Assert::assertTrue($logger->hasInfo('Exported "1" rows to "in.c-main.auto-increment-timestamp".'));
 
         sleep(2);
         //now add a couple rows and run it again.
         $this->db->exec('INSERT INTO auto_increment_timestamp (`name`) VALUES (\'charles\'), (\'william\')');
 
-        $newResult = ($this->getApp($config, $result['state']))->run();
+        $logger->reset();
+        $this->cleanStateFiles();
+        $this->getApp($config, $logger, $state)->execute();
+
+        $newState = json_decode((string) file_get_contents($stateFile), true);
 
         //check that output state contains expected information
-        Assert::assertArrayHasKey('state', $newResult);
-        Assert::assertArrayHasKey('lastFetchedRow', $newResult['state']);
+        Assert::assertArrayHasKey('lastFetchedRow', $newState);
         Assert::assertGreaterThan(
-            $result['state']['lastFetchedRow'],
-            $newResult['state']['lastFetchedRow']
+            $state['lastFetchedRow'],
+            $newState['lastFetchedRow']
         );
     }
 
@@ -760,38 +790,43 @@ class CommonExtractorTest extends ExtractorTest
         $config['incrementalFethcingColumn'] = 'id';
         $this->createAutoIncrementAndTimestampTable();
 
-        $result = ($this->getApp($config))->run();
+        $logger = new TestLogger();
+        $this->getApp($config, $logger)->execute();
 
-        Assert::assertEquals('success', $result['status']);
-        Assert::assertEquals(
-            [
-                'outputTable' => 'in.c-main.auto-increment-timestamp',
-                'rows' => 2,
-            ],
-            $result['imported']
-        );
+        Assert::assertTrue($logger->hasInfo('Exported "2" rows to "in.c-main.auto-increment-timestamp".'));
+
+        $stateFile = $this->dataDir . '/out/state.json';
+
+        Assert::assertFileExists($stateFile);
+        $state = json_decode((string) file_get_contents($stateFile), true);
 
         //check that output state contains expected information
-        Assert::assertArrayHasKey('state', $result);
-        Assert::assertArrayHasKey('lastFetchedRow', $result['state']);
-        Assert::assertEquals(2, $result['state']['lastFetchedRow']);
+        Assert::assertArrayHasKey('lastFetchedRow', $state);
+        Assert::assertEquals(2, $state['lastFetchedRow']);
 
         sleep(2);
         // the next fetch should return row with last fetched value
-        $emptyResult = ($this->getApp($config, $result['state']))->run();
-        Assert::assertEquals(1, $emptyResult['imported']['rows']);
+        $logger->reset();
+        $this->cleanStateFiles();
+        $this->getApp($config, $logger, $state)->execute();
+        Assert::assertFileExists($stateFile);
+        Assert::assertTrue($logger->hasInfo('Exported "1" rows to "in.c-main.auto-increment-timestamp".'));
 
         sleep(2);
         //now add a couple rows and run it again.
         $this->db->exec('INSERT INTO auto_increment_timestamp (`name`) VALUES (\'charles\'), (\'william\')');
 
-        $newResult = ($this->getApp($config, $result['state']))->run();
+        $logger->reset();
+        $this->cleanStateFiles();
+        $this->getApp($config, $logger, $state)->execute();
+        Assert::assertFileExists($stateFile);
+        Assert::assertTrue($logger->hasInfo('Exported "3" rows to "in.c-main.auto-increment-timestamp".'));
+
+        $state = json_decode((string) file_get_contents($stateFile), true);
 
         //check that output state contains expected information
-        Assert::assertArrayHasKey('state', $newResult);
-        Assert::assertArrayHasKey('lastFetchedRow', $newResult['state']);
-        Assert::assertEquals(4, $newResult['state']['lastFetchedRow']);
-        Assert::assertEquals(3, $newResult['imported']['rows']);
+        Assert::assertArrayHasKey('lastFetchedRow', $state);
+        Assert::assertEquals(4, $state['lastFetchedRow']);
     }
 
     public function testIncrementalMaxNumberValue(): void
@@ -800,31 +835,33 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['incrementalFetchingColumn'] = 'number';
         $this->createAutoIncrementAndTimestampTable();
 
-        $result = ($this->getApp($config))->run();
+        $logger = new TestLogger();
+        $this->getApp($config, $logger)->execute();
 
-        Assert::assertEquals('success', $result['status']);
-        Assert::assertEquals(
-            [
-                'outputTable' => 'in.c-main.auto-increment-timestamp',
-                'rows' => 2,
-            ],
-            $result['imported']
-        );
+        Assert::assertTrue($logger->hasInfo('Exported "2" rows to "in.c-main.auto-increment-timestamp".'));
+
+        $stateFile = $this->dataDir . '/out/state.json';
+
+        Assert::assertFileExists($stateFile);
+        $state = json_decode((string) file_get_contents($stateFile), true);
 
         $this->db->exec(
             'INSERT INTO auto_increment_timestamp (`name`, `number`)' .
             ' VALUES (\'charles\', 20.23486237628), (\'william\', 21.2863763287638276)'
         );
 
-        $newResult = ($this->getApp($config, $result['state']))->run();
+        $this->cleanStateFiles();
+        $this->getApp($config, $logger)->execute();
 
-        Assert::assertArrayHasKey('state', $newResult);
-        Assert::assertArrayHasKey('lastFetchedRow', $newResult['state']);
-        Assert::assertEquals('21.28637632876382760000', $newResult['state']['lastFetchedRow']);
+        Assert::assertFileExists($stateFile);
+        $newState = json_decode((string) file_get_contents($stateFile), true);
+
+        Assert::assertArrayHasKey('lastFetchedRow', $newState);
+        Assert::assertEquals('21.28637632876382760000', $newState['lastFetchedRow']);
 
         // Last fetched value is also present in the results of the next run ...
         // so 4 = 2 rows with same timestamp = last fetched value + 2 new rows
-        Assert::assertEquals(4, $newResult['imported']['rows']);
+        Assert::assertTrue($logger->hasInfo('Exported "4" rows to "in.c-main.auto-increment-timestamp".'));
     }
 
     public function testIncrementalFetchingLimit(): void
@@ -833,40 +870,36 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['incrementalFetchingLimit'] = 1;
         $this->createAutoIncrementAndTimestampTable();
 
-        $result = ($this->getApp($config))->run();
+        $logger = new TestLogger();
+        $this->getApp($config, $logger)->execute();
 
-        Assert::assertEquals('success', $result['status']);
-        Assert::assertEquals(
-            [
-                'outputTable' => 'in.c-main.auto-increment-timestamp',
-                'rows' => 1,
-            ],
-            $result['imported']
-        );
+        Assert::assertTrue($logger->hasInfo('Exported "1" rows to "in.c-main.auto-increment-timestamp".'));
+
+        $stateFile = $this->dataDir . '/out/state.json';
+
+        Assert::assertFileExists($stateFile);
+        $state = json_decode((string) file_get_contents($stateFile), true);
 
         //check that output state contains expected information
-        Assert::assertArrayHasKey('state', $result);
-        Assert::assertArrayHasKey('lastFetchedRow', $result['state']);
-        Assert::assertEquals(1, $result['state']['lastFetchedRow']);
+        Assert::assertArrayHasKey('lastFetchedRow', $state);
+        Assert::assertEquals(1, $state['lastFetchedRow']);
 
         sleep(2);
         // the next fetch should contain the second row
-        $result = ($this->getApp($config, $result['state']))->run();
-        Assert::assertEquals(
-            [
-                'outputTable' => 'in.c-main.auto-increment-timestamp',
-                'rows' => 1,
-            ],
-            $result['imported']
-        );
+        $logger->reset();
+        $this->cleanStateFiles();
+        $this->getApp($config, $logger)->execute();
+
+        Assert::assertTrue($logger->hasInfo('Exported "1" rows to "in.c-main.auto-increment-timestamp".'));
+
+        $newState = json_decode((string) file_get_contents($stateFile), true);
 
         //check that output state contains expected information
-        Assert::assertArrayHasKey('state', $result);
-        Assert::assertArrayHasKey('lastFetchedRow', $result['state']);
+        Assert::assertArrayHasKey('lastFetchedRow', $newState);
 
         // Last fetched value is also present in the results of the next run ...
         // ... and LIMIT = 1   =>  returned same value as in the first run
-        Assert::assertEquals(1, $result['state']['lastFetchedRow']);
+        Assert::assertEquals(1, $newState['lastFetchedRow']);
     }
 
     public function testIncrementalFetchingDisabled(): void
@@ -875,19 +908,15 @@ class CommonExtractorTest extends ExtractorTest
         $config = $this->getIncrementalFetchingConfig();
         unset($config['parameters']['incremental']);
         unset($config['parameters']['incrementalFetchingColumn']);
-        $result = ($this->getApp($config))->run();
 
-        Assert::assertEquals(
-            [
-                'outputTable' => 'in.c-main.auto-increment-timestamp',
-                'rows' => 2,
-            ],
-            $result['imported']
-        );
+        $logger = new TestLogger();
+        $this->getApp($config, $logger)->execute();
 
-        // Check that output state contains expected information
-        Assert::assertArrayHasKey('state', $result);
-        Assert::assertEmpty($result['state']);
+        Assert::assertTrue($logger->hasInfo('Exported "2" rows to "in.c-main.auto-increment-timestamp".'));
+
+        $stateFile = $this->dataDir . '/out/state.json';
+
+        Assert::assertFileDoesNotExist($stateFile);
 
         // Check manifest incremental key
         $outputManifest = JsonHelper::readFile(
@@ -901,22 +930,18 @@ class CommonExtractorTest extends ExtractorTest
         $config = $this->getConfigRow(self::DRIVER);
         $config['parameters']['incremental'] = true;
         unset($config['parameters']['incrementalFetchingColumn']);
-        $result = ($this->getApp($config))->run();
 
-        Assert::assertEquals(
-            [
-                'outputTable' => 'in.c-main.simple',
-                'rows' => 2,
-            ],
-            $result['imported']
-        );
+        $logger = new TestLogger();
+        $this->getApp($config, $logger)->execute();
 
-        // Check that output state contains expected information
-        Assert::assertArrayHasKey('state', $result);
-        Assert::assertEmpty($result['state']);
+        Assert::assertTrue($logger->hasInfo('Exported "2" rows to "in.c-main.simple".'));
+
+        $stateFile = $this->dataDir . '/out/state.json';
+
+        Assert::assertFileDoesNotExist($stateFile);
 
         // Check extracted data
-        $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported']['outputTable']);
+        $this->assertExtractedData($this->dataDir . '/simple.csv', 'in.c-main.simple');
 
         // Check manifest incremental key
         $outputManifest = JsonHelper::readFile(
@@ -932,7 +957,7 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['incrementalFetchingColumn'] = 'fakeCol'; // column does not exist
 
         try {
-            $result = ($this->getApp($config))->run();
+            $this->getApp($config)->execute();
             $this->fail('specified autoIncrement column does not exist, should fail.');
         } catch (UserExceptionInterface $e) {
             Assert::assertStringStartsWith('Column [fakeCol]', $e->getMessage());
@@ -941,7 +966,7 @@ class CommonExtractorTest extends ExtractorTest
         // column exists but is not auto-increment nor updating timestamp so should fail
         $config['parameters']['incrementalFetchingColumn'] = 'name';
         try {
-            $result = ($this->getApp($config))->run();
+            $this->getApp($config)->execute();
             $this->fail('specified column is not auto increment nor timestamp, should fail.');
         } catch (UserExceptionInterface $e) {
             Assert::assertStringStartsWith('Column [name] specified for incremental fetching', $e->getMessage());
@@ -955,12 +980,11 @@ class CommonExtractorTest extends ExtractorTest
         $config['parameters']['query'] = 'SELECT * FROM auto_increment_timestamp';
         unset($config['parameters']['table']);
 
-        $this->expectException(ConfigUserException::class);
+        $this->expectException(UserException::class);
         $this->expectExceptionMessage(
             'The "incrementalFetchingColumn" is configured, but incremental fetching is not supported for custom query.'
         );
-        $app = $this->getApp($config);
-        $app->run();
+        $this->getApp($config)->execute();
     }
 
     public function testColumnOrdering(): void
@@ -969,8 +993,7 @@ class CommonExtractorTest extends ExtractorTest
         $config = $this->getIncrementalFetchingConfig();
         $config['parameters']['columns'] = ['timestamp', 'id', 'name'];
         $config['parameters']['outputTable'] = 'in.c-main.columnsCheck';
-        $result = $this->getApp($config)->run();
-        Assert::assertEquals('success', $result['status']);
+        $this->getApp($config)->execute();
         $outputManifestFile = $this->dataDir . '/out/tables/in.c-main.columnscheck.csv.manifest';
 
         $outputManifest = json_decode(
@@ -1003,7 +1026,12 @@ class CommonExtractorTest extends ExtractorTest
             ],
         ];
 
-        $result = ($this->getApp($config))->run();
+        $logger = new TestLogger();
+        ob_start();
+        $this->getApp($config, $logger)->execute();
+        $result = json_decode((string) ob_get_contents(), true);
+        ob_end_clean();
+
         Assert::assertCount(1, $result);
         Assert::assertArrayHasKey('status', $result);
         Assert::assertEquals('success', $result['status']);
@@ -1016,10 +1044,13 @@ class CommonExtractorTest extends ExtractorTest
         unset($config['parameters']['table']);
         // we want to test the no results case
         $config['parameters']['query'] = 'SELECT 1 LIMIT 0';
-        $result = ($this->getApp($config))->run();
 
-        Assert::assertArrayHasKey('status', $result);
-        Assert::assertEquals('success', $result['status']);
+        $logger = new TestLogger();
+        $this->getApp($config, $logger)->execute();
+
+        Assert::assertTrue($logger->hasWarning(
+            'Query result set is empty. Exported "0" rows to "in.c-main.simple".'
+        ));
     }
 
     public function testInvalidConfigsBothTableAndQueryWithNoName(): void
@@ -1030,10 +1061,10 @@ class CommonExtractorTest extends ExtractorTest
         // we want to test the no results case
         $config['parameters']['query'] = 'SELECT 1 LIMIT 0';
 
-        $this->expectException(ConfigUserException::class);
+        $this->expectException(UserException::class);
         $this->expectExceptionMessage('Both table and query cannot be set together.');
 
-        ($this->getApp($config))->run();
+        $this->getApp($config)->execute();
     }
 
     public function testInvalidConfigsBothIncrFetchAndQueryWithNoName(): void
@@ -1046,12 +1077,12 @@ class CommonExtractorTest extends ExtractorTest
         // we want to test the no results case
         $config['parameters']['query'] = 'SELECT 1 LIMIT 0';
 
-        $this->expectException(ConfigUserException::class);
+        $this->expectException(UserException::class);
         $this->expectExceptionMessage(
             'The "incrementalFetchingColumn" is configured, but incremental fetching is not supported for custom query.'
         );
 
-        ($this->getApp($config))->run();
+        ($this->getApp($config))->execute();
     }
 
     public function testInvalidConfigsNeitherTableNorQueryWithNoName(): void
@@ -1060,10 +1091,9 @@ class CommonExtractorTest extends ExtractorTest
         unset($config['parameters']['name']);
         unset($config['parameters']['table']);
 
-        $this->expectException(ConfigUserException::class);
+        $this->expectException(UserException::class);
         $this->expectExceptionMessage('Table or query must be configured.');
-        $app = $this->getApp($config);
-        $app->run();
+        $this->getApp($config)->execute();
     }
 
     public function testInvalidConfigsInvalidTableWithNoName(): void
@@ -1072,10 +1102,9 @@ class CommonExtractorTest extends ExtractorTest
         unset($config['parameters']['name']);
         $config['parameters']['table'] = ['tableName' => 'sales'];
 
-        $this->expectException(ConfigUserException::class);
+        $this->expectException(UserException::class);
         $this->expectExceptionMessage('The child config "schema" under "root.parameters.table" must be configured.');
-        $app = $this->getApp($config);
-        $app->run();
+        $this->getApp($config)->execute();
     }
 
     public function testNoRetryOnCsvError(): void
@@ -1085,16 +1114,14 @@ class CommonExtractorTest extends ExtractorTest
         (new Filesystem)->remove($this->dataDir . '/out/tables/in.c-main.simple-csv-err.csv');
         (new Filesystem)->symlink('/dev/full', $this->dataDir . '/out/tables/in.c-main.simple-csv-err.csv');
 
-        $handler = new TestHandler();
-        $logger = new Logger('test');
-        $logger->pushHandler($handler);
-        $app = new Application($config, $logger, []);
+        $logger = new TestLogger();
+        $app = $this->getApp($config, $logger);
         try {
-            $app->run();
+            $app->execute();
             self::fail('Must raise exception');
         } catch (ApplicationExceptionInterface $e) {
             Assert::assertStringContainsString('Failed writing CSV File', $e->getMessage());
-            Assert::assertFalse($handler->hasInfoThatContains('Retrying'));
+            Assert::assertFalse($logger->hasInfoThatContains('Retrying'));
         }
     }
 
@@ -1114,9 +1141,9 @@ class CommonExtractorTest extends ExtractorTest
         ];
 
         $logger = new TestLogger();
-        $result = ($this->getApp($config, [], $logger))->run();
-        $this->assertExtractedData($this->dataDir . '/escaping.csv', $result['imported'][0]['outputTable']);
-        $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported'][1]['outputTable']);
+        $this->getApp($config, $logger)->execute();
+        $this->assertExtractedData($this->dataDir . '/escaping.csv', 'in.c-main.escaping');
+        $this->assertExtractedData($this->dataDir . '/simple.csv', 'in.c-main.simple');
 
         // Connecting to SSH proxy, not to database directly
         $this->assertTrue($logger->hasInfoThatContains("Creating SSH tunnel to 'sshproxy' on local port '33056'"));
@@ -1139,8 +1166,8 @@ class CommonExtractorTest extends ExtractorTest
         ];
 
         $logger = new TestLogger();
-        $result = ($this->getApp($config, [], $logger))->run();
-        $this->assertExtractedData($this->dataDir . '/simple.csv', $result['imported']['outputTable']);
+        $this->getApp($config, $logger)->execute();
+        $this->assertExtractedData($this->dataDir . '/simple.csv', 'in.c-main.simple');
 
         // Connecting to SSH proxy, not to database directly
         $this->assertTrue($logger->hasInfoThatContains("Creating SSH tunnel to 'sshproxy' on local port '33066'"));
@@ -1154,9 +1181,9 @@ class CommonExtractorTest extends ExtractorTest
         $logger->pushHandler($handler);
         $config = $this->getConfigRow(self::DRIVER);
         $config['parameters']['db']['host'] = 'nonexistenthost.example';
-        $app = new Application($config, $logger, []);
+        $app = $this->getApp($config, $logger);
         try {
-            $app->run();
+            $app->execute();
             self::fail('Must raise exception.');
         } catch (UserExceptionInterface $e) {
             Assert::assertTrue($handler->hasInfoThatContains('Retrying...'));
@@ -1222,6 +1249,17 @@ class CommonExtractorTest extends ExtractorTest
             $fs = new Filesystem();
             foreach ($finder as $file) {
                 $fs->remove((string) $file);
+            }
+        }
+    }
+
+    private function cleanStateFiles(): void
+    {
+        foreach (['in', 'out'] as $item) {
+            $stateFile = $this->dataDir . '/' . $item . '/state.json';
+            if (file_exists($stateFile)) {
+                $fs = new Filesystem();
+                $fs->remove($stateFile);
             }
         }
     }

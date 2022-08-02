@@ -252,6 +252,8 @@ class RetryTest extends TestCase
                     'schema' => (string) getEnv('COMMON_DB_DATABASE'),
                 ],
                 'outputTable' => 'output',
+                'data_dir' => '/code/tests/phpunit/data',
+                'extractor_class' => 'common',
             ],
         ];
 
