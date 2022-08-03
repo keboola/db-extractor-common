@@ -187,7 +187,7 @@ class RetryTest extends TestCase
         Assert::assertStringContainsString('Retrying... [1x]', $output);
         Assert::assertStringContainsString('Retrying... [2x]', $output);
         Assert::assertStringNotContainsString('DB query failed:', $errorOutput); // not
-        Assert::assertStringContainsString('Extractor finished successfully.', $output);
+        Assert::assertStringContainsString('Exported "100000" rows to "output".', $output);
         Assert::assertSame('', $errorOutput);
 
         // Extraction is successful
@@ -252,7 +252,7 @@ class RetryTest extends TestCase
                     'schema' => (string) getEnv('COMMON_DB_DATABASE'),
                 ],
                 'outputTable' => 'output',
-                'data_dir' => '/code/tests/phpunit/data',
+                'data_dir' => $this->temp->getTmpFolder(),
                 'extractor_class' => 'Common',
             ],
         ];
