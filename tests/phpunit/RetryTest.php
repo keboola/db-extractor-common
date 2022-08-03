@@ -253,7 +253,7 @@ class RetryTest extends TestCase
                 ],
                 'outputTable' => 'output',
                 'data_dir' => '/code/tests/phpunit/data',
-                'extractor_class' => 'common',
+                'extractor_class' => 'Common',
             ],
         ];
 
