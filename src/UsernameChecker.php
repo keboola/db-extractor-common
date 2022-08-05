@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor;
 
+use Keboola\Component\Config\BaseConfig;
 use Keboola\DbExtractor\Exception\ApplicationException;
 use Keboola\DbExtractor\Exception\BadUsernameException;
-use Keboola\DbExtractorConfig\Config;
 use Psr\Log\LoggerInterface;
 
 class UsernameChecker
@@ -17,7 +17,7 @@ class UsernameChecker
 
     private array $featureConfig;
 
-    public function __construct(LoggerInterface $logger, Config $config)
+    public function __construct(LoggerInterface $logger, BaseConfig $config)
     {
         $this->logger = $logger;
         $this->config = $config->getData();

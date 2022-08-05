@@ -48,6 +48,8 @@ services:
     environment:
       MYSQL_DATABASE: testdb
       MYSQL_ROOT_PASSWORD: somePassword
+    ports:
+      - "3306:3306"
 
   sshproxy:
     image: keboola/db-component-ssh-proxy:latest

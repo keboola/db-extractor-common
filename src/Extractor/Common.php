@@ -6,6 +6,7 @@ namespace Keboola\DbExtractor\Extractor;
 
 use Keboola\Datatype\Definition\Exception\InvalidLengthException;
 use Keboola\Datatype\Definition\MySQL;
+use Keboola\DbExtractor\Adapter\Connection\DbConnection;
 use Keboola\DbExtractor\Adapter\ExportAdapter;
 use Keboola\DbExtractor\Adapter\Metadata\MetadataProvider;
 use Keboola\DbExtractor\Adapter\PDO\PdoConnection;
@@ -53,7 +54,7 @@ class Common extends BaseExtractor
 
         // check params
         if (!$databaseConfig->hasDatabase()) {
-            throw new UserException(sprintf('Parameter "database" is missing.'));
+            throw new UserException('Parameter "database" is missing.');
         }
 
         // ssl encryption
@@ -71,7 +72,7 @@ class Common extends BaseExtractor
                 $options[PDO::MYSQL_ATTR_SSL_CA] = SslHelper::createSSLFile($temp, $sslConnectionConfig->getCa());
             }
             if ($sslConnectionConfig->hasCipher()) {
-                $options[PDO::MYSQL_ATTR_SSL_CIPHER] = (string) $sslConnectionConfig->getCipher();
+                $options[PDO::MYSQL_ATTR_SSL_CIPHER] = $sslConnectionConfig->getCipher();
             } else {
                 $options[PDO::MYSQL_ATTR_SSL_CIPHER] = 'DEFAULT@SECLEVEL=1';
             }
@@ -107,7 +108,7 @@ class Common extends BaseExtractor
         if ($databaseConfig->hasSSLConnection()) {
             $status = $this->connection->query("SHOW STATUS LIKE 'Ssl_cipher';", 1)->fetch();
             if (empty($status['Value'])) {
-                throw new UserException(sprintf('Connection is not encrypted'));
+                throw new UserException('Connection is not encrypted');
             } else {
                 $this->logger->info('Using SSL cipher: ' . $status['Value']);
             }
