@@ -20,7 +20,7 @@
     "keboola/db-extractor-ssh-tunnel": "^1.1.5",
     "keboola/db-extractor-table-format": "^3.2",
     "keboola/php-component": "^9.0",
-    "keboola/php-datatypes": "^4.7",
+    "keboola/php-datatypes": "^6.0",
     "keboola/php-utils": "^2.3||^3.0||^4.0",
     "keboola/retry": "^0.5",
     "monolog/monolog": "^2.0",
