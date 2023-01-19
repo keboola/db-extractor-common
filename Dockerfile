@@ -41,7 +41,7 @@ RUN docker-php-ext-install pdo_mysql
 # Add debugger
 RUN pecl channel-update pecl.php.net \
     && pecl config-set php_ini /usr/local/etc/php.ini \
-    && pecl install xdebug \
+    && pecl install xdebug-3.1.5 \
     && docker-php-ext-enable xdebug
 
 
