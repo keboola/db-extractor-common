@@ -95,3 +95,7 @@ Or user account can be defined by regular expression (inverted logic):
   }
 }
 ```
+
+## License
+
+MIT licensed, see [LICENSE](./LICENSE) file.
