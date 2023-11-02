@@ -1,6 +1,5 @@
 # Database Extractor Common [DBC]
 ---
-[![Build Status](https://travis-ci.org/keboola/db-extractor-common.svg?branch=master)](https://travis-ci.org/keboola/db-extractor-common)
 
 Common classes for creating vendor specific database extractors.
 

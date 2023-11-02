@@ -25,7 +25,7 @@ class Application extends BaseComponent
     {
         $extractorFactory = new ExtractorFactory(
             $this->getConfig()->getParameters(),
-            $this->getInputState()
+            $this->getInputState(),
         );
 
         $extractor = $extractorFactory->create($this->getLogger(), $this->getConfig()->getAction());
@@ -35,7 +35,7 @@ class Application extends BaseComponent
                 $this->getConfig()->getParameters()['tables'],
                 function ($table) {
                     return ($table['enabled']);
-                }
+                },
             );
             foreach ($tables as $table) {
                 $extractor->export($this->createExportConfig($table));
@@ -99,7 +99,7 @@ class Application extends BaseComponent
     {
         $extractorFactory = new ExtractorFactory(
             $this->getConfig()->getParameters(),
-            $this->getInputState()
+            $this->getInputState(),
         );
 
         $extractor = $extractorFactory->create($this->getLogger(), $this->getConfig()->getAction());
@@ -119,7 +119,7 @@ class Application extends BaseComponent
     {
         $extractorFactory = new ExtractorFactory(
             $this->getConfig()->getParameters(),
-            $this->getInputState()
+            $this->getInputState(),
         );
 
         $extractor = $extractorFactory->create($this->getLogger(), $this->getConfig()->getAction());

@@ -36,7 +36,7 @@ class CheckUsernameTest extends ExtractorTest
         $this->getApp($config, $logger);
 
         Assert::assertTrue(
-            $logger->hasInfoThatContains('Your username "root" and database username are same. Running allowed.')
+            $logger->hasInfoThatContains('Your username "root" and database username are same. Running allowed.'),
         );
     }
 
@@ -52,7 +52,7 @@ class CheckUsernameTest extends ExtractorTest
         $this->expectException(BadUsernameException::class);
         $this->expectExceptionMessage(
             'Your username "dbUsername" does not have permission ' .
-            'to run configuration with the database username "root"'
+            'to run configuration with the database username "root"',
         );
         $this->getApp($config, $logger);
     }
@@ -71,7 +71,8 @@ class CheckUsernameTest extends ExtractorTest
         $this->getApp($config, $logger);
 
         Assert::assertTrue(
-            $logger->hasInfoThatContains('Database username "service__abc" is service account, username check skipped.')
+            $logger->hasInfoThatContains('Database username "service__abc" is service account, ' .
+                'username check skipped.'),
         );
     }
 
@@ -89,7 +90,7 @@ class CheckUsernameTest extends ExtractorTest
         $this->expectException(BadUsernameException::class);
         $this->expectExceptionMessage(
             'Your username "dbUsername" does not have permission ' .
-            'to run configuration with the database username "user123"'
+            'to run configuration with the database username "user123"',
         );
         $this->getApp($config, $logger);
     }
@@ -108,7 +109,7 @@ class CheckUsernameTest extends ExtractorTest
         $this->expectException(BadUsernameException::class);
         $this->expectExceptionMessage(
             'Your username "dbUsername" does not have permission ' .
-            'to run configuration with the database username "user_abc"'
+            'to run configuration with the database username "user_abc"',
         );
         $this->getApp($config, $logger);
     }
@@ -127,7 +128,8 @@ class CheckUsernameTest extends ExtractorTest
         $this->getApp($config, $logger);
 
         Assert::assertTrue(
-            $logger->hasInfoThatContains('Database username "service__abc" is service account, username check skipped.')
+            $logger->hasInfoThatContains('Database username "service__abc" is service account, ' .
+                'username check skipped.'),
         );
     }
 

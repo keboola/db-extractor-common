@@ -1,0 +1,10 @@
+--- src/Toxic.php
++++ src/Toxic.php	(date 1698914760015)
+@@ -112,6 +112,7 @@
+     /**
+      * @return array
+      */
++    #[\ReturnTypeWillChange]
+     public function jsonSerialize()
+     {
+         return [

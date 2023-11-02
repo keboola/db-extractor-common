@@ -44,7 +44,7 @@ class Common extends BaseExtractor
             $simpleQueryFactory,
             $resultWriter,
             $this->dataDir,
-            $this->state
+            $this->state,
         );
     }
 
@@ -83,7 +83,7 @@ class Common extends BaseExtractor
             'mysql:host=%s;port=%s;dbname=%s;charset=utf8',
             $databaseConfig->getHost(),
             $databaseConfig->hasPort() ? $databaseConfig->getPort() : '3306',
-            $databaseConfig->getDatabase()
+            $databaseConfig->getDatabase(),
         );
 
         // Disable connect retries for sync actions
@@ -101,7 +101,7 @@ class Common extends BaseExtractor
                 $pdo->exec('SET NAMES utf8;');
             },
             $connectRetries,
-            $databaseConfig->getInitQueries()
+            $databaseConfig->getInitQueries(),
         );
 
         // Check SSL
@@ -128,16 +128,16 @@ class Common extends BaseExtractor
                             WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND COLUMN_NAME = %s',
                 $this->connection->quote($exportConfig->getTable()->getSchema()),
                 $this->connection->quote($exportConfig->getTable()->getName()),
-                $this->connection->quote($exportConfig->getIncrementalFetchingColumn())
-            )
+                $this->connection->quote($exportConfig->getIncrementalFetchingColumn()),
+            ),
         );
         $columns = $res->fetchAll();
         if (count($columns) === 0) {
             throw new UserException(
                 sprintf(
                     'Column [%s] specified for incremental fetching was not found in the table',
-                    $exportConfig->getIncrementalFetchingColumn()
-                )
+                    $exportConfig->getIncrementalFetchingColumn(),
+                ),
             );
         }
         try {
@@ -153,8 +153,8 @@ class Common extends BaseExtractor
             throw new UserException(
                 sprintf(
                     'Column [%s] specified for incremental fetching is not a numeric or timestamp type column',
-                    $exportConfig->getIncrementalFetchingColumn()
-                )
+                    $exportConfig->getIncrementalFetchingColumn(),
+                ),
             );
         }
     }
@@ -166,9 +166,9 @@ class Common extends BaseExtractor
             $this->connection->quoteIdentifier($exportConfig->getIncrementalFetchingColumn()),
             $this->connection->quoteIdentifier($exportConfig->getIncrementalFetchingColumn()),
             $this->connection->quoteIdentifier($exportConfig->getTable()->getSchema()),
-            $this->connection->quoteIdentifier($exportConfig->getTable()->getName())
+            $this->connection->quoteIdentifier($exportConfig->getTable()->getName()),
         );
         $result = $this->connection->query($sql)->fetchAll();
-        return $result ? $result[0][$exportConfig->getIncrementalFetchingColumn()] : null;
+        return $result ? (string) $result[0][$exportConfig->getIncrementalFetchingColumn()] : null;
     }
 }

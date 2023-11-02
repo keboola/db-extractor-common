@@ -20,7 +20,7 @@ class DataLoader
             [
                 PDO::MYSQL_ATTR_LOCAL_INFILE => true,
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            ]
+            ],
         );
     }
 
@@ -35,7 +35,7 @@ class DataLoader
                 IGNORE %d LINES",
             $inputFile,
             $destinationTable,
-            $ignoreLines
+            $ignoreLines,
         );
 
         /** @var int $result */

@@ -10,17 +10,17 @@
     }
   ],
   "require": {
-    "php": ">=7.4",
+    "php": ">=8.1",
     "ext-json": "*",
     "ext-pdo": "*",
     "keboola/common-exceptions": "^1.1",
-    "keboola/csv": "^3.2",
-    "keboola/db-extractor-adapter": "^1.9",
+    "keboola/csv": "^4.0",
+    "keboola/db-extractor-adapter": "^1.12",
     "keboola/db-extractor-config": "^1.8",
     "keboola/db-extractor-ssh-tunnel": "^1.1.5",
-    "keboola/db-extractor-table-format": "^3.2",
+    "keboola/db-extractor-table-format": "^3.7",
     "keboola/php-component": "^9.0",
-    "keboola/php-datatypes": "^6.0",
+    "keboola/php-datatypes": "^7.2",
     "keboola/php-utils": "^2.3||^3.0||^4.0",
     "keboola/retry": "^0.5",
     "monolog/monolog": "^2.0",
@@ -30,12 +30,14 @@
     "psr/log": "^1.1"
   },
   "require-dev": {
+    "cweagans/composer-patches": "^1.7",
     "ihsw/toxiproxy-php-client": "^2.0",
     "keboola/coding-standard": ">=13.0",
     "keboola/php-temp": "^2.0",
     "php-parallel-lint/php-parallel-lint": "^1.2",
-    "phpstan/phpstan": "^0.12.14",
-    "symfony/debug": "^4.3"
+    "phpstan/phpstan": "^1.10",
+    "symfony/debug": "^4.3",
+    "symfony/finder": "^6.3"
   },
   "autoload": {
     "psr-4": {
@@ -71,5 +73,14 @@
     "allow-plugins": true,
     "sort-packages": true,
     "optimize-autoloader": true
+  },
+  "extra": {
+    "composer-exit-on-patch-failure": true,
+    "patches": {
+      "ihsw/toxiproxy-php-client": [
+        "patches/ihsw-toxiproxy-php-client-Proxy.php.patch",
+        "patches/ihsw-toxiproxy-php-client-Toxic.php.patch"
+      ]
+    }
   }
 }

@@ -89,7 +89,7 @@ abstract class BaseExtractor
     {
         return new DefaultManifestGenerator(
             $this->getMetadataProvider(),
-            new DefaultManifestSerializer()
+            new DefaultManifestSerializer(),
         );
     }
 
@@ -110,7 +110,7 @@ abstract class BaseExtractor
             function (array $table) {
                 return new InputTable($table['tableName'], $table['schema']);
             },
-            $this->parameters['tableListFilter']['tablesToList'] ?? []
+            $this->parameters['tableListFilter']['tablesToList'] ?? [],
         );
 
         $tables = $this->getMetadataProvider()->listTables($whiteList, $loadColumns);
@@ -142,12 +142,12 @@ abstract class BaseExtractor
             $this->logger->info(sprintf(
                 'Exported "%d" rows to "%s".',
                 $result->getRowsCount(),
-                $exportConfig->getOutputTable()
+                $exportConfig->getOutputTable(),
             ));
         } else {
             $this->logger->warning(sprintf(
                 'Query result set is empty. Exported "0" rows to "%s".',
-                $exportConfig->getOutputTable()
+                $exportConfig->getOutputTable(),
             ));
         }
 
