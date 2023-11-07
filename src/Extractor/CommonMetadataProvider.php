@@ -136,12 +136,12 @@ class CommonMetadataProvider implements MetadataProvider
 
         // Length
         $builder->setLength(
-            $data['CHARACTER_MAXIMUM_LENGTH'] ?:
+            (string) ($data['CHARACTER_MAXIMUM_LENGTH'] ?:
                 (
                 $data['NUMERIC_SCALE'] > 0 ?
                     $data['NUMERIC_PRECISION'] . ',' . $data['NUMERIC_SCALE'] :
                     $data['NUMERIC_PRECISION']
-                )
+                )),
         );
 
         // Auto increment
@@ -204,12 +204,12 @@ class CommonMetadataProvider implements MetadataProvider
                     throw new InvalidArgumentException(sprintf(
                         'Table "%s"."%s" is not from used database.',
                         $table->getSchema(),
-                        $table->getName()
+                        $table->getName(),
                     ));
                 }
 
                 return $this->connection->quote($table->getName());
-            }, $whitelist)
+            }, $whitelist),
         );
     }
 }

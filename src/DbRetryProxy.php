@@ -26,17 +26,17 @@ class DbRetryProxy extends RetryProxy
         ?array $expectedExceptions = null,
         ?int $backoffInterval = null,
         ?RetryPolicyInterface $retryPolicy = null,
-        ?BackoffPolicyInterface $backoffPolicy = null
+        ?BackoffPolicyInterface $backoffPolicy = null,
     ) {
         if ($retryPolicy === null) {
             $retryPolicy = new SimpleRetryPolicy(
                 $maxTries ?? self::DEFAULT_MAX_TRIES,
-                $expectedExceptions ?? self::DEFAULT_EXPECTED_EXCEPTIONS
+                $expectedExceptions ?? self::DEFAULT_EXPECTED_EXCEPTIONS,
             );
         }
         if ($backoffPolicy === null) {
             $backoffPolicy = new ExponentialBackOffPolicy(
-                $backoffInterval ?? self::DEFAULT_BACKOFF_INTERVAL
+                $backoffInterval ?? self::DEFAULT_BACKOFF_INTERVAL,
             );
         }
 

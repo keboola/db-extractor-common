@@ -1,4 +1,4 @@
-FROM php:7.4-cli
+FROM php:8.1-cli-buster
 
 ARG COMPOSER_FLAGS="--prefer-dist --no-interaction"
 ARG DEBIAN_FRONTEND=noninteractive
@@ -7,6 +7,7 @@ ENV COMPOSER_PROCESS_TIMEOUT 3600
 
 WORKDIR /code/
 
+COPY patches /code/patches
 COPY docker/php-prod.ini /usr/local/etc/php/php.ini
 COPY docker/composer-install.sh /tmp/composer-install.sh
 
@@ -41,7 +42,7 @@ RUN docker-php-ext-install pdo_mysql
 # Add debugger
 RUN pecl channel-update pecl.php.net \
     && pecl config-set php_ini /usr/local/etc/php.ini \
-    && pecl install xdebug-3.1.5 \
+    && pecl install xdebug \
     && docker-php-ext-enable xdebug
 
 

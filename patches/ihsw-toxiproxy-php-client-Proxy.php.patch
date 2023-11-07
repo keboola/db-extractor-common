@@ -1,0 +1,10 @@
+--- src/Proxy.php
++++ src/Proxy.php	(date 1698913856853)
+@@ -132,6 +132,7 @@
+     /**
+      * @return array
+      */
++    #[\ReturnTypeWillChange]
+     public function jsonSerialize()
+     {
+         return [

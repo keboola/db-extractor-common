@@ -1,0 +1,166 @@
+parameters:
+	ignoreErrors:
+		-
+			message: "#^Cannot cast mixed to string\\.$#"
+			count: 1
+			path: src/Extractor/Common.php
+
+		-
+			message: "#^Parameter \\#1 \\$type of class Keboola\\\\Datatype\\\\Definition\\\\MySQL constructor expects string, mixed given\\.$#"
+			count: 1
+			path: src/Extractor/Common.php
+
+		-
+			message: "#^Method Keboola\\\\DbExtractor\\\\ExtractorFactory\\:\\:create\\(\\) should return Keboola\\\\DbExtractor\\\\Extractor\\\\BaseExtractor but returns object\\.$#"
+			count: 1
+			path: src/ExtractorFactory.php
+
+		-
+			message: "#^Cannot access offset 'data_dir' on mixed\\.$#"
+			count: 3
+			path: src/Test/ExtractorTest.php
+
+		-
+			message: "#^Cannot access offset 'db' on mixed\\.$#"
+			count: 3
+			path: src/Test/ExtractorTest.php
+
+		-
+			message: "#^Cannot access offset 'extractor_class' on mixed\\.$#"
+			count: 3
+			path: src/Test/ExtractorTest.php
+
+		-
+			message: "#^Cannot access offset 'parameters' on mixed\\.$#"
+			count: 9
+			path: src/Test/ExtractorTest.php
+
+		-
+			message: "#^Method Keboola\\\\DbExtractor\\\\Test\\\\ExtractorTest\\:\\:getConfig\\(\\) should return array but returns mixed\\.$#"
+			count: 1
+			path: src/Test/ExtractorTest.php
+
+		-
+			message: "#^Method Keboola\\\\DbExtractor\\\\Test\\\\ExtractorTest\\:\\:getConfigRow\\(\\) should return array but returns mixed\\.$#"
+			count: 1
+			path: src/Test/ExtractorTest.php
+
+		-
+			message: "#^Method Keboola\\\\DbExtractor\\\\Test\\\\ExtractorTest\\:\\:getConfigRowForCsvErr\\(\\) should return array but returns mixed\\.$#"
+			count: 1
+			path: src/Test/ExtractorTest.php
+
+		-
+			message: "#^Cannot access offset 'checkUsername' on mixed\\.$#"
+			count: 1
+			path: src/UsernameChecker.php
+
+		-
+			message: "#^Cannot access offset 'db' on mixed\\.$#"
+			count: 1
+			path: tests/phpunit/CommonExtractorSslTest.php
+
+		-
+			message: "#^Parameter \\#1 \\$data of static method Keboola\\\\DbExtractorConfig\\\\Configuration\\\\ValueObject\\\\DatabaseConfig\\:\\:fromArray\\(\\) expects array, mixed given\\.$#"
+			count: 1
+			path: tests/phpunit/CommonExtractorSslTest.php
+
+		-
+			message: "#^Argument of an invalid type mixed supplied for foreach, only iterables are supported\\.$#"
+			count: 1
+			path: tests/phpunit/CommonExtractorTest.php
+
+		-
+			message: "#^Cannot access offset 'column_metadata' on mixed\\.$#"
+			count: 4
+			path: tests/phpunit/CommonExtractorTest.php
+
+		-
+			message: "#^Cannot access offset 'columns' on mixed\\.$#"
+			count: 8
+			path: tests/phpunit/CommonExtractorTest.php
+
+		-
+			message: "#^Cannot access offset 'key' on mixed\\.$#"
+			count: 1
+			path: tests/phpunit/CommonExtractorTest.php
+
+		-
+			message: "#^Cannot access offset 'lastFetchedRow' on mixed\\.$#"
+			count: 7
+			path: tests/phpunit/CommonExtractorTest.php
+
+		-
+			message: "#^Cannot access offset 'metadata' on mixed\\.$#"
+			count: 1
+			path: tests/phpunit/CommonExtractorTest.php
+
+		-
+			message: "#^Cannot access offset 'primary_key' on mixed\\.$#"
+			count: 6
+			path: tests/phpunit/CommonExtractorTest.php
+
+		-
+			message: "#^Cannot access offset 'rowCount' on mixed\\.$#"
+			count: 7
+			path: tests/phpunit/CommonExtractorTest.php
+
+		-
+			message: "#^Cannot access offset 'status' on mixed\\.$#"
+			count: 5
+			path: tests/phpunit/CommonExtractorTest.php
+
+		-
+			message: "#^Cannot access offset 'tables' on mixed\\.$#"
+			count: 6
+			path: tests/phpunit/CommonExtractorTest.php
+
+		-
+			message: "#^Cannot access offset 'value' on mixed\\.$#"
+			count: 1
+			path: tests/phpunit/CommonExtractorTest.php
+
+		-
+			message: "#^Cannot access offset 0 on mixed\\.$#"
+			count: 4
+			path: tests/phpunit/CommonExtractorTest.php
+
+		-
+			message: "#^Cannot access offset 1 on mixed\\.$#"
+			count: 4
+			path: tests/phpunit/CommonExtractorTest.php
+
+		-
+			message: "#^Cannot access offset 2 on mixed\\.$#"
+			count: 2
+			path: tests/phpunit/CommonExtractorTest.php
+
+		-
+			message: "#^Cannot access offset 3 on mixed\\.$#"
+			count: 2
+			path: tests/phpunit/CommonExtractorTest.php
+
+		-
+			message: "#^Parameter \\#1 \\$datetime of function strtotime expects string, mixed given\\.$#"
+			count: 1
+			path: tests/phpunit/CommonExtractorTest.php
+
+		-
+			message: "#^Parameter \\#2 \\$array of static method PHPUnit\\\\Framework\\\\Assert\\:\\:assertArrayHasKey\\(\\) expects array\\|ArrayAccess, mixed given\\.$#"
+			count: 22
+			path: tests/phpunit/CommonExtractorTest.php
+
+		-
+			message: "#^Parameter \\#2 \\$array of static method PHPUnit\\\\Framework\\\\Assert\\:\\:assertArrayNotHasKey\\(\\) expects array\\|ArrayAccess, mixed given\\.$#"
+			count: 4
+			path: tests/phpunit/CommonExtractorTest.php
+
+		-
+			message: "#^Parameter \\#2 \\$haystack of static method PHPUnit\\\\Framework\\\\Assert\\:\\:assertCount\\(\\) expects Countable\\|iterable, mixed given\\.$#"
+			count: 5
+			path: tests/phpunit/CommonExtractorTest.php
+
+		-
+			message: "#^Parameter \\#3 \\$state of method Keboola\\\\DbExtractor\\\\Test\\\\ExtractorTest\\:\\:getApp\\(\\) expects array, mixed given\\.$#"
+			count: 4
+			path: tests/phpunit/CommonExtractorTest.php

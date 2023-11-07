@@ -37,7 +37,7 @@ class ExtractorTest extends TestCase
     {
         $config = json_decode(
             (string) file_get_contents($this->dataDir . '/' .$driver . '/config.json'),
-            true
+            true,
         );
         $config['parameters']['data_dir'] = $this->dataDir;
         $config['parameters']['db'] = $this->getConfigDbNode($driver);
@@ -50,7 +50,7 @@ class ExtractorTest extends TestCase
     {
         $config = json_decode(
             (string) file_get_contents($this->dataDir . '/' .$driver . '/configRow.json'),
-            true
+            true,
         );
 
         $config['parameters']['data_dir'] = $this->dataDir;
@@ -64,7 +64,7 @@ class ExtractorTest extends TestCase
     {
         $config = json_decode(
             (string) file_get_contents($this->dataDir . '/' .$driver . '/configRowCsvErr.json'),
-            true
+            true,
         );
 
         $config['parameters']['data_dir'] = $this->dataDir;
@@ -106,7 +106,7 @@ class ExtractorTest extends TestCase
 
     protected function getApplication(
         string $appName,
-        ?LoggerInterface $logger = null
+        ?LoggerInterface $logger = null,
     ): Application {
         $logger = $logger ?? new Logger($appName);
         return new Application($logger);

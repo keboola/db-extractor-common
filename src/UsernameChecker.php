@@ -49,14 +49,14 @@ class UsernameChecker
                     'Your username "%s" does not have permission to ' .
                     'run configuration with the database username "%s"',
                     $realUsername,
-                    $dbUsername
-                )
+                    $dbUsername,
+                ),
             );
         }
 
         $this->logger->info(sprintf(
             'Your username "%s" and database username are same. Running allowed.',
-            $realUsername
+            $realUsername,
         ));
     }
 
@@ -65,7 +65,7 @@ class UsernameChecker
         $enabled = $this->featureConfig['enabled'] ?? false;
         if (!is_bool($enabled)) {
             throw new ApplicationException(
-                'Value "image_parameters.check_username.enabled" must be boolean.'
+                'Value "image_parameters.check_username.enabled" must be boolean.',
             );
         }
 
@@ -91,7 +91,7 @@ class UsernameChecker
         if (isset($serviceAccRegexp) && isset($userAccRegexp)) {
             throw new ApplicationException(
                 'Only one of "image_parameters.check_username.serviceAccountRegexp" ' .
-                'or "image_parameters.check_username.userAccountRegexp" must be set.'
+                'or "image_parameters.check_username.userAccountRegexp" must be set.',
             );
         }
 

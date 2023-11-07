@@ -1,6 +1,8 @@
+includes:
+	- phpstan-baseline.neon
 parameters:
     checkMissingIterableValueType: false
-    excludes_analyse:
+    excludePaths:
         - 'tests/phpunit/Fixtures/run.php'
     ignoreErrors:
         # Bad phpdoc in library

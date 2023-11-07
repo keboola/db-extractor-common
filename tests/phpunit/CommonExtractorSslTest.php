@@ -29,7 +29,7 @@ class CommonExtractorSslTest extends ExtractorTest
         $config = $this->getConfig('common');
         $config['action'] = 'testConnection';
         $this->getApp(
-            $config
+            $config,
         )->execute();
 
         Assert::assertTrue(true);

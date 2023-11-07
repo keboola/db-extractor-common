@@ -27,7 +27,7 @@ class DbRetryProxyTest extends TestCase
     public function testMaxRetries(): void
     {
         $retryProxy = new DbRetryProxy(
-            $this->logger
+            $this->logger,
         );
 
         $i = 0;

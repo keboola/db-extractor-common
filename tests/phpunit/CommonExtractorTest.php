@@ -46,7 +46,7 @@ class CommonExtractorTest extends ExtractorTest
         $logger = new TestLogger();
         $this->getApp(
             $this->getConfig(self::DRIVER),
-            $logger
+            $logger,
         )->execute();
 
         Assert::assertTrue($logger->hasInfo('Exporting "escaping" to "in.c-main.escaping".'));
@@ -55,7 +55,7 @@ class CommonExtractorTest extends ExtractorTest
         $filename = $this->dataDir . '/out/tables/in.c-main.simple.csv.manifest';
         $manifest = json_decode(
             (string) file_get_contents($filename),
-            true
+            true,
         );
         Assert::assertEquals(['weird_I_d', 'SaoPaulo'], $manifest['columns']);
         Assert::assertEquals(['weird_I_d'], $manifest['primary_key']);
@@ -73,12 +73,12 @@ class CommonExtractorTest extends ExtractorTest
         $this->getApp($config, $logger)->execute();
         Assert::assertEquals(
             '',
-            file_get_contents($this->dataDir . '/out/tables/in.c-main.simple.csv')
+            file_get_contents($this->dataDir . '/out/tables/in.c-main.simple.csv'),
         );
         $filename = $this->dataDir . '/out/tables/in.c-main.simple.csv.manifest';
         $manifest = json_decode(
             (string) file_get_contents($filename),
-            true
+            true,
         );
         Assert::assertEquals(['weird_I_d', 'SaoPaulo'], $manifest['columns']);
         Assert::assertEquals(['weird_I_d'], $manifest['primary_key']);
@@ -118,7 +118,7 @@ class CommonExtractorTest extends ExtractorTest
         $filename = $this->dataDir . '/out/tables/in.c-main.simple.csv.manifest';
         $manifest = json_decode(
             (string) file_get_contents($filename),
-            true
+            true,
         );
         Assert::assertEquals(['weird_I_d', 'SaoPaulo'], $manifest['columns']);
         Assert::assertArrayNotHasKey('primary_key', $manifest);
@@ -140,7 +140,7 @@ class CommonExtractorTest extends ExtractorTest
         $filename = $this->dataDir . '/out/tables/in.c-main.simple.csv.manifest';
         $manifest = json_decode(
             (string) file_get_contents($filename),
-            true
+            true,
         );
         Assert::assertEquals(['weird_I_d', 'SaoPaulo'], $manifest['columns']);
         Assert::assertEquals(['SaoPaulo'], $manifest['primary_key']);
@@ -159,7 +159,7 @@ class CommonExtractorTest extends ExtractorTest
         $filename = $this->dataDir . '/out/tables/in.c-main.escaping.csv.manifest';
         $manifest = json_decode(
             (string) file_get_contents($filename),
-            true
+            true,
         );
 
         Assert::assertArrayNotHasKey('columns', $manifest);
@@ -168,7 +168,7 @@ class CommonExtractorTest extends ExtractorTest
         $filename = $this->dataDir . '/out/tables/in.c-main.simple.csv.manifest';
         $manifest = json_decode(
             (string) file_get_contents($filename),
-            true
+            true,
         );
         Assert::assertEquals(['weird_I_d', 'SaoPaulo'], $manifest['columns']);
         Assert::assertEquals(['weird_I_d'], $manifest['primary_key']);
@@ -188,7 +188,7 @@ class CommonExtractorTest extends ExtractorTest
         $filename = $this->dataDir . '/out/tables/in.c-main.simple.csv.manifest';
         $manifest = json_decode(
             (string) file_get_contents($filename),
-            true
+            true,
         );
         Assert::assertEquals(['weird_I_d', 'SaoPaulo'], $manifest['columns']);
         Assert::assertEquals(['weird_I_d'], $manifest['primary_key']);
@@ -200,6 +200,7 @@ class CommonExtractorTest extends ExtractorTest
         $config = $this->getConfig(self::DRIVER);
         $config['parameters']['db']['ssh'] = [
             'enabled' => true,
+            'user' => $config['parameters']['db']['user'],
             'keys' => [
                 '#private' => $this->getPrivateKey(),
                 'public' => $this->getPublicKey(),
@@ -227,6 +228,7 @@ class CommonExtractorTest extends ExtractorTest
                 '#private' => $this->getPrivateKey(),
                 'public' => $this->getPublicKey(),
             ],
+            'user' => $config['parameters']['db']['user'],
             'sshHost' => 'sshproxy',
             'localPort' => '12345',
             'remoteHost' => 'mysql',
@@ -256,6 +258,7 @@ class CommonExtractorTest extends ExtractorTest
                 '#private' => $this->getPrivateKey(),
                 'public' => $this->getPublicKey(),
             ],
+            'user' => $config['parameters']['db']['user'],
             'sshHost' => 'wronghost',
             'localPort' => '33306',
             'remoteHost' => 'mysql',
@@ -555,7 +558,7 @@ class CommonExtractorTest extends ExtractorTest
 
         $outputManifest = json_decode(
             (string) file_get_contents($manifestFile),
-            true
+            true,
         );
 
         Assert::assertArrayHasKey('destination', $outputManifest);
@@ -702,7 +705,7 @@ class CommonExtractorTest extends ExtractorTest
         $this->assertExtractedData($this->dataDir . '/simple.csv', 'in.c-main.simple');
         $manifest = json_decode(
             (string) file_get_contents($this->dataDir . '/out/tables/in.c-main.simple.csv.manifest'),
-            true
+            true,
         );
         Assert::assertEquals(['weird_I_d', 'SaoPaulo'], $manifest['columns']);
         Assert::assertEquals(['weird_I_d'], $manifest['primary_key']);
@@ -780,7 +783,7 @@ class CommonExtractorTest extends ExtractorTest
         Assert::assertArrayHasKey('lastFetchedRow', $newState);
         Assert::assertGreaterThan(
             $state['lastFetchedRow'],
-            $newState['lastFetchedRow']
+            $newState['lastFetchedRow'],
         );
     }
 
@@ -847,7 +850,7 @@ class CommonExtractorTest extends ExtractorTest
 
         $this->db->exec(
             'INSERT INTO auto_increment_timestamp (`name`, `number`)' .
-            ' VALUES (\'charles\', 20.23486237628), (\'william\', 21.2863763287638276)'
+            ' VALUES (\'charles\', 20.23486237628), (\'william\', 21.2863763287638276)',
         );
 
         $this->cleanStateFiles();
@@ -920,7 +923,7 @@ class CommonExtractorTest extends ExtractorTest
 
         // Check manifest incremental key
         $outputManifest = JsonHelper::readFile(
-            $this->dataDir . '/out/tables/in.c-main.auto-increment-timestamp.csv.manifest'
+            $this->dataDir . '/out/tables/in.c-main.auto-increment-timestamp.csv.manifest',
         );
         Assert::assertFalse($outputManifest['incremental']);
     }
@@ -945,7 +948,7 @@ class CommonExtractorTest extends ExtractorTest
 
         // Check manifest incremental key
         $outputManifest = JsonHelper::readFile(
-            $this->dataDir . '/out/tables/in.c-main.simple.csv.manifest'
+            $this->dataDir . '/out/tables/in.c-main.simple.csv.manifest',
         );
         Assert::assertTrue($outputManifest['incremental']);
     }
@@ -982,7 +985,8 @@ class CommonExtractorTest extends ExtractorTest
 
         $this->expectException(UserException::class);
         $this->expectExceptionMessage(
-            'The "incrementalFetchingColumn" is configured, but incremental fetching is not supported for custom query.'
+            'The "incrementalFetchingColumn" is configured, but incremental fetching ' .
+            'is not supported for custom query.',
         );
         $this->getApp($config)->execute();
     }
@@ -998,7 +1002,7 @@ class CommonExtractorTest extends ExtractorTest
 
         $outputManifest = json_decode(
             (string) file_get_contents($outputManifestFile),
-            true
+            true,
         );
 
         // check that the manifest has the correct column ordering
@@ -1049,7 +1053,7 @@ class CommonExtractorTest extends ExtractorTest
         $this->getApp($config, $logger)->execute();
 
         Assert::assertTrue($logger->hasWarning(
-            'Query result set is empty. Exported "0" rows to "in.c-main.simple".'
+            'Query result set is empty. Exported "0" rows to "in.c-main.simple".',
         ));
     }
 
@@ -1079,7 +1083,8 @@ class CommonExtractorTest extends ExtractorTest
 
         $this->expectException(UserException::class);
         $this->expectExceptionMessage(
-            'The "incrementalFetchingColumn" is configured, but incremental fetching is not supported for custom query.'
+            'The "incrementalFetchingColumn" is configured, but incremental fetching ' .
+            'is not supported for custom query.',
         );
 
         ($this->getApp($config))->execute();
@@ -1131,6 +1136,7 @@ class CommonExtractorTest extends ExtractorTest
         $config = $this->getConfig(self::DRIVER);
         $config['parameters']['db']['ssh'] = [
             'enabled' => true,
+            'user' => $config['parameters']['db']['user'],
             'keys' => [
                 '#private' => $this->getPrivateKey(),
                 'public' => $this->getPublicKey(),
@@ -1156,6 +1162,7 @@ class CommonExtractorTest extends ExtractorTest
         $config = $this->getConfigRow(self::DRIVER);
         $config['parameters']['db']['ssh'] = [
             'enabled' => true,
+            'user' => $config['parameters']['db']['user'],
             'keys' => [
                 '#private' => $this->getPrivateKey(),
                 'public' => $this->getPublicKey(),
@@ -1189,7 +1196,7 @@ class CommonExtractorTest extends ExtractorTest
             Assert::assertTrue($handler->hasInfoThatContains('Retrying...'));
             Assert::assertStringContainsString('Error connecting to ' .
                 'DB: SQLSTATE[HY000] [2002] ' .
-                'php_network_getaddresses: getaddrinfo ' .
+                'php_network_getaddresses: getaddrinfo for nonexistenthost.example ' .
                 'failed: Name or service not known', $e->getMessage());
         }
     }
@@ -1205,7 +1212,7 @@ class CommonExtractorTest extends ExtractorTest
             `number` DECIMAL(25,20) NOT NULL DEFAULT 0.0,
             `timestamp` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (`id`)
-        )'
+        )',
         );
         $this->db->exec('INSERT INTO auto_increment_timestamp (`name`) VALUES (\'george\'), (\'henry\')');
     }
@@ -1213,7 +1220,7 @@ class CommonExtractorTest extends ExtractorTest
     protected function assertExtractedData(
         string $expectedCsvFile,
         string $outputName,
-        bool $headerExpected = true
+        bool $headerExpected = true,
     ): void {
         $outputCsvFile = $this->dataDir . '/out/tables/' . $outputName . '.csv';
         $outputManifestFile = $this->dataDir . '/out/tables/' . $outputName . '.csv.manifest';

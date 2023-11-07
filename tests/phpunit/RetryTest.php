@@ -222,7 +222,7 @@ class RetryTest extends TestCase
         // Create config file
         file_put_contents(
             $this->temp->getTmpFolder() . '/config.json',
-            json_encode($this->createConfig($proxy, $action))
+            json_encode($this->createConfig($proxy, $action)),
         );
 
         // We run the extractor in a asynchronous process
@@ -230,7 +230,7 @@ class RetryTest extends TestCase
         return Process::fromShellCommandline(
             'php ' . __DIR__ . '/Fixtures/run.php',
             null,
-            ['KBC_DATADIR' => $this->temp->getTmpFolder()]
+            ['KBC_DATADIR' => $this->temp->getTmpFolder()],
         );
     }
 
@@ -270,7 +270,7 @@ class RetryTest extends TestCase
         Assert::assertFileExists($csvFile);
         Assert::assertSame(
             self::LARGE_TABLE_ROWS . ' ' .$csvFile . "\n",
-            Process::fromShellCommandline('wc -l ' . escapeshellarg($csvFile))->mustRun()->getOutput()
+            Process::fromShellCommandline('wc -l ' . escapeshellarg($csvFile))->mustRun()->getOutput(),
         );
     }
 }

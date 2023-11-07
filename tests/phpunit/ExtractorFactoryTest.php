@@ -20,7 +20,7 @@ class ExtractorFactoryTest extends ExtractorTest
 
         $extractor = $factory->create(
             new NullLogger(),
-            'run'
+            'run',
         );
 
         Assert::assertInstanceOf(Common::class, $extractor);
@@ -37,7 +37,7 @@ class ExtractorFactoryTest extends ExtractorTest
         $this->expectExceptionMessage('Extractor class \'Keboola\DbExtractor\Extractor\unexists\' doesn\'t exist');
         $factory->create(
             new NullLogger(),
-            'run'
+            'run',
         );
     }
 }
