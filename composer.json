@@ -1,86 +1,90 @@
 {
-  "name": "keboola/db-extractor-common",
-  "license": "MIT",
-  "type": "library",
-  "description": "Common library from Keboola Database Extractors",
-  "authors": [
-    {
-      "name": "keboola",
-      "email": "devel@keboola.com"
-    }
-  ],
-  "require": {
-    "php": ">=8.2",
-    "ext-json": "*",
-    "ext-pdo": "*",
-    "keboola/common-exceptions": "^1.1",
-    "keboola/csv": "^4.0",
-    "keboola/db-extractor-adapter": "^1.13",
-    "keboola/db-extractor-config": "^1.14",
-    "keboola/db-extractor-ssh-tunnel": "^1.2",
-    "keboola/db-extractor-table-format": "^3.8",
-    "keboola/php-component": "^9.4",
-    "keboola/php-datatypes": "^7.2",
-    "keboola/php-utils": "^2.3||^3.0||^4.0",
-    "keboola/retry": "^0.5",
-    "monolog/monolog": "^2.0",
-    "nette/utils": "^3.0",
-    "phpunit/phpunit": "^9.1",
-    "pimple/pimple": "^3.3",
-    "psr/log": "^1.1"
-  },
-  "require-dev": {
-    "cweagans/composer-patches": "^1.7",
-    "ihsw/toxiproxy-php-client": "^2.0",
-    "keboola/coding-standard": ">=13.0",
-    "keboola/php-temp": "^2.0",
-    "php-parallel-lint/php-parallel-lint": "^1.2",
-    "phpstan/phpstan": "^1.10",
-    "symfony/debug": "^4.3",
-    "symfony/finder": "^6.3"
-  },
-  "autoload": {
-    "psr-4": {
-      "Keboola\\DbExtractor\\": "src/"
-    }
-  },
-  "autoload-dev": {
-    "psr-4": {
-      "Keboola\\DbExtractor\\Tests\\": "tests/phpunit/"
-    }
-  },
-  "scripts": {
-    "tests-phpunit": "phpunit",
-    "tests": [
-      "@tests-phpunit"
+    "name": "keboola/db-extractor-common",
+    "license": "MIT",
+    "type": "library",
+    "description": "Common library from Keboola Database Extractors",
+    "authors": [
+        {
+            "name": "keboola",
+            "email": "devel@keboola.com"
+        }
     ],
-    "phpstan": "phpstan analyse ./src ./tests --level=max --no-progress -c phpstan.neon",
-    "phpcs": "phpcs -n --ignore=vendor --extensions=php .",
-    "phpcbf": "phpcbf -n --ignore=vendor --extensions=php .",
-    "phplint": "parallel-lint -j 10 --exclude vendor .",
-    "build": [
-      "@phplint",
-      "@phpcs",
-      "@phpstan",
-      "@tests"
-    ],
-    "ci": [
-      "@composer validate --no-check-publish --no-check-all",
-      "@build"
-    ]
-  },
-  "config": {
-    "allow-plugins": true,
-    "sort-packages": true,
-    "optimize-autoloader": true
-  },
-  "extra": {
-    "composer-exit-on-patch-failure": true,
-    "patches": {
-      "ihsw/toxiproxy-php-client": [
-        "patches/ihsw-toxiproxy-php-client-Proxy.php.patch",
-        "patches/ihsw-toxiproxy-php-client-Toxic.php.patch"
-      ]
+    "require": {
+        "php": ">=8.2",
+        "ext-json": "*",
+        "ext-pdo": "*",
+        "keboola/common-exceptions": "^1.1",
+        "keboola/csv": "^3.2",
+        "keboola/db-extractor-adapter": "^1.13",
+        "keboola/db-extractor-config": "^1.14",
+        "keboola/db-extractor-ssh-tunnel": "^1.2",
+        "keboola/db-extractor-table-format": "^3.8",
+        "keboola/php-component": "^9.4",
+        "keboola/php-datatypes": "^7.2",
+        "keboola/php-utils": "^2.3||^3.0||^4.0",
+        "keboola/retry": "^0.5",
+        "monolog/monolog": "^2.0",
+        "nette/utils": "^3.0",
+        "phpunit/phpunit": "^9.1",
+        "pimple/pimple": "^3.3",
+        "psr/log": "^1.1"
+    },
+    "require-dev": {
+        "cweagans/composer-patches": "^1.7",
+        "ihsw/toxiproxy-php-client": "^2.0",
+        "keboola/coding-standard": ">=13.0",
+        "keboola/php-temp": "^2.0",
+        "php-parallel-lint/php-parallel-lint": "^1.2",
+        "phpstan/phpstan": "^1.10",
+        "symfony/debug": "^4.3",
+        "symfony/finder": "^6.3",
+        "symplify/vendor-patches": "^11.2"
+    },
+    "autoload": {
+        "psr-4": {
+            "Keboola\\DbExtractor\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Keboola\\DbExtractor\\Tests\\": "tests/phpunit/"
+        }
+    },
+    "scripts": {
+        "tests-phpunit": "phpunit",
+        "tests": [
+            "@tests-phpunit"
+        ],
+        "phpstan": "phpstan analyse ./src ./tests --level=max --no-progress -c phpstan.neon",
+        "phpcs": "phpcs -n --ignore=vendor --extensions=php .",
+        "phpcbf": "phpcbf -n --ignore=vendor --extensions=php .",
+        "phplint": "parallel-lint -j 10 --exclude vendor .",
+        "build": [
+            "@phplint",
+            "@phpcs",
+            "@phpstan",
+            "@tests"
+        ],
+        "ci": [
+            "@composer validate --no-check-publish --no-check-all",
+            "@build"
+        ]
+    },
+    "config": {
+        "allow-plugins": true,
+        "sort-packages": true,
+        "optimize-autoloader": true
+    },
+    "extra": {
+        "patches": {
+            "keboola/csv": [
+                "patches/keboola-csv-src-csvreader-php.patch"
+            ],
+            "ihsw/toxiproxy-php-client": [
+                "patches/ihsw-toxiproxy-php-client-Proxy.php.patch",
+                "patches/ihsw-toxiproxy-php-client-Toxic.php.patch"
+            ]
+        },
+        "composer-exit-on-patch-failure": true
     }
-  }
 }
