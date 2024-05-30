@@ -77,9 +77,6 @@
     },
     "extra": {
         "patches": {
-            "keboola/csv": [
-                "patches/keboola-csv-src-csvreader-php.patch"
-            ],
             "ihsw/toxiproxy-php-client": [
                 "patches/ihsw-toxiproxy-php-client-Proxy.php.patch",
                 "patches/ihsw-toxiproxy-php-client-Toxic.php.patch"
