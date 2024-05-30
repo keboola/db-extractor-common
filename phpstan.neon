@@ -1,9 +1,9 @@
 includes:
 	- phpstan-baseline.neon
 parameters:
-    checkMissingIterableValueType: false
     excludePaths:
         - 'tests/phpunit/Fixtures/run.php'
     ignoreErrors:
+        - identifier: missingType.iterableValue
         # Bad phpdoc in library
         - '#\$toxicity of method Ihsw\\Toxiproxy\\Proxy::create\(\) expects string, float given#'
