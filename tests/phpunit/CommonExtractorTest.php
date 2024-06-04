@@ -18,6 +18,7 @@ use PHPUnit\Framework\Assert;
 use Psr\Log\Test\TestLogger;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
+use function PHPUnit\Framework\assertEquals;
 
 class CommonExtractorTest extends ExtractorTest
 {
@@ -57,8 +58,10 @@ class CommonExtractorTest extends ExtractorTest
             (string) file_get_contents($filename),
             true,
         );
-        Assert::assertEquals(['weird_I_d', 'SaoPaulo'], $manifest['columns']);
-        Assert::assertEquals(['weird_I_d'], $manifest['primary_key']);
+
+        Assert::assertIsArray($manifest);
+        Assert::assertEquals(['weird_I_d', 'SaoPaulo'], array_column($manifest['schema'], 'name'));
+        Assert::assertTrue($manifest['schema'][0]['primary_key']);
         Assert::assertTrue($logger->hasInfoThatContains('Exported "2" rows to "in.c-main.simple".'));
     }
 
@@ -80,8 +83,9 @@ class CommonExtractorTest extends ExtractorTest
             (string) file_get_contents($filename),
             true,
         );
-        Assert::assertEquals(['weird_I_d', 'SaoPaulo'], $manifest['columns']);
-        Assert::assertEquals(['weird_I_d'], $manifest['primary_key']);
+        Assert::assertIsArray($manifest);
+        Assert::assertEquals(['weird_I_d', 'SaoPaulo'], array_column($manifest['schema'], 'name'));
+        Assert::assertTrue($manifest['schema'][0]['primary_key']);
         Assert::assertTrue($logger->hasInfoThatContains('Running query "TRUNCATE TABLE `simple`".'));
         Assert::assertTrue($logger->hasWarningThatContains('Exported "0" rows to "in.c-main.simple".'));
     }
@@ -120,8 +124,9 @@ class CommonExtractorTest extends ExtractorTest
             (string) file_get_contents($filename),
             true,
         );
-        Assert::assertEquals(['weird_I_d', 'SaoPaulo'], $manifest['columns']);
-        Assert::assertArrayNotHasKey('primary_key', $manifest);
+        Assert::assertIsArray($manifest);
+        Assert::assertEquals(['weird_I_d', 'SaoPaulo'], array_column($manifest['schema'], 'name'));
+        Assert::assertFalse($manifest['schema'][0]['primary_key']);
     }
 
     public function testRunPrimaryKeyDefinedOnlyInConfig(): void
@@ -142,8 +147,9 @@ class CommonExtractorTest extends ExtractorTest
             (string) file_get_contents($filename),
             true,
         );
-        Assert::assertEquals(['weird_I_d', 'SaoPaulo'], $manifest['columns']);
-        Assert::assertEquals(['SaoPaulo'], $manifest['primary_key']);
+        Assert::assertIsArray($manifest);
+        Assert::assertEquals(['weird_I_d', 'SaoPaulo'], array_column($manifest['schema'], 'name'));
+        Assert::assertTrue($manifest['schema'][1]['primary_key']);
     }
 
     public function testRunJsonConfig(): void
@@ -162,16 +168,17 @@ class CommonExtractorTest extends ExtractorTest
             true,
         );
 
-        Assert::assertArrayNotHasKey('columns', $manifest);
-        Assert::assertArrayNotHasKey('primary_key', $manifest);
+        Assert::assertIsArray($manifest);
+        Assert::assertArrayNotHasKey('schema', $manifest);
 
         $filename = $this->dataDir . '/out/tables/in.c-main.simple.csv.manifest';
         $manifest = json_decode(
             (string) file_get_contents($filename),
             true,
         );
-        Assert::assertEquals(['weird_I_d', 'SaoPaulo'], $manifest['columns']);
-        Assert::assertEquals(['weird_I_d'], $manifest['primary_key']);
+        Assert::assertIsArray($manifest);
+        Assert::assertEquals(['weird_I_d', 'SaoPaulo'], array_column($manifest['schema'], 'name'));
+        Assert::assertTrue($manifest['schema'][0]['primary_key']);
     }
 
     public function testRunConfigRow(): void
@@ -190,8 +197,9 @@ class CommonExtractorTest extends ExtractorTest
             (string) file_get_contents($filename),
             true,
         );
-        Assert::assertEquals(['weird_I_d', 'SaoPaulo'], $manifest['columns']);
-        Assert::assertEquals(['weird_I_d'], $manifest['primary_key']);
+        Assert::assertIsArray($manifest);
+        Assert::assertEquals(['weird_I_d', 'SaoPaulo'], array_column($manifest['schema'], 'name'));
+        Assert::assertTrue($manifest['schema'][0]['primary_key']);
     }
 
     public function testRunWithSSH(): void
@@ -315,7 +323,8 @@ class CommonExtractorTest extends ExtractorTest
 
         // Manifest doesn't contain columns
         $manifest = json_decode((string) file_get_contents($outputManifestFile), true);
-        Assert::assertArrayNotHasKey('columns', $manifest);
+        Assert::assertIsArray($manifest);
+        Assert::assertArrayNotHasKey('schema', $manifest);
     }
 
     public function testTestConnection(): void
@@ -561,126 +570,67 @@ class CommonExtractorTest extends ExtractorTest
             true,
         );
 
+        Assert::assertIsArray($outputManifest);
         Assert::assertArrayHasKey('destination', $outputManifest);
         Assert::assertArrayHasKey('incremental', $outputManifest);
-        Assert::assertArrayHasKey('metadata', $outputManifest);
+        Assert::assertArrayHasKey('table_metadata', $outputManifest);
 
         $expectedMetadata = [
             'KBC.name' => 'simple',
             'KBC.schema' => 'testdb',
             'KBC.type' => 'BASE TABLE',
             'KBC.sanitizedName' => 'simple',
+            'KBC.rowCount' => 2,
         ];
-        $metadataList = [];
-        foreach ($outputManifest['metadata'] as $i => $metadata) {
-            Assert::assertArrayHasKey('key', $metadata);
-            Assert::assertArrayHasKey('value', $metadata);
-            $metadataList[$metadata['key']] = $metadata['value'];
-        }
 
-        Assert::assertEquals(2, $metadataList['KBC.rowCount']);
-        unset($metadataList['KBC.rowCount']);
+        assertEquals($expectedMetadata, $outputManifest['table_metadata']);
 
-        Assert::assertEquals($expectedMetadata, $metadataList);
-        Assert::assertArrayHasKey('column_metadata', $outputManifest);
-        Assert::assertCount(2, $outputManifest['column_metadata']);
-        Assert::assertArrayHasKey('weird_I_d', $outputManifest['column_metadata']);
-        Assert::assertArrayHasKey('SaoPaulo', $outputManifest['column_metadata']);
+        Assert::assertArrayHasKey('schema', $outputManifest);
+        Assert::assertCount(2, $outputManifest['schema']);
+        Assert::assertEquals('weird_I_d', $outputManifest['schema'][0]['name']);
+        Assert::assertEquals('SaoPaulo', $outputManifest['schema'][1]['name']);
 
         $expectedColumnMetadata = [
-            'weird_I_d' =>
-                [
-                    [
-                        'key' => 'KBC.datatype.type',
-                        'value' => 'varchar',
-                    ],
-                    [
-                        'key' => 'KBC.datatype.nullable',
-                        'value' => false,
-                    ],
-                    [
-                        'key' => 'KBC.datatype.basetype',
-                        'value' => 'STRING',
-                    ],
-                    [
-                        'key' => 'KBC.datatype.length',
-                        'value' => '155',
-                    ],
-                    [
-                        'key' => 'KBC.datatype.default',
-                        'value' => 'abc',
-                    ],
-                    [
-                        'key' => 'KBC.sourceName',
-                        'value' => '_weird-I-d',
-                    ],
-                    [
-                        'key' => 'KBC.sanitizedName',
-                        'value' => 'weird_I_d',
-                    ],
-                    [
-                        'key' => 'KBC.primaryKey',
-                        'value' => true,
-                    ],
-                    [
-                        'key' => 'KBC.uniqueKey',
-                        'value' => false,
-                    ],
-                    [
-                        'key' => 'KBC.ordinalPosition',
-                        'value' => '1',
-                    ],
-                    [
-                        'key' => 'KBC.constraintName',
-                        'value' => 'PRIMARY',
+            [
+                'nullable' => false,
+                'primary_key' => true,
+                'metadata' => [
+                    'KBC.sourceName' => '_weird-I-d',
+                    'KBC.sanitizedName' => 'weird_I_d',
+                    'KBC.uniqueKey' => false,
+                    'KBC.ordinalPosition' => 1,
+                    'KBC.constraintName' => 'PRIMARY',
+                ],
+                'name' => 'weird_I_d',
+                'data_type' => [
+                    'base' => [
+                        'default' => 'abc',
+                        'length' => '155',
+                        'type' => 'varchar',
                     ],
                 ],
-            'SaoPaulo' =>
-                [
-                    [
-                        'key' => 'KBC.datatype.type',
-                        'value' => 'varchar',
-                    ],
-                    [
-                        'key' => 'KBC.datatype.nullable',
-                        'value' => false,
-                    ],
-                    [
-                        'key' => 'KBC.datatype.basetype',
-                        'value' => 'STRING',
-                    ],
-                    [
-                        'key' => 'KBC.datatype.length',
-                        'value' => '155',
-                    ],
-                    [
-                        'key' => 'KBC.datatype.default',
-                        'value' => 'abc',
-                    ],
-                    [
-                        'key' => 'KBC.sourceName',
-                        'value' => 'SãoPaulo',
-                    ],
-                    [
-                        'key' => 'KBC.sanitizedName',
-                        'value' => 'SaoPaulo',
-                    ],
-                    [
-                        'key' => 'KBC.primaryKey',
-                        'value' => false,
-                    ],
-                    [
-                        'key' => 'KBC.uniqueKey',
-                        'value' => false,
-                    ],
-                    [
-                        'key' => 'KBC.ordinalPosition',
-                        'value' => '2',
+            ],
+            [
+                'nullable' => false,
+                'primary_key' => false,
+                'metadata' => [
+                    'KBC.sourceName' => 'SãoPaulo',
+                    'KBC.sanitizedName' => 'SaoPaulo',
+                    'KBC.uniqueKey' => false,
+                    'KBC.ordinalPosition' => 2,
+                ],
+                'name' => 'SaoPaulo',
+                'data_type' => [
+                    'base' => [
+                        'default' => 'abc',
+                        'length' => '155',
+                        'type' => 'varchar',
                     ],
                 ],
+            ],
         ];
 
-        Assert::assertEquals($expectedColumnMetadata, $outputManifest['column_metadata']);
+        Assert::assertEquals($expectedColumnMetadata, $outputManifest['schema']);
     }
 
     public function testNonExistingAction(): void
@@ -707,8 +657,9 @@ class CommonExtractorTest extends ExtractorTest
             (string) file_get_contents($this->dataDir . '/out/tables/in.c-main.simple.csv.manifest'),
             true,
         );
-        Assert::assertEquals(['weird_I_d', 'SaoPaulo'], $manifest['columns']);
-        Assert::assertEquals(['weird_I_d'], $manifest['primary_key']);
+        Assert::assertIsArray($manifest);
+        Assert::assertEquals(['weird_I_d', 'SaoPaulo'], array_column($manifest['schema'], 'name'));
+        Assert::assertTrue($manifest['schema'][0]['primary_key']);
     }
 
     public function testInvalidConfigurationQueryAndTable(): void
@@ -1004,9 +955,10 @@ class CommonExtractorTest extends ExtractorTest
             (string) file_get_contents($outputManifestFile),
             true,
         );
+        Assert::assertIsArray($outputManifest);
 
         // check that the manifest has the correct column ordering
-        Assert::assertEquals($config['parameters']['columns'], $outputManifest['columns']);
+        Assert::assertEquals($config['parameters']['columns'], array_column($outputManifest['schema'], 'name'));
         // check the data
         $expectedData = iterator_to_array(new CsvReader($this->dataDir . '/columnsOrderCheck.csv'));
         $outputData = iterator_to_array(new CsvReader($this->dataDir . '/out/tables/in.c-main.columnscheck.csv'));

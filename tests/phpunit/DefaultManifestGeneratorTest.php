@@ -21,22 +21,6 @@ use PHPUnit\Framework\TestCase;
 
 class DefaultManifestGeneratorTest extends TestCase
 {
-    public function testCsvHasHeader(): void
-    {
-        $exportConfig = $this->createExportConfig();
-        $exportResult = $this->createExportResult();
-
-        $exportResult->method('hasCsvHeader')->willReturn(true);
-
-        $manifestGenerator = $this->createManifestGenerator();
-        $manifestData = $manifestGenerator->generate($exportConfig, $exportResult);
-        Assert::assertSame([
-            'destination' => 'output-table',
-            'incremental' => false,
-            'primary_key' => ['pk1', 'pk2'],
-        ], $manifestData);
-    }
-
     public function testCsvWithoutHeaderTableQuery(): void
     {
         $exportConfig = $this->createExportConfig();
@@ -55,22 +39,74 @@ class DefaultManifestGeneratorTest extends TestCase
         Assert::assertSame([
             'destination' => 'output-table',
             'incremental' => false,
-            'primary_key' => ['pk1', 'pk2'],
-            'metadata' => [
+            'table_metadata' => [
+                'KBC.name' => 'OutputTable',
+                'KBC.sanitizedName' => 'OutputTable',
+                'KBC.schema' => 'Schema',
+            ],
+            'schema' => [
                 [
-                    'key' => 'KBC.name',
-                    'value' => 'OutputTable',
+                    'nullable' => true,
+                    'primary_key' => true,
+                    'metadata' => [
+                        'KBC.sourceName' => 'pk1',
+                        'KBC.sanitizedName' => 'pk1',
+                        'KBC.uniqueKey' => false,
+                    ],
+                    'name' => 'pk1',
+                    'data_type' => [
+                        'base' => [
+                            'type' => 'INTEGER',
+                        ],
+                    ],
                 ],
                 [
-                    'key' => 'KBC.sanitizedName',
-                    'value' => 'OutputTable',
+                    'nullable' => true,
+                    'primary_key' => true,
+                    'metadata' => [
+                        'KBC.sourceName' => 'pk2',
+                        'KBC.sanitizedName' => 'pk2',
+                        'KBC.uniqueKey' => false,
+                    ],
+                    'name' => 'pk2',
+                    'data_type' => [
+                        'base' => [
+                            'type' => 'INTEGER',
+                        ],
+                    ],
                 ],
                 [
-                    'key' => 'KBC.schema',
-                    'value' => 'Schema',
+                    'nullable' => true,
+                    'primary_key' => false,
+                    'metadata' => [
+                        'KBC.sourceName' => 'name',
+                        'KBC.sanitizedName' => 'name',
+                        'KBC.uniqueKey' => false,
+                    ],
+                    'name' => 'name',
+                    'data_type' => [
+                        'base' => [
+                            'length' => '255',
+                            'type' => 'VARCHAR',
+                        ],
+                    ],
+                ],
+                [
+                    'nullable' => true,
+                    'primary_key' => false,
+                    'metadata' => [
+                        'KBC.sourceName' => 'age',
+                        'KBC.sanitizedName' => 'age',
+                        'KBC.uniqueKey' => false,
+                    ],
+                    'name' => 'age',
+                    'data_type' => [
+                        'base' => [
+                            'type' => 'INTEGER',
+                        ],
+                    ],
                 ],
             ],
-            'columns' => ['pk1', 'pk2', 'name', 'age'],
         ], $manifestData);
     }
 
@@ -100,12 +136,56 @@ class DefaultManifestGeneratorTest extends TestCase
 
         $manifestGenerator = $this->createManifestGenerator();
         $manifestData = $manifestGenerator->generate($exportConfig, $exportResult);
-
         Assert::assertSame([
             'destination' => 'output-table',
             'incremental' => false,
-            'primary_key' => ['pk1', 'pk2'],
-            'columns' => ['pk1', 'pk2', 'generated_col'],
+            'schema' => [
+                [
+                    'nullable' => true,
+                    'primary_key' => false,
+                    'metadata' => [
+                        'KBC.sourceName' => 'pk1',
+                        'KBC.sanitizedName' => 'pk1',
+                        'KBC.uniqueKey' => false,
+                    ],
+                    'name' => 'pk1',
+                    'data_type' => [
+                        'base' => [
+                            'type' => 'integer',
+                        ],
+                    ],
+                ],
+                [
+                    'nullable' => true,
+                    'primary_key' => false,
+                    'metadata' => [
+                        'KBC.sourceName' => 'pk2',
+                        'KBC.sanitizedName' => 'pk2',
+                        'KBC.uniqueKey' => false,
+                    ],
+                    'name' => 'pk2',
+                    'data_type' => [
+                        'base' => [
+                            'type' => 'integer',
+                        ],
+                    ],
+                ],
+                [
+                    'nullable' => true,
+                    'primary_key' => false,
+                    'metadata' => [
+                        'KBC.sourceName' => 'generated_col',
+                        'KBC.sanitizedName' => 'generated_col',
+                        'KBC.uniqueKey' => false,
+                    ],
+                    'name' => 'generated_col',
+                    'data_type' => [
+                        'base' => [
+                            'type' => 'string',
+                        ],
+                    ],
+                ],
+            ],
         ], $manifestData);
     }
 
