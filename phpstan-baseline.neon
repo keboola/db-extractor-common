@@ -66,38 +66,8 @@ parameters:
 			path: tests/phpunit/CommonExtractorSslTest.php
 
 		-
-			message: "#^Argument of an invalid type mixed supplied for foreach, only iterables are supported\\.$#"
-			count: 1
-			path: tests/phpunit/CommonExtractorTest.php
-
-		-
-			message: "#^Cannot access offset 'column_metadata' on mixed\\.$#"
-			count: 4
-			path: tests/phpunit/CommonExtractorTest.php
-
-		-
-			message: "#^Cannot access offset 'columns' on mixed\\.$#"
-			count: 8
-			path: tests/phpunit/CommonExtractorTest.php
-
-		-
-			message: "#^Cannot access offset 'key' on mixed\\.$#"
-			count: 1
-			path: tests/phpunit/CommonExtractorTest.php
-
-		-
 			message: "#^Cannot access offset 'lastFetchedRow' on mixed\\.$#"
 			count: 7
-			path: tests/phpunit/CommonExtractorTest.php
-
-		-
-			message: "#^Cannot access offset 'metadata' on mixed\\.$#"
-			count: 1
-			path: tests/phpunit/CommonExtractorTest.php
-
-		-
-			message: "#^Cannot access offset 'primary_key' on mixed\\.$#"
-			count: 6
 			path: tests/phpunit/CommonExtractorTest.php
 
 		-
@@ -112,12 +82,7 @@ parameters:
 
 		-
 			message: "#^Cannot access offset 'tables' on mixed\\.$#"
-			count: 6
-			path: tests/phpunit/CommonExtractorTest.php
-
-		-
-			message: "#^Cannot access offset 'value' on mixed\\.$#"
-			count: 1
+			count: 13
 			path: tests/phpunit/CommonExtractorTest.php
 
 		-
@@ -147,17 +112,12 @@ parameters:
 
 		-
 			message: "#^Parameter \\#2 \\$array of static method PHPUnit\\\\Framework\\\\Assert\\:\\:assertArrayHasKey\\(\\) expects array\\|ArrayAccess, mixed given\\.$#"
-			count: 22
-			path: tests/phpunit/CommonExtractorTest.php
-
-		-
-			message: "#^Parameter \\#2 \\$array of static method PHPUnit\\\\Framework\\\\Assert\\:\\:assertArrayNotHasKey\\(\\) expects array\\|ArrayAccess, mixed given\\.$#"
-			count: 4
+			count: 14
 			path: tests/phpunit/CommonExtractorTest.php
 
 		-
 			message: "#^Parameter \\#2 \\$haystack of static method PHPUnit\\\\Framework\\\\Assert\\:\\:assertCount\\(\\) expects Countable\\|iterable, mixed given\\.$#"
-			count: 5
+			count: 4
 			path: tests/phpunit/CommonExtractorTest.php
 
 		-

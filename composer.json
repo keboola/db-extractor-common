@@ -15,11 +15,11 @@
         "ext-pdo": "*",
         "keboola/common-exceptions": "^1.1",
         "keboola/csv": "^3.2",
-        "keboola/db-extractor-adapter": "^1.13",
-        "keboola/db-extractor-config": "^1.14",
-        "keboola/db-extractor-ssh-tunnel": "^1.2",
+        "keboola/db-extractor-adapter": "^1.14",
+        "keboola/db-extractor-config": "^1.15",
+        "keboola/db-extractor-ssh-tunnel": "^1.1.5",
         "keboola/db-extractor-table-format": "^3.8",
-        "keboola/php-component": "^9.4",
+        "keboola/php-component": "^10.0",
         "keboola/php-datatypes": "^7.2",
         "keboola/php-utils": "^2.3||^3.0||^4.0",
         "keboola/retry": "^0.5",
@@ -77,9 +77,6 @@
     },
     "extra": {
         "patches": {
-            "keboola/csv": [
-                "patches/keboola-csv-src-csvreader-php.patch"
-            ],
             "ihsw/toxiproxy-php-client": [
                 "patches/ihsw-toxiproxy-php-client-Proxy.php.patch",
                 "patches/ihsw-toxiproxy-php-client-Toxic.php.patch"
