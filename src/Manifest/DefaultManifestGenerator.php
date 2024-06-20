@@ -6,6 +6,7 @@ namespace Keboola\DbExtractor\Manifest;
 
 use Keboola\Component\Manifest\ManifestManager\Options\OutTable\ManifestOptions;
 use Keboola\Component\Manifest\ManifestManager\Options\OutTable\ManifestOptionsSchema;
+use Keboola\Datatype\Definition\Common;
 use Keboola\DbExtractor\Adapter\Metadata\MetadataProvider;
 use Keboola\DbExtractor\Adapter\ValueObject\ExportResult;
 use Keboola\DbExtractor\Adapter\ValueObject\QueryMetadata;
@@ -25,7 +26,7 @@ class DefaultManifestGenerator implements ManifestGenerator
         $this->serializer = $manifestSerializer;
     }
 
-    public function generate(ExportConfig $exportConfig, ExportResult $exportResult): array
+    public function generate(ExportConfig $exportConfig, ExportResult $exportResult, bool $legacy = false): array
     {
         $manifestOptions = new ManifestOptions();
         $manifestOptions->setDestination($exportConfig->getOutputTable())
@@ -42,7 +43,7 @@ class DefaultManifestGenerator implements ManifestGenerator
             }
         }
 
-        return $manifestOptions->toArray(false);
+        return $manifestOptions->toArray($legacy);
     }
 
     protected function generateColumnsFromTableMetadata(
@@ -70,7 +71,7 @@ class DefaultManifestGenerator implements ManifestGenerator
         $schema = [];
 
         foreach ($columns as $column) {
-            $schema[] = $this->createSchemaEntry($column, $column->isPrimaryKey());
+            $schema[] = $this->createSchemaEntryFromColumn($column, $column->isPrimaryKey());
         }
 
         $manifestOptions->setSchema($schema);
@@ -82,21 +83,69 @@ class DefaultManifestGenerator implements ManifestGenerator
         $allTableColumns = $table->getColumns();
         $exportedColumns = $columns ?: $allTableColumns->getNames();
 
-        foreach ($exportedColumns as $columnName) {
-            $column = $allTableColumns->getByName($columnName);
+        foreach ($exportedColumns as $column) {
+            $column = $allTableColumns->getByName($column);
+            $columnMetadataKeyValueArray = $this->serializer->serializeColumn($column);
+            $columnMetadata = [];
+            foreach ($columnMetadataKeyValueArray as $columnMetadataKeyValue) {
+                $columnMetadata[$columnMetadataKeyValue['key']] = $columnMetadataKeyValue['value'];
+            }
             $isPrimaryKey = $primaryKeys && in_array($column->getName(), $primaryKeys, true);
             $backend = $table->hasDatatypeBackend() ? $table->getDatatypeBackend() : null;
-            $schema[] = $this->createSchemaEntry($column, $isPrimaryKey, $backend);
+            $schema[] = $this->createSchemaEntryFromSerializedColumnMetadata($columnMetadata, $isPrimaryKey, $backend);
         }
 
         return $schema;
     }
 
-    private function createSchemaEntry(
-        Column $column,
+    /**
+     * @param array<string, mixed> $columnMetadata
+     * @throws \Keboola\Component\Manifest\ManifestManager\Options\OptionsValidationException
+     */
+    private function createSchemaEntryFromSerializedColumnMetadata(
+        array $columnMetadata,
         bool $isPrimaryKey,
         ?string $backend = null,
     ): ManifestOptionsSchema {
+        $baseType = [
+            'type' => $columnMetadata[Common::KBC_METADATA_KEY_BASETYPE],
+            'length' => $columnMetadata[Common::KBC_METADATA_KEY_LENGTH] ?? null,
+            'default' => $columnMetadata[Common::KBC_METADATA_KEY_DEFAULT] ?? null,
+        ];
+        $baseType = array_filter($baseType, fn($value) => $value !== null);
+
+        $dataTypes = ['base' => $baseType];
+        if ($backend) {
+            if (isset($columnMetadata[Common::KBC_METADATA_KEY_TYPE])) {
+                $baseType['type'] = $columnMetadata[Common::KBC_METADATA_KEY_TYPE];
+            }
+            $dataTypes[$backend] = $baseType;
+        }
+
+        $isNullable = $columnMetadata[Common::KBC_METADATA_KEY_NULLABLE] ?? true;
+
+        unset(
+            $columnMetadata[Common::KBC_METADATA_KEY_BASETYPE],
+            $columnMetadata[Common::KBC_METADATA_KEY_LENGTH],
+            $columnMetadata[Common::KBC_METADATA_KEY_DEFAULT],
+            $columnMetadata[Common::KBC_METADATA_KEY_TYPE],
+            $columnMetadata[Common::KBC_METADATA_KEY_NULLABLE],
+            $columnMetadata['KBC.primaryKey'],
+            $columnMetadata['KBC.description'],
+        );
+
+        return new ManifestOptionsSchema(
+            $columnMetadata['KBC.sanitizedName'],
+            $dataTypes,
+            $isNullable,
+            $isPrimaryKey,
+            $columnMetadata['KBC.description'] ?? null,
+            $columnMetadata,
+        );
+    }
+
+    private function createSchemaEntryFromColumn(Column $column, bool $isPrimaryKey): ManifestOptionsSchema
+    {
         $metadata = [
             'KBC.sourceName' => $column->getName(),
             'KBC.sanitizedName' => $column->getSanitizedName(),
@@ -129,9 +178,6 @@ class DefaultManifestGenerator implements ManifestGenerator
         $baseType = array_filter($baseType, fn($value) => $value !== null);
 
         $dataTypes = ['base' => $baseType];
-        if ($backend) {
-            $dataTypes[$backend] = $baseType;
-        }
 
         return new ManifestOptionsSchema(
             $column->getSanitizedName(),

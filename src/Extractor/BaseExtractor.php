@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Extractor;
 
+use Keboola\Component\Config\DatatypeSupport;
 use Keboola\DbExtractor\Adapter\ExportAdapter;
 use Keboola\DbExtractor\Adapter\Metadata\MetadataProvider;
 use Keboola\DbExtractor\Adapter\ValueObject\ExportResult;
@@ -43,8 +44,15 @@ abstract class BaseExtractor
 
     private DatabaseConfig $databaseConfig;
 
-    public function __construct(array $parameters, array $state, LoggerInterface $logger, string $action)
-    {
+    private DatatypeSupport $datatypeSupport;
+
+    public function __construct(
+        array $parameters,
+        array $state,
+        LoggerInterface $logger,
+        string $action,
+        DatatypeSupport $datatypeSupport,
+    ) {
         $this->parameters = $parameters;
         $this->dataDir = $parameters['data_dir'];
         $this->state = $state;
@@ -58,6 +66,7 @@ abstract class BaseExtractor
         $this->getTablesSerializer = $this->createGetTablesSerializer();
         $this->manifestGenerator = $this->createManifestGenerator();
         $this->adapter = $this->createExportAdapter();
+        $this->datatypeSupport = $datatypeSupport;
     }
 
     abstract public function testConnection(): void;
@@ -137,7 +146,7 @@ abstract class BaseExtractor
 
     protected function processExportResult(ExportConfig $exportConfig, ?string $maxValue, ExportResult $result): array
     {
-        $this->createManifest($exportConfig, $result);
+        $this->createManifest($exportConfig, $result, $this->datatypeSupport->usingLegacyManifest());
         if ($result->getRowsCount() > 0) {
             $this->logger->info(sprintf(
                 'Exported "%d" rows to "%s".',
@@ -168,10 +177,10 @@ abstract class BaseExtractor
         return $output;
     }
 
-    protected function createManifest(ExportConfig $exportConfig, ExportResult $exportResult): void
+    protected function createManifest(ExportConfig $exportConfig, ExportResult $exportResult, bool $legacy): void
     {
         $outFilename = $this->getOutputFilename($exportConfig->getOutputTable()) . '.manifest';
-        $manifestData = $this->manifestGenerator->generate($exportConfig, $exportResult);
+        $manifestData = $this->manifestGenerator->generate($exportConfig, $exportResult, $legacy);
         file_put_contents($outFilename, json_encode($manifestData));
     }
 

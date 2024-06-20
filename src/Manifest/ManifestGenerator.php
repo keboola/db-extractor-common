@@ -9,5 +9,5 @@ use Keboola\DbExtractorConfig\Configuration\ValueObject\ExportConfig;
 
 interface ManifestGenerator
 {
-    public function generate(ExportConfig $exportConfig, ExportResult $exportResult): array;
+    public function generate(ExportConfig $exportConfig, ExportResult $exportResult, bool $legacy): array;
 }

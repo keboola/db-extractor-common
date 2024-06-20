@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Tests;
 
+use Keboola\Component\Config\DatatypeSupport;
 use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractor\Extractor\Common;
 use Keboola\DbExtractor\ExtractorFactory;
@@ -21,6 +22,7 @@ class ExtractorFactoryTest extends ExtractorTest
         $extractor = $factory->create(
             new NullLogger(),
             'run',
+            DatatypeSupport::HINTS,
         );
 
         Assert::assertInstanceOf(Common::class, $extractor);
@@ -38,6 +40,7 @@ class ExtractorFactoryTest extends ExtractorTest
         $factory->create(
             new NullLogger(),
             'run',
+            DatatypeSupport::HINTS,
         );
     }
 }

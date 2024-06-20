@@ -28,7 +28,11 @@ class Application extends BaseComponent
             $this->getInputState(),
         );
 
-        $extractor = $extractorFactory->create($this->getLogger(), $this->getConfig()->getAction());
+        $extractor = $extractorFactory->create(
+            $this->getLogger(),
+            $this->getConfig()->getAction(),
+            $this->getConfig()->getDataTypeSupport(),
+        );
 
         if (!$this->isRowConfiguration($this->getConfig()->getData())) {
             $tables = array_filter(
@@ -102,7 +106,11 @@ class Application extends BaseComponent
             $this->getInputState(),
         );
 
-        $extractor = $extractorFactory->create($this->getLogger(), $this->getConfig()->getAction());
+        $extractor = $extractorFactory->create(
+            $this->getLogger(),
+            $this->getConfig()->getAction(),
+            $this->getConfig()->getDataTypeSupport(),
+        );
 
         try {
             $extractor->testConnection();
@@ -122,7 +130,11 @@ class Application extends BaseComponent
             $this->getInputState(),
         );
 
-        $extractor = $extractorFactory->create($this->getLogger(), $this->getConfig()->getAction());
+        $extractor = $extractorFactory->create(
+            $this->getLogger(),
+            $this->getConfig()->getAction(),
+            $this->getConfig()->getDataTypeSupport(),
+        );
 
         $output = [
             'tables' => $extractor->getTables(),

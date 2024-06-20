@@ -56,6 +56,76 @@ parameters:
 			path: src/UsernameChecker.php
 
 		-
+			message: "#^Argument of an invalid type mixed supplied for foreach, only iterables are supported\\.$#"
+			count: 1
+			path: tests/phpunit/CommonExtractorLegacyFormatTest.php
+
+		-
+			message: "#^Cannot access offset 'column_metadata' on mixed\\.$#"
+			count: 4
+			path: tests/phpunit/CommonExtractorLegacyFormatTest.php
+
+		-
+			message: "#^Cannot access offset 'columns' on mixed\\.$#"
+			count: 8
+			path: tests/phpunit/CommonExtractorLegacyFormatTest.php
+
+		-
+			message: "#^Cannot access offset 'key' on mixed\\.$#"
+			count: 1
+			path: tests/phpunit/CommonExtractorLegacyFormatTest.php
+
+		-
+			message: "#^Cannot access offset 'metadata' on mixed\\.$#"
+			count: 1
+			path: tests/phpunit/CommonExtractorLegacyFormatTest.php
+
+		-
+			message: "#^Cannot access offset 'primary_key' on mixed\\.$#"
+			count: 6
+			path: tests/phpunit/CommonExtractorLegacyFormatTest.php
+
+		-
+			message: "#^Cannot access offset 'value' on mixed\\.$#"
+			count: 1
+			path: tests/phpunit/CommonExtractorLegacyFormatTest.php
+
+		-
+			message: "#^Cannot access offset 0 on mixed\\.$#"
+			count: 1
+			path: tests/phpunit/CommonExtractorLegacyFormatTest.php
+
+		-
+			message: "#^Cannot access offset 1 on mixed\\.$#"
+			count: 2
+			path: tests/phpunit/CommonExtractorLegacyFormatTest.php
+
+		-
+			message: "#^Cannot access offset 2 on mixed\\.$#"
+			count: 2
+			path: tests/phpunit/CommonExtractorLegacyFormatTest.php
+
+		-
+			message: "#^Parameter \\#1 \\$datetime of function strtotime expects string, mixed given\\.$#"
+			count: 1
+			path: tests/phpunit/CommonExtractorLegacyFormatTest.php
+
+		-
+			message: "#^Parameter \\#2 \\$array of static method PHPUnit\\\\Framework\\\\Assert\\:\\:assertArrayHasKey\\(\\) expects array\\|ArrayAccess, mixed given\\.$#"
+			count: 8
+			path: tests/phpunit/CommonExtractorLegacyFormatTest.php
+
+		-
+			message: "#^Parameter \\#2 \\$array of static method PHPUnit\\\\Framework\\\\Assert\\:\\:assertArrayNotHasKey\\(\\) expects array\\|ArrayAccess, mixed given\\.$#"
+			count: 4
+			path: tests/phpunit/CommonExtractorLegacyFormatTest.php
+
+		-
+			message: "#^Parameter \\#2 \\$haystack of static method PHPUnit\\\\Framework\\\\Assert\\:\\:assertCount\\(\\) expects Countable\\|iterable, mixed given\\.$#"
+			count: 1
+			path: tests/phpunit/CommonExtractorLegacyFormatTest.php
+
+		-
 			message: "#^Cannot access offset 'db' on mixed\\.$#"
 			count: 1
 			path: tests/phpunit/CommonExtractorSslTest.php
