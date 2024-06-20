@@ -26,7 +26,7 @@ class DefaultManifestGenerator implements ManifestGenerator
         $this->serializer = $manifestSerializer;
     }
 
-    public function generate(ExportConfig $exportConfig, ExportResult $exportResult): array
+    public function generate(ExportConfig $exportConfig, ExportResult $exportResult, bool $legacy = false): array
     {
         $manifestOptions = new ManifestOptions();
         $manifestOptions->setDestination($exportConfig->getOutputTable())
@@ -43,7 +43,7 @@ class DefaultManifestGenerator implements ManifestGenerator
             }
         }
 
-        return $manifestOptions->toArray(false);
+        return $manifestOptions->toArray($legacy);
     }
 
     protected function generateColumnsFromTableMetadata(

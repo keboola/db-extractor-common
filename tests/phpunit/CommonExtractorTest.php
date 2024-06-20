@@ -33,6 +33,7 @@ class CommonExtractorTest extends ExtractorTest
         parent::setUp();
         $this->cleanStateFiles();
         $this->initDatabase();
+        putenv('KBC_DATA_TYPE_SUPPORT=authoritative');
     }
 
     protected function tearDown(): void
@@ -606,7 +607,7 @@ class CommonExtractorTest extends ExtractorTest
                     'base' => [
                         'default' => 'abc',
                         'length' => '155',
-                        'type' => 'varchar',
+                        'type' => 'STRING',
                     ],
                 ],
             ],
@@ -624,7 +625,7 @@ class CommonExtractorTest extends ExtractorTest
                     'base' => [
                         'default' => 'abc',
                         'length' => '155',
-                        'type' => 'varchar',
+                        'type' => 'STRING',
                     ],
                 ],
             ],
