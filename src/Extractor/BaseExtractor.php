@@ -99,6 +99,7 @@ abstract class BaseExtractor
         return new DefaultManifestGenerator(
             $this->getMetadataProvider(),
             new DefaultManifestSerializer(),
+            $this->parameters['extractor_class'],
         );
     }
 
