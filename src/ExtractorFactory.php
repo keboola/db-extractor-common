@@ -28,6 +28,12 @@ class ExtractorFactory
             throw new UserException(sprintf("Extractor class '%s' doesn't exist", $extractorClass));
         }
 
-        return new $extractorClass($this->parameters, $this->state, $logger, $action, $datatypeSupport);
+        return new $extractorClass(
+            $this->parameters,
+            $this->state,
+            $logger,
+            $action,
+            $datatypeSupport,
+        );
     }
 }

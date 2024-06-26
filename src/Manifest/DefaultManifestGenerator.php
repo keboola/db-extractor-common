@@ -19,11 +19,16 @@ class DefaultManifestGenerator implements ManifestGenerator
 {
     protected MetadataProvider $metadataProvider;
     protected ManifestSerializer $serializer;
+    protected string $extractorClass;
 
-    public function __construct(MetadataProvider $metadataProvider, ManifestSerializer $manifestSerializer)
-    {
+    public function __construct(
+        MetadataProvider $metadataProvider,
+        ManifestSerializer $manifestSerializer,
+        string $extractorClass,
+    ) {
         $this->metadataProvider = $metadataProvider;
         $this->serializer = $manifestSerializer;
+        $this->extractorClass = $extractorClass;
     }
 
     public function generate(ExportConfig $exportConfig, ExportResult $exportResult, bool $legacy = false): array
@@ -169,15 +174,30 @@ class DefaultManifestGenerator implements ManifestGenerator
         }
 
         $metadata = array_filter($metadata, fn($value) => $value !== null);
+        $dataTypes = null;
 
-        $baseType = [
+        $dataTypeClass = sprintf('\\Keboola\\Datatype\\Definition\\%s', $this->extractorClass);
+        if (class_exists($dataTypeClass)) {
+            /** @var \Keboola\Datatype\Definition\DefinitionInterface $backendDataTypeDefinition */
+            $backendDataTypeDefinition = new $dataTypeClass($column->getType());
+            $baseType = [
+                'type' => $backendDataTypeDefinition->getBasetype(),
+                'length' => $column->hasLength() ? $column->getLength() : null,
+                'default' => $column->hasDefault() ? (string) $column->getDefault() : null,
+            ];
+            $baseType = array_filter($baseType, fn($value) => $value !== null);
+
+            $dataTypes['base'] = $baseType;
+        }
+
+        $backendDataType = [
             'type' => $column->getType(),
             'length' => $column->hasLength() ? $column->getLength() : null,
             'default' => $column->hasDefault() ? (string) $column->getDefault() : null,
         ];
-        $baseType = array_filter($baseType, fn($value) => $value !== null);
 
-        $dataTypes = ['base' => $baseType];
+        $backendDataType = array_filter($backendDataType, fn($value) => $value !== null);
+        $dataTypes[strtolower($this->extractorClass)] = $backendDataType;
 
         return new ManifestOptionsSchema(
             $column->getSanitizedName(),

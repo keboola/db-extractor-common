@@ -189,6 +189,9 @@ class DefaultManifestGeneratorTest extends TestCase
                     'name' => 'pk1',
                     'data_type' => [
                         'base' => [
+                            'type' => 'INTEGER',
+                        ],
+                        'snowflake' => [
                             'type' => 'integer',
                         ],
                     ],
@@ -204,6 +207,9 @@ class DefaultManifestGeneratorTest extends TestCase
                     'name' => 'pk2',
                     'data_type' => [
                         'base' => [
+                            'type' => 'INTEGER',
+                        ],
+                        'snowflake' => [
                             'type' => 'integer',
                         ],
                     ],
@@ -219,6 +225,9 @@ class DefaultManifestGeneratorTest extends TestCase
                     'name' => 'generated_col',
                     'data_type' => [
                         'base' => [
+                            'type' => 'STRING',
+                        ],
+                        'snowflake' => [
                             'type' => 'string',
                         ],
                     ],
@@ -333,6 +342,6 @@ class DefaultManifestGeneratorTest extends TestCase
         $metadataProvider->method('getTable')->willReturn($tableBuilder->build());
 
         $manifestSerializer = new DefaultManifestSerializer();
-        return new DefaultManifestGenerator($metadataProvider, $manifestSerializer);
+        return new DefaultManifestGenerator($metadataProvider, $manifestSerializer, 'Snowflake');
     }
 }
