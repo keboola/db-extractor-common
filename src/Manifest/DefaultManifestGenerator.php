@@ -190,14 +190,17 @@ class DefaultManifestGenerator implements ManifestGenerator
             $dataTypes['base'] = $baseType;
         }
 
-        $backendDataType = [
-            'type' => $column->getType(),
-            'length' => $column->hasLength() ? $column->getLength() : null,
-            'default' => $column->hasDefault() ? (string) $column->getDefault() : null,
-        ];
+        $backend = strtolower($this->extractorClass);
+        if (in_array($backend, ManifestOptionsSchema::ALLOWED_DATA_TYPES_BACKEND, true)) {
+            $backendDataType = [
+                'type' => $column->getType(),
+                'length' => $column->hasLength() ? $column->getLength() : null,
+                'default' => $column->hasDefault() ? (string) $column->getDefault() : null,
+            ];
 
-        $backendDataType = array_filter($backendDataType, fn($value) => $value !== null);
-        $dataTypes[strtolower($this->extractorClass)] = $backendDataType;
+            $backendDataType = array_filter($backendDataType, fn($value) => $value !== null);
+            $dataTypes[$backend] = $backendDataType;
+        }
 
         return new ManifestOptionsSchema(
             $column->getSanitizedName(),
