@@ -44,7 +44,7 @@ class DefaultManifestGenerator implements ManifestGenerator
                 $this->generateColumnsFromQueryMetadata(
                     $manifestOptions,
                     $exportResult->getQueryMetadata(),
-                    $exportConfig->getPrimaryKey(),
+                    $exportConfig->hasPrimaryKey() ? $exportConfig->getPrimaryKey() : [],
                 );
             } else {
                 // No custom query -> no generated columns -> all metadata are present in table metadata
