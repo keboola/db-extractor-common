@@ -162,7 +162,6 @@ class DefaultManifestGeneratorTest extends TestCase
             $builder = ColumnBuilder::create();
             $builder->setName($name);
             $builder->setType($type);
-            $builder->setPrimaryKey($name === 'pk1' || $name === 'pk2');
             $columnsMetadata[] = $builder->build();
         }
 
@@ -251,7 +250,6 @@ class DefaultManifestGeneratorTest extends TestCase
             $builder = ColumnBuilder::create();
             $builder->setName($name);
             $builder->setType($type);
-            $builder->setPrimaryKey($name === 'pk1' || $name === 'pk2');
             $columnsMetadata[] = $builder->build();
         }
 

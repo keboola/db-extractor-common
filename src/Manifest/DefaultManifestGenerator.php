@@ -41,7 +41,11 @@ class DefaultManifestGenerator implements ManifestGenerator
         if (!$exportResult->hasCsvHeader()) {
             if ($exportConfig->hasQuery()) {
                 // Custom query -> use QueryMetadata
-                $this->generateColumnsFromQueryMetadata($manifestOptions, $exportResult->getQueryMetadata());
+                $this->generateColumnsFromQueryMetadata(
+                    $manifestOptions,
+                    $exportResult->getQueryMetadata(),
+                    $exportConfig->getPrimaryKey(),
+                );
             } else {
                 // No custom query -> no generated columns -> all metadata are present in table metadata
                 $this->generateColumnsFromTableMetadata($manifestOptions, $exportConfig);
@@ -71,12 +75,13 @@ class DefaultManifestGenerator implements ManifestGenerator
     protected function generateColumnsFromQueryMetadata(
         ManifestOptions $manifestOptions,
         QueryMetadata $queryMetadata,
+        array $primaryKeys,
     ): void {
         $columns = $queryMetadata->getColumns();
         $schema = [];
 
         foreach ($columns as $column) {
-            $schema[] = $this->createSchemaEntryFromColumn($column, $column->isPrimaryKey());
+            $schema[] = $this->createSchemaEntryFromColumn($column, in_array($column->getName(), $primaryKeys, true));
         }
 
         $manifestOptions->setSchema($schema);
