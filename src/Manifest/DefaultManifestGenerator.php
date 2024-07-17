@@ -114,7 +114,6 @@ class DefaultManifestGenerator implements ManifestGenerator
     ): ManifestOptionsSchema {
         $baseType = [
             'type' => $columnMetadata[Common::KBC_METADATA_KEY_BASETYPE],
-            'length' => $columnMetadata[Common::KBC_METADATA_KEY_LENGTH] ?? null,
             'default' => $columnMetadata[Common::KBC_METADATA_KEY_DEFAULT] ?? null,
         ];
         $baseType = array_filter($baseType, fn($value) => $value !== null);

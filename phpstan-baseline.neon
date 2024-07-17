@@ -16,6 +16,11 @@ parameters:
 			path: src/ExtractorFactory.php
 
 		-
+			message: "#^Parameter \\#2 \\$dataTypes of class Keboola\\\\Component\\\\Manifest\\\\ManifestManager\\\\Options\\\\OutTable\\\\ManifestOptionsSchema constructor expects array\\<string, array\\{type\\: string, length\\?\\: string, default\\?\\: string\\}\\>\\|null, non\\-empty\\-array\\<non\\-falsy\\-string, array\\{type\\?\\: mixed, default\\?\\: mixed\\}\\> given\\.$#"
+			count: 1
+			path: src/Manifest/DefaultManifestGenerator.php
+
+		-
 			message: "#^Cannot access offset 'data_dir' on mixed\\.$#"
 			count: 3
 			path: src/Test/ExtractorTest.php

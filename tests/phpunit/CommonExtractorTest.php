@@ -606,7 +606,6 @@ class CommonExtractorTest extends ExtractorTest
                 'data_type' => [
                     'base' => [
                         'default' => 'abc',
-                        'length' => '155',
                         'type' => 'STRING',
                     ],
                 ],
@@ -624,7 +623,6 @@ class CommonExtractorTest extends ExtractorTest
                 'data_type' => [
                     'base' => [
                         'default' => 'abc',
-                        'length' => '155',
                         'type' => 'STRING',
                     ],
                 ],

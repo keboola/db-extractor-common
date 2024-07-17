@@ -251,10 +251,6 @@ class CommonExtractorLegacyFormatTest extends ExtractorTest
                         'value' => 'STRING',
                     ],
                     [
-                        'key' => 'KBC.datatype.length',
-                        'value' => '155',
-                    ],
-                    [
                         'key' => 'KBC.datatype.default',
                         'value' => 'abc',
                     ],
@@ -288,10 +284,6 @@ class CommonExtractorLegacyFormatTest extends ExtractorTest
                     [
                         'key' => 'KBC.datatype.basetype',
                         'value' => 'STRING',
-                    ],
-                    [
-                        'key' => 'KBC.datatype.length',
-                        'value' => '155',
                     ],
                     [
                         'key' => 'KBC.datatype.default',
