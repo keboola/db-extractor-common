@@ -86,7 +86,6 @@ class DefaultManifestGeneratorTest extends TestCase
                     'name' => 'name',
                     'data_type' => [
                         'base' => [
-                            'length' => '255',
                             'type' => 'STRING',
                         ],
                     ],

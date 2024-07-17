@@ -8,6 +8,5 @@ parameters:
         # Bad phpdoc in library
         - '#\$toxicity of method Ihsw\\Toxiproxy\\Proxy::create\(\) expects string, float given#'
         - '#Parameter \#1 \$name of class Keboola\\Component\\Manifest\\ManifestManager\\Options\\OutTable\\ManifestOptionsSchema constructor expects string, mixed given.#'
-        - '#Parameter \#2 \$dataTypes of class Keboola\\Component\\Manifest\\ManifestManager\\Options\\OutTable\\ManifestOptionsSchema constructor expects array<string, array{type: string, length\?: string, default\?: string}>\|null, non-empty-array<non-falsy-string, array{type\?: mixed, length\?: mixed, default\?: mixed}> given.#'
         - '#Parameter \#3 \$nullable of class Keboola\\Component\\Manifest\\ManifestManager\\Options\\OutTable\\ManifestOptionsSchema constructor expects bool, mixed given.#'
         - '#Parameter \#5 \$description of class Keboola\\Component\\Manifest\\ManifestManager\\Options\\OutTable\\ManifestOptionsSchema constructor expects string\|null, mixed given.#'
