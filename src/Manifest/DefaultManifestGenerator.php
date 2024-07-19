@@ -182,11 +182,14 @@ class DefaultManifestGenerator implements ManifestGenerator
 
         $dataTypeClass = sprintf('\\Keboola\\Datatype\\Definition\\%s', $this->extractorClass);
         if (class_exists($dataTypeClass)) {
+            $options = [];
+            if ($column->hasLength()) {
+                $options['length'] = $column->getLength();
+            }
             /** @var \Keboola\Datatype\Definition\DefinitionInterface $backendDataTypeDefinition */
-            $backendDataTypeDefinition = new $dataTypeClass($column->getType());
+            $backendDataTypeDefinition = new $dataTypeClass($column->getType(), $options);
             $baseType = [
                 'type' => $backendDataTypeDefinition->getBasetype(),
-                'length' => $column->hasLength() ? $column->getLength() : null,
                 'default' => $column->hasDefault() ? (string) $column->getDefault() : null,
             ];
             $baseType = array_filter($baseType, fn($value) => $value !== null);
