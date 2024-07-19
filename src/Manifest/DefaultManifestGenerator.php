@@ -186,7 +186,6 @@ class DefaultManifestGenerator implements ManifestGenerator
             $backendDataTypeDefinition = new $dataTypeClass($column->getType());
             $baseType = [
                 'type' => $backendDataTypeDefinition->getBasetype(),
-                'length' => $column->hasLength() ? $column->getLength() : null,
                 'default' => $column->hasDefault() ? (string) $column->getDefault() : null,
             ];
             $baseType = array_filter($baseType, fn($value) => $value !== null);
