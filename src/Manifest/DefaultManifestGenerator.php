@@ -129,6 +129,9 @@ class DefaultManifestGenerator implements ManifestGenerator
             if (isset($columnMetadata[Common::KBC_METADATA_KEY_TYPE])) {
                 $baseType['type'] = $columnMetadata[Common::KBC_METADATA_KEY_TYPE];
             }
+            if (isset($columnMetadata[Common::KBC_METADATA_KEY_LENGTH])) {
+                $baseType['length'] = $columnMetadata[Common::KBC_METADATA_KEY_LENGTH];
+            }
             $dataTypes[$backend] = $baseType;
         }
 

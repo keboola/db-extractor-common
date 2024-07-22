@@ -249,6 +249,7 @@ class DefaultManifestGeneratorTest extends TestCase
             $builder = ColumnBuilder::create();
             $builder->setName($name);
             $builder->setType($type);
+            $builder->setLength($type === 'integer' ? null : '255');
             $columnsMetadata[] = $builder->build();
         }
 
@@ -314,6 +315,7 @@ class DefaultManifestGeneratorTest extends TestCase
                             'type' => 'STRING',
                         ],
                         'snowflake' => [
+                            'length' => '255',
                             'type' => 'string',
                         ],
                     ],
