@@ -7,6 +7,7 @@ namespace Keboola\DbExtractor\Manifest;
 use Keboola\Component\Manifest\ManifestManager\Options\OutTable\ManifestOptions;
 use Keboola\Component\Manifest\ManifestManager\Options\OutTable\ManifestOptionsSchema;
 use Keboola\Datatype\Definition\Common;
+use Keboola\Datatype\Definition\Exception\InvalidTypeException;
 use Keboola\DbExtractor\Adapter\Metadata\MetadataProvider;
 use Keboola\DbExtractor\Adapter\ValueObject\ExportResult;
 use Keboola\DbExtractor\Adapter\ValueObject\QueryMetadata;
@@ -182,19 +183,24 @@ class DefaultManifestGenerator implements ManifestGenerator
 
         $dataTypeClass = sprintf('\\Keboola\\Datatype\\Definition\\%s', $this->extractorClass);
         if (class_exists($dataTypeClass)) {
-            $options = [];
-            if ($column->hasLength()) {
-                $options['length'] = $column->getLength();
+            try {
+                $options = [];
+                if ($column->hasLength()) {
+                    $options['length'] = $column->getLength();
+                }
+                /** @var \Keboola\Datatype\Definition\DefinitionInterface $backendDataTypeDefinition */
+                $backendDataTypeDefinition = new $dataTypeClass($column->getType(), $options);
+                $baseType = $backendDataTypeDefinition->getBasetype();
+            } catch (InvalidTypeException) {
+                $baseType = 'string';
             }
-            /** @var \Keboola\Datatype\Definition\DefinitionInterface $backendDataTypeDefinition */
-            $backendDataTypeDefinition = new $dataTypeClass($column->getType(), $options);
-            $baseType = [
-                'type' => $backendDataTypeDefinition->getBasetype(),
+            $baseTypeSchema = [
+                'type' => $baseType,
                 'default' => $column->hasDefault() ? (string) $column->getDefault() : null,
             ];
-            $baseType = array_filter($baseType, fn($value) => $value !== null);
+            $baseTypeSchema = array_filter($baseTypeSchema, fn($value) => $value !== null);
 
-            $dataTypes['base'] = $baseType;
+            $dataTypes['base'] = $baseTypeSchema;
         }
 
         $backend = strtolower($this->extractorClass);

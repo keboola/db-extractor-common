@@ -259,7 +259,6 @@ class DefaultManifestGeneratorTest extends TestCase
         $queryMetadata->method('getColumns')->willReturn(new ColumnCollection($columnsMetadata));
 
         $manifestGenerator = $this->createManifestGenerator();
-        var_dump($exportConfig->hasPrimaryKey());
         $manifestData = $manifestGenerator->generate($exportConfig, $exportResult, false);
         Assert::assertSame([
             'destination' => 'output-table',
@@ -321,6 +320,39 @@ class DefaultManifestGeneratorTest extends TestCase
                 ],
             ],
         ], $manifestData);
+    }
+
+    public function testCsvWithoutHeaderCustomQueryWithBaseTypeFallback(): void
+    {
+        $exportConfig = $this->createExportConfig(false);
+        $exportResult = $this->createExportResult();
+        $queryMetadata = $this
+            ->getMockBuilder(QueryMetadata::class)
+            ->disableAutoReturnValueGeneration()
+            ->getMock();
+
+        // longtext is not supported type in Snowflake, should fall back to "string"
+        $columnsRaw = ['pk1' => 'integer', 'pk2' => 'integer', 'generated_col' => 'longtext'];
+
+        $columnsMetadata = [];
+        foreach ($columnsRaw as $name => $type) {
+            $builder = ColumnBuilder::create();
+            $builder->setName($name);
+            $builder->setType($type);
+            $columnsMetadata[] = $builder->build();
+        }
+
+        $exportConfig->method('hasQuery')->willReturn(true);
+        $exportConfig->method('getTable')->willReturn(new InputTable('OutputTable', 'Schema'));
+        $exportResult->method('hasCsvHeader')->willReturn(false);
+        $exportResult->method('getQueryMetadata')->willReturn($queryMetadata);
+        $queryMetadata->method('getColumns')->willReturn(new ColumnCollection($columnsMetadata));
+
+        $manifestGenerator = $this->createManifestGenerator();
+        $manifestData = $manifestGenerator->generate($exportConfig, $exportResult, false);
+
+        Assert::assertEquals('string', $manifestData['schema'][2]['data_type']['base']['type']);
+        Assert::assertEquals('longtext', $manifestData['schema'][2]['data_type']['snowflake']['type']);
     }
 
     public function testCsvWithoutHeaderCustomQueryLegacyFormat(): void
