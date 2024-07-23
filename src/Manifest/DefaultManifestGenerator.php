@@ -188,7 +188,7 @@ class DefaultManifestGenerator implements ManifestGenerator
         if (class_exists($dataTypeClass)) {
             try {
                 $options = [];
-                if ($column->hasLength()) {
+                if ($column->hasLength() && $column->getLength() !== '0') {
                     $options['length'] = $column->getLength();
                 }
                 /** @var \Keboola\Datatype\Definition\DefinitionInterface $backendDataTypeDefinition */
