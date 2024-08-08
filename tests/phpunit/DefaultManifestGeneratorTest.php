@@ -234,6 +234,87 @@ class DefaultManifestGeneratorTest extends TestCase
         ], $manifestData);
     }
 
+    public function testCsvWithoutHeaderCustomQueryDatatypeFallback(): void
+    {
+        $exportConfig = $this->createExportConfig();
+        $exportResult = $this->createExportResult();
+        $queryMetadata = $this
+            ->getMockBuilder(QueryMetadata::class)
+            ->disableAutoReturnValueGeneration()
+            ->getMock();
+
+        $columnsRaw = ['pk1' => 'integer', 'pk2' => 'integer', 'generated_col' => 'varchar'];
+        $columnsMetadata = [];
+        foreach ($columnsRaw as $name => $type) {
+            $builder = ColumnBuilder::create();
+            $builder->setName($name);
+            $builder->setType($type);
+            $columnsMetadata[] = $builder->build();
+        }
+
+        $exportConfig->method('hasQuery')->willReturn(true);
+        $exportConfig->method('getTable')->willReturn(new InputTable('OutputTable', 'Schema'));
+        $exportResult->method('hasCsvHeader')->willReturn(false);
+        $exportResult->method('getQueryMetadata')->willReturn($queryMetadata);
+        $queryMetadata->method('getColumns')->willReturn(new ColumnCollection($columnsMetadata));
+
+        $manifestGenerator = $this->createManifestGenerator('PostgreSQL');
+        // PostgreSQL does not have class in php-datatypes, so it should fall back to GenericStorage
+        // to resolve base type e.g. for VARCHAR
+        $manifestData = $manifestGenerator->generate($exportConfig, $exportResult, false);
+        Assert::assertSame([
+            'destination' => 'output-table',
+            'incremental' => false,
+            'schema' => [
+                [
+                    'nullable' => true,
+                    'primary_key' => true,
+                    'metadata' => [
+                        'KBC.sourceName' => 'pk1',
+                        'KBC.sanitizedName' => 'pk1',
+                        'KBC.uniqueKey' => false,
+                    ],
+                    'name' => 'pk1',
+                    'data_type' => [
+                        'base' => [
+                            'type' => 'INTEGER',
+                        ],
+                    ],
+                ],
+                [
+                    'nullable' => true,
+                    'primary_key' => true,
+                    'metadata' => [
+                        'KBC.sourceName' => 'pk2',
+                        'KBC.sanitizedName' => 'pk2',
+                        'KBC.uniqueKey' => false,
+                    ],
+                    'name' => 'pk2',
+                    'data_type' => [
+                        'base' => [
+                            'type' => 'INTEGER',
+                        ],
+                    ],
+                ],
+                [
+                    'nullable' => true,
+                    'primary_key' => false,
+                    'metadata' => [
+                        'KBC.sourceName' => 'generated_col',
+                        'KBC.sanitizedName' => 'generated_col',
+                        'KBC.uniqueKey' => false,
+                    ],
+                    'name' => 'generated_col',
+                    'data_type' => [
+                        'base' => [
+                            'type' => 'STRING',
+                        ],
+                    ],
+                ],
+            ],
+        ], $manifestData);
+    }
+
     public function testCsvWithoutHeaderCustomQueryWithoutPrimaryKeys(): void
     {
         $exportConfig = $this->createExportConfig(false);
@@ -428,7 +509,7 @@ class DefaultManifestGeneratorTest extends TestCase
             ->getMock();
     }
 
-    protected function createManifestGenerator(): ManifestGenerator
+    protected function createManifestGenerator(string $backend = 'Snowflake'): ManifestGenerator
     {
         $metadataProvider = $this
             ->getMockBuilder(MetadataProvider::class)
@@ -464,6 +545,6 @@ class DefaultManifestGeneratorTest extends TestCase
         $metadataProvider->method('getTable')->willReturn($tableBuilder->build());
 
         $manifestSerializer = new DefaultManifestSerializer();
-        return new DefaultManifestGenerator($metadataProvider, $manifestSerializer, 'Snowflake');
+        return new DefaultManifestGenerator($metadataProvider, $manifestSerializer, $backend);
     }
 }

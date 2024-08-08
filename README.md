@@ -16,8 +16,8 @@ Common classes for creating vendor specific database extractors.
 
 ## Development and running tests
 
-    docker-compose build
-    docker-compose run --rm tests  # runs the tests
+    docker compose build
+    docker compose run --rm tests  # runs the tests
 
 ## Usage
 Add the library to your component's composer:

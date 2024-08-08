@@ -8,6 +8,7 @@ use Keboola\Component\Manifest\ManifestManager\Options\OutTable\ManifestOptions;
 use Keboola\Component\Manifest\ManifestManager\Options\OutTable\ManifestOptionsSchema;
 use Keboola\Datatype\Definition\Common;
 use Keboola\Datatype\Definition\Exception\InvalidTypeException;
+use Keboola\Datatype\Definition\GenericStorage;
 use Keboola\DbExtractor\Adapter\Metadata\MetadataProvider;
 use Keboola\DbExtractor\Adapter\ValueObject\ExportResult;
 use Keboola\DbExtractor\Adapter\ValueObject\QueryMetadata;
@@ -185,26 +186,28 @@ class DefaultManifestGenerator implements ManifestGenerator
         $dataTypes = null;
 
         $dataTypeClass = sprintf('\\Keboola\\Datatype\\Definition\\%s', $this->extractorClass);
-        if (class_exists($dataTypeClass)) {
-            try {
-                $options = [];
-                if ($column->hasLength()) {
-                    $options['length'] = $column->getLength();
-                }
-                /** @var \Keboola\Datatype\Definition\DefinitionInterface $backendDataTypeDefinition */
-                $backendDataTypeDefinition = new $dataTypeClass($column->getType(), $options);
-                $baseType = $backendDataTypeDefinition->getBasetype();
-            } catch (InvalidTypeException) {
-                $baseType = 'string';
-            }
-            $baseTypeSchema = [
-                'type' => $baseType,
-                'default' => $column->hasDefault() ? (string) $column->getDefault() : null,
-            ];
-            $baseTypeSchema = array_filter($baseTypeSchema, fn($value) => $value !== null);
-
-            $dataTypes['base'] = $baseTypeSchema;
+        if (!class_exists($dataTypeClass)) {
+            $dataTypeClass = GenericStorage::class;
         }
+
+        try {
+            $options = [];
+            if ($column->hasLength()) {
+                $options['length'] = $column->getLength();
+            }
+            /** @var \Keboola\Datatype\Definition\DefinitionInterface $backendDataTypeDefinition */
+            $backendDataTypeDefinition = new $dataTypeClass($column->getType(), $options);
+            $baseType = $backendDataTypeDefinition->getBasetype();
+        } catch (InvalidTypeException) {
+            $baseType = 'string';
+        }
+        $baseTypeSchema = [
+            'type' => $baseType,
+            'default' => $column->hasDefault() ? (string) $column->getDefault() : null,
+        ];
+        $baseTypeSchema = array_filter($baseTypeSchema, fn($value) => $value !== null);
+
+        $dataTypes['base'] = $baseTypeSchema;
 
         $backend = strtolower($this->extractorClass);
         if (in_array($backend, ManifestOptionsSchema::ALLOWED_DATA_TYPES_BACKEND, true)) {
