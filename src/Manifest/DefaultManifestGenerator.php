@@ -12,6 +12,7 @@ use Keboola\Datatype\Definition\GenericStorage;
 use Keboola\DbExtractor\Adapter\Metadata\MetadataProvider;
 use Keboola\DbExtractor\Adapter\ValueObject\ExportResult;
 use Keboola\DbExtractor\Adapter\ValueObject\QueryMetadata;
+use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractor\TableResultFormat\Metadata\Manifest\ManifestSerializer;
 use Keboola\DbExtractor\TableResultFormat\Metadata\ValueObject\Column;
 use Keboola\DbExtractor\TableResultFormat\Metadata\ValueObject\Table;
@@ -82,8 +83,20 @@ class DefaultManifestGenerator implements ManifestGenerator
         $columns = $queryMetadata->getColumns();
         $schema = [];
 
+        $primaryKeysSet = [];
         foreach ($columns as $column) {
-            $schema[] = $this->createSchemaEntryFromColumn($column, in_array($column->getName(), $primaryKeys, true));
+            $isPrimaryKey = in_array($column->getName(), $primaryKeys, true);
+            if ($isPrimaryKey) {
+                $primaryKeysSet[] = $column->getName();
+            }
+            $schema[] = $this->createSchemaEntryFromColumn($column, $isPrimaryKey);
+        }
+
+        if ($primaryKeys && count($primaryKeysSet) !== count($primaryKeys)) {
+            throw new UserException(sprintf(
+                'Primary keys do not match columns. Missing columns: %s',
+                implode(', ', array_diff($primaryKeys, $primaryKeysSet)),
+            ));
         }
 
         $manifestOptions->setSchema($schema);
@@ -95,6 +108,7 @@ class DefaultManifestGenerator implements ManifestGenerator
         $allTableColumns = $table->getColumns();
         $exportedColumns = $columns ?: $allTableColumns->getNames();
 
+        $primaryKeysSet = [];
         foreach ($exportedColumns as $column) {
             $column = $allTableColumns->getByName($column);
             $columnMetadataKeyValueArray = $this->serializer->serializeColumn($column);
@@ -103,8 +117,18 @@ class DefaultManifestGenerator implements ManifestGenerator
                 $columnMetadata[$columnMetadataKeyValue['key']] = $columnMetadataKeyValue['value'];
             }
             $isPrimaryKey = $primaryKeys && in_array($column->getName(), $primaryKeys, true);
+            if ($isPrimaryKey) {
+                $primaryKeysSet[] = $column->getName();
+            }
             $backend = $table->hasDatatypeBackend() ? $table->getDatatypeBackend() : null;
             $schema[] = $this->createSchemaEntryFromSerializedColumnMetadata($columnMetadata, $isPrimaryKey, $backend);
+        }
+
+        if ($primaryKeys && count($primaryKeysSet) !== count($primaryKeys)) {
+            throw new UserException(sprintf(
+                'Primary keys do not match columns. Missing columns: %s',
+                implode(', ', array_diff($primaryKeys, $primaryKeysSet)),
+            ));
         }
 
         return $schema;
