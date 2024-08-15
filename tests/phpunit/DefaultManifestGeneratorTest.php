@@ -7,6 +7,7 @@ namespace Keboola\DbExtractor\Tests;
 use Keboola\DbExtractor\Adapter\Metadata\MetadataProvider;
 use Keboola\DbExtractor\Adapter\ValueObject\ExportResult;
 use Keboola\DbExtractor\Adapter\ValueObject\QueryMetadata;
+use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractor\Manifest\DefaultManifestGenerator;
 use Keboola\DbExtractor\Manifest\ManifestGenerator;
 use Keboola\DbExtractor\TableResultFormat\Metadata\Builder\ColumnBuilder;
@@ -107,6 +108,25 @@ class DefaultManifestGeneratorTest extends TestCase
                 ],
             ],
         ], $manifestData);
+    }
+
+    public function testCsvWithoutHeaderTableQueryPkInConfigNotExist(): void
+    {
+        $exportConfig = $this->createExportConfig(['pk1', 'nonexistent-pk']);
+        $exportResult = $this->createExportResult();
+
+        $exportConfig->method('hasQuery')->willReturn(false);
+        $exportConfig->method('hasColumns')->willReturn(true);
+        $exportConfig->method('getColumns')->willReturn(['pk1', 'pk2', 'name', 'age']);
+        $exportConfig->method('getTable')->willReturn(new InputTable('OutputTable', 'Schema'));
+        $exportResult->method('hasCsvHeader')->willReturn(false);
+
+        $manifestGenerator = $this->createManifestGenerator();
+
+        $this->expectException(UserException::class);
+        $this->expectExceptionMessage('Primary keys do not match columns. Missing columns: nonexistent-pk');
+
+        $manifestGenerator->generate($exportConfig, $exportResult, false);
     }
 
     public function testCsvWithoutHeaderTableQueryLegacyFormat(): void
@@ -317,7 +337,7 @@ class DefaultManifestGeneratorTest extends TestCase
 
     public function testCsvWithoutHeaderCustomQueryWithoutPrimaryKeys(): void
     {
-        $exportConfig = $this->createExportConfig(false);
+        $exportConfig = $this->createExportConfig([]);
         $exportResult = $this->createExportResult();
         $queryMetadata = $this
             ->getMockBuilder(QueryMetadata::class)
@@ -405,9 +425,42 @@ class DefaultManifestGeneratorTest extends TestCase
         ], $manifestData);
     }
 
+    public function testCsvWithoutHeaderCustomQueryPkInConfigNotExist(): void
+    {
+        $exportConfig = $this->createExportConfig(['pk1', 'nonexistent-pk']);
+        $exportResult = $this->createExportResult();
+        $queryMetadata = $this
+            ->getMockBuilder(QueryMetadata::class)
+            ->disableAutoReturnValueGeneration()
+            ->getMock();
+
+        $columnsRaw = ['pk1' => 'integer', 'pk2' => 'integer', 'generated_col' => 'string'];
+        $columnsMetadata = [];
+        foreach ($columnsRaw as $name => $type) {
+            $builder = ColumnBuilder::create();
+            $builder->setName($name);
+            $builder->setType($type);
+            $builder->setLength($type === 'integer' ? null : '255');
+            $columnsMetadata[] = $builder->build();
+        }
+
+        $exportConfig->method('hasQuery')->willReturn(true);
+        $exportConfig->method('getTable')->willReturn(new InputTable('OutputTable', 'Schema'));
+        $exportResult->method('hasCsvHeader')->willReturn(false);
+        $exportResult->method('getQueryMetadata')->willReturn($queryMetadata);
+        $queryMetadata->method('getColumns')->willReturn(new ColumnCollection($columnsMetadata));
+
+        $manifestGenerator = $this->createManifestGenerator();
+
+        $this->expectException(UserException::class);
+        $this->expectExceptionMessage('Primary keys do not match columns. Missing columns: nonexistent-pk');
+
+        $manifestGenerator->generate($exportConfig, $exportResult, false);
+    }
+
     public function testCsvWithoutHeaderCustomQueryWithBaseTypeFallback(): void
     {
-        $exportConfig = $this->createExportConfig(false);
+        $exportConfig = $this->createExportConfig([]);
         $exportResult = $this->createExportResult();
         $queryMetadata = $this
             ->getMockBuilder(QueryMetadata::class)
@@ -478,7 +531,7 @@ class DefaultManifestGeneratorTest extends TestCase
      * @psalm-return MockObject&ExportConfig
      * @return MockObject|ExportConfig
      */
-    protected function createExportConfig(bool $setPrimaryKeys = true): MockObject
+    protected function createExportConfig(array $primaryKeys = ['pk1', 'pk2']): MockObject
     {
         $exportConfig = $this
             ->getMockBuilder(ExportConfig::class)
@@ -488,9 +541,9 @@ class DefaultManifestGeneratorTest extends TestCase
 
         $exportConfig->method('getOutputTable')->willReturn('output-table');
         $exportConfig->method('isIncrementalLoading')->willReturn(false);
-        $exportConfig->method('hasPrimaryKey')->willReturn($setPrimaryKeys);
-        if ($setPrimaryKeys) {
-            $exportConfig->method('getPrimaryKey')->willReturn(['pk1', 'pk2']);
+        $exportConfig->method('hasPrimaryKey')->willReturn($primaryKeys !== []);
+        if ($primaryKeys !== []) {
+            $exportConfig->method('getPrimaryKey')->willReturn($primaryKeys);
         }
 
         return $exportConfig;
