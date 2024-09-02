@@ -85,7 +85,7 @@ class DefaultManifestGenerator implements ManifestGenerator
 
         $primaryKeysSet = [];
         foreach ($columns as $column) {
-            $isPrimaryKey = in_array($column->getName(), $primaryKeys, true);
+            $isPrimaryKey = $this->isPrimaryKey($column, $primaryKeys);
             if ($isPrimaryKey) {
                 $primaryKeysSet[] = $column->getName();
             }
@@ -116,7 +116,8 @@ class DefaultManifestGenerator implements ManifestGenerator
             foreach ($columnMetadataKeyValueArray as $columnMetadataKeyValue) {
                 $columnMetadata[$columnMetadataKeyValue['key']] = $columnMetadataKeyValue['value'];
             }
-            $isPrimaryKey = $primaryKeys && in_array($column->getName(), $primaryKeys, true);
+
+            $isPrimaryKey = $this->isPrimaryKey($column, $primaryKeys);
             if ($isPrimaryKey) {
                 $primaryKeysSet[] = $column->getName();
             }
@@ -270,5 +271,18 @@ class DefaultManifestGenerator implements ManifestGenerator
         ];
 
         return array_filter($values, fn($value) => $value !== null);
+    }
+
+    /**
+     * @param array<int, string>|null $primaryKeys
+     */
+    protected function isPrimaryKey(Column $column, ?array $primaryKeys): bool
+    {
+        if (!$primaryKeys) {
+            return false;
+        }
+        $lowercaseColumnName = strtolower($column->getName());
+        $lowercasePrimaryKeys = array_map('strtolower', $primaryKeys);
+        return in_array($lowercaseColumnName, $lowercasePrimaryKeys, true);
     }
 }
