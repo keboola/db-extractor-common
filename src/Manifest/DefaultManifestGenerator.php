@@ -162,6 +162,9 @@ class DefaultManifestGenerator implements ManifestGenerator
         }
 
         $isNullable = $columnMetadata[Common::KBC_METADATA_KEY_NULLABLE] ?? true;
+        if ($isPrimaryKey) {
+            $isNullable = false;
+        }
 
         unset(
             $columnMetadata[Common::KBC_METADATA_KEY_BASETYPE],

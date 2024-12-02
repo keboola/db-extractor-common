@@ -47,7 +47,7 @@ class DefaultManifestGeneratorTest extends TestCase
             ],
             'schema' => [
                 [
-                    'nullable' => true,
+                    'nullable' => false,
                     'primary_key' => true,
                     'metadata' => [
                         'KBC.sourceName' => 'pk1',
@@ -62,7 +62,7 @@ class DefaultManifestGeneratorTest extends TestCase
                     ],
                 ],
                 [
-                    'nullable' => true,
+                    'nullable' => false,
                     'primary_key' => true,
                     'metadata' => [
                         'KBC.sourceName' => 'pk2',
@@ -135,7 +135,7 @@ class DefaultManifestGeneratorTest extends TestCase
             ],
             'schema' => [
                 [
-                    'nullable' => true,
+                    'nullable' => false,
                     'primary_key' => true,
                     'metadata' => [
                         'KBC.sourceName' => 'pk1',
@@ -150,7 +150,7 @@ class DefaultManifestGeneratorTest extends TestCase
                     ],
                 ],
                 [
-                    'nullable' => true,
+                    'nullable' => false,
                     'primary_key' => true,
                     'metadata' => [
                         'KBC.sourceName' => 'pk2',
