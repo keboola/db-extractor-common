@@ -194,6 +194,56 @@ class RetryTest extends TestCase
         $this->assertOutputCsvValid();
     }
 
+    /**
+     * - Network & SSH tunnel are UP
+     * - Extractor is started
+     * - After 1st & 2nd PDO connection attempts, SSH tunnel is CLOSED
+     * - On 3rd attempt, tunnel is OPEN
+     * - Extractor completes successfully, the logs confirm that the retry mechanism was used
+     */
+    public function testSshTunnelClosedAfterLimitOpenedDuringRetry(): void
+    {
+        $this->createLargeTable(self::LARGE_TABLE_ROWS, self::LARGE_TABLE_NAME);
+        $proxy = $this->createToxiproxyToDb();
+
+        // Extractor process is started
+        $process = $this->createProcess($proxy, useSsh: true);
+        $tries = 0;
+        $process->start(function (string $dest, string $msg) use (&$tries): void {
+            // Close SSH tunnel after first 2 attempts to init. db connection
+            if ($dest === 'out' && str_contains($msg, 'Creating PDO connection')) {
+                if (++$tries <= 2) {
+                    $this->closeSshTunnels();
+                }
+            }
+        });
+
+        // Extractor process ended, network is up
+        // It should be successful, because retry mechanism
+        $process->wait();
+
+        // Process is successful
+        Assert::assertTrue($process->isSuccessful());
+        Assert::assertSame(0, $process->getExitCode());
+
+        // SSH tunnel is successfully restored
+        $output = $process->getOutput();
+        $errorOutput = $process->getErrorOutput();
+        Assert::assertStringContainsString('Creating SSH tunnel to \'sshproxy\' on local port \'33066\'', $output);
+        Assert::assertStringContainsString(
+            'Creating PDO connection to "mysql:host=127.0.0.1;port=33066;dbname=testdb;charset=utf8"',
+            $output,
+        );
+        Assert::assertStringContainsString('SSH tunnel has been closed', $output);
+        Assert::assertStringContainsString('Retrying... [1x]', $output);
+        Assert::assertStringContainsString('Retrying... [2x]', $output);
+        Assert::assertStringContainsString('Exported "100000" rows to "output".', $output);
+        Assert::assertSame('', $errorOutput);
+
+        // Extraction is successful
+        $this->assertOutputCsvValid();
+    }
+
     public function testRetriesDisabledForSyncActions(): void
     {
         $proxy = $this->createToxiproxyToDb();
@@ -217,12 +267,12 @@ class RetryTest extends TestCase
         Assert::assertStringContainsString('MySQL server has gone away', $errorOutput);
     }
 
-    private function createProcess(Proxy $proxy, string $action = 'run'): Process
+    private function createProcess(Proxy $proxy, string $action = 'run', bool $useSsh = false): Process
     {
         // Create config file
         file_put_contents(
             $this->temp->getTmpFolder() . '/config.json',
-            json_encode($this->createConfig($proxy, $action)),
+            json_encode($this->createConfig($proxy, $action, $useSsh)),
         );
 
         // We run the extractor in a asynchronous process
@@ -234,8 +284,12 @@ class RetryTest extends TestCase
         );
     }
 
-    private function createConfig(Proxy $proxy, string $action = 'run'): array
-    {
+    private function createConfig(
+        Proxy $proxy,
+        string $action = 'run',
+        bool $useSsh = false,
+        int $sshLocalPort = 33066,
+    ): array {
         $config = [
             'parameters' => [
                 'db' => [
@@ -257,6 +311,21 @@ class RetryTest extends TestCase
             ],
         ];
 
+        if ($useSsh) {
+            $config['parameters']['db']['ssh'] = [
+                'enabled' => true,
+                'keys' => [
+                    '#private' => $this->getPrivateKey(),
+                    'public' => $this->getPublicKey(),
+                ],
+                'user' => $config['parameters']['db']['user'],
+                'sshHost' => 'sshproxy',
+                'localPort' => (string) $sshLocalPort,
+                'remoteHost' => $config['parameters']['db']['host'],
+                'remotePort' => $config['parameters']['db']['port'],
+            ];
+        }
+
         if ($action !== 'run') {
             $config['action'] = $action;
         }
@@ -272,5 +341,15 @@ class RetryTest extends TestCase
             self::LARGE_TABLE_ROWS . ' ' .$csvFile . "\n",
             Process::fromShellCommandline('wc -l ' . escapeshellarg($csvFile))->mustRun()->getOutput(),
         );
+    }
+
+    private function getPrivateKey(): string
+    {
+        return (string) file_get_contents('/root/.ssh/id_rsa');
+    }
+
+    private function getPublicKey(): string
+    {
+        return (string) file_get_contents('/root/.ssh/id_rsa.pub');
     }
 }
