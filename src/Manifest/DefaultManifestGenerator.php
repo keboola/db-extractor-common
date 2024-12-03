@@ -249,10 +249,15 @@ class DefaultManifestGenerator implements ManifestGenerator
             $dataTypes[$backend] = $backendDataType;
         }
 
+        $nullable = !$column->hasNullable() || $column->isNullable();
+        if ($isPrimaryKey) {
+            $nullable = false;
+        }
+
         return new ManifestOptionsSchema(
             $column->getSanitizedName(),
             $dataTypes,
-            !$column->hasNullable() || $column->isNullable(),
+            $nullable,
             $isPrimaryKey,
             $column->hasDescription() ? $column->getDescription() : null,
             $metadata,
