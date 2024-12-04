@@ -7,4 +7,5 @@ composer.lock
 runtests.sh
 /.phpunit.result.cache
 /ssh.*
+/tests/phpunit/data/config.json
 /tests/phpunit/data/out/tables/

@@ -5,16 +5,23 @@ declare(strict_types=1);
 namespace Keboola\DbExtractor;
 
 use Keboola\Component\BaseComponent;
+use Keboola\DbExtractor\Adapter\Exception\SshTunnelClosedException;
 use Keboola\DbExtractor\Exception\UserException;
 use Keboola\DbExtractorConfig\Configuration\ActionConfigRowDefinition;
 use Keboola\DbExtractorConfig\Configuration\ConfigDefinition;
 use Keboola\DbExtractorConfig\Configuration\ConfigRowDefinition;
 use Keboola\DbExtractorConfig\Configuration\ValueObject\ExportConfig;
 use Psr\Log\LoggerInterface;
+use Retry\BackOff\ExponentialBackOffPolicy;
+use Retry\Policy\SimpleRetryPolicy;
+use Retry\RetryProxy;
+use Retry\RetryProxyInterface;
 use Throwable;
 
 class Application extends BaseComponent
 {
+    public const SSH_TUNNEL_MAX_TRIES = 3;
+
     public function __construct(LoggerInterface $logger)
     {
         parent::__construct($logger);
@@ -28,28 +35,32 @@ class Application extends BaseComponent
             $this->getInputState(),
         );
 
-        $extractor = $extractorFactory->create(
-            $this->getLogger(),
-            $this->getConfig()->getAction(),
-            $this->getConfig()->getDataTypeSupport(),
-        );
+        $retryProxy = $this->createSshTunnelRetryProxy(self::SSH_TUNNEL_MAX_TRIES);
 
-        if (!$this->isRowConfiguration($this->getConfig()->getData())) {
-            $tables = array_filter(
-                $this->getConfig()->getParameters()['tables'],
-                function ($table) {
-                    return ($table['enabled']);
-                },
+        $retryProxy->call(function () use ($extractorFactory): void {
+            $extractor = $extractorFactory->create(
+                $this->getLogger(),
+                $this->getConfig()->getAction(),
+                $this->getConfig()->getDataTypeSupport(),
             );
-            foreach ($tables as $table) {
-                $extractor->export($this->createExportConfig($table));
+
+            if (!$this->isRowConfiguration($this->getConfig()->getData())) {
+                $tables = array_filter(
+                    $this->getConfig()->getParameters()['tables'],
+                    function ($table) {
+                        return ($table['enabled']);
+                    },
+                );
+                foreach ($tables as $table) {
+                    $extractor->export($this->createExportConfig($table));
+                }
+            } else {
+                $exportResults = $extractor->export($this->createExportConfig($this->getConfig()->getParameters()));
+                if (isset($exportResults['state'])) {
+                    $this->writeOutputStateToFile($exportResults['state']);
+                }
             }
-        } else {
-            $exportResults = $extractor->export($this->createExportConfig($this->getConfig()->getParameters()));
-            if (isset($exportResults['state'])) {
-                $this->writeOutputStateToFile($exportResults['state']);
-            }
-        }
+        });
     }
 
     protected function getConfigDefinitionClass(): string
@@ -141,5 +152,14 @@ class Application extends BaseComponent
             'status' => 'success',
         ];
         return $output;
+    }
+
+    private function createSshTunnelRetryProxy(int $maxTries): RetryProxyInterface
+    {
+        $expectedSshTunnelExceptions = [SshTunnelClosedException::class];
+        $retryPolicy = new SimpleRetryPolicy($maxTries, $expectedSshTunnelExceptions);
+        $backoffPolicy = new ExponentialBackOffPolicy(1000);
+
+        return new RetryProxy($retryPolicy, $backoffPolicy, $this->getLogger());
     }
 }
