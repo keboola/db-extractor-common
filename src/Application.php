@@ -20,6 +20,8 @@ use Throwable;
 
 class Application extends BaseComponent
 {
+    public const SSH_TUNNEL_MAX_TRIES = 3;
+
     public function __construct(LoggerInterface $logger)
     {
         parent::__construct($logger);
@@ -33,8 +35,7 @@ class Application extends BaseComponent
             $this->getInputState(),
         );
 
-        $sshTunnelMaxTries = 3;
-        $retryProxy = $this->createSshTunnelRetryProxy($sshTunnelMaxTries);
+        $retryProxy = $this->createSshTunnelRetryProxy(self::SSH_TUNNEL_MAX_TRIES);
 
         $retryProxy->call(function () use ($extractorFactory): void {
             $extractor = $extractorFactory->create(
