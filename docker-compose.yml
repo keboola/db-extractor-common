@@ -39,7 +39,7 @@ services:
       - mysql
 
   mysql:
-    image: mysql:8.0
+    image: mysql:5.6
     command: mysqld --local-infile=1
     volumes:
       - ./tests/phpunit/data/common/conf.d:/etc/mysql/conf.d
