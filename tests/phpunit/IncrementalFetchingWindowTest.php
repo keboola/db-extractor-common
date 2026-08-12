@@ -14,10 +14,11 @@ use Monolog\Logger;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Unit tests (no live DB) for the incremental fetching WINDOW hook + guards added to BaseExtractor:
+ * Unit tests (no live DB) for the incremental fetching WINDOW + watermark LOOKBACK hooks + guards
+ * added to BaseExtractor:
  * - getIncrementalFetchingColumnType() (opt-in hook, default null)
  * - export() threading the resolved column type into the ExportConfig handed to the adapter
- * - guardIncrementalFetchingWindow() (primary-key guard + absolute-end warning)
+ * - guardIncrementalFetchingOverlap() (primary-key guard for lookback/window-start + absolute-end warning)
  */
 class IncrementalFetchingWindowTest extends TestCase
 {
@@ -130,10 +131,13 @@ class IncrementalFetchingWindowTest extends TestCase
             [],
             new Logger('test'),
         );
-        $exportConfig = $this->buildExportConfig(['incrementalFetchingStart' => '20 minutes ago']);
+        $exportConfig = $this->buildExportConfig([
+            'incrementalFetchingMode' => 'window',
+            'incrementalFetchingStart' => '20 minutes ago',
+        ]);
 
         $this->expectException(UserException::class);
-        $this->expectExceptionMessage('Incremental fetching window is not supported by this extractor.');
+        $this->expectExceptionMessage('Incremental fetching window/lookback is not supported by this extractor.');
         $extractor->export($exportConfig);
     }
 
@@ -164,6 +168,7 @@ class IncrementalFetchingWindowTest extends TestCase
             new Logger('test'),
         );
         $exportConfig = $this->buildExportConfig([
+            'incrementalFetchingMode' => 'window',
             'incrementalFetchingStart' => '20 minutes ago',
             'incrementalFetchingEnd' => 'now',
         ]);
@@ -188,6 +193,7 @@ class IncrementalFetchingWindowTest extends TestCase
         $exportConfig = $this->buildExportConfig([
             'incremental' => true,
             'primaryKey' => [],
+            'incrementalFetchingMode' => 'window',
             'incrementalFetchingStart' => '20 minutes ago',
         ]);
 
@@ -205,6 +211,7 @@ class IncrementalFetchingWindowTest extends TestCase
         $exportConfig = $this->buildExportConfig([
             'incremental' => true,
             'primaryKey' => ['id'],
+            'incrementalFetchingMode' => 'window',
             'incrementalFetchingStart' => '20 minutes ago',
         ]);
 
@@ -223,6 +230,7 @@ class IncrementalFetchingWindowTest extends TestCase
         $exportConfig = $this->buildExportConfig([
             'incremental' => false,
             'primaryKey' => [],
+            'incrementalFetchingMode' => 'window',
             'incrementalFetchingStart' => '20 minutes ago',
         ]);
 
@@ -244,8 +252,8 @@ class IncrementalFetchingWindowTest extends TestCase
             'primaryKey' => [],
         ])->withIncrementalColumnType('TIMESTAMP');
 
-        // Must not throw: no window at all, so the PK guard never engages.
-        $extractor->callGuardIncrementalFetchingWindow($exportConfig);
+        // Must not throw: no window/lookback at all, so the PK guard never engages.
+        $extractor->callGuardIncrementalFetchingOverlap($exportConfig);
 
         self::assertFalse($handler->hasWarningRecords());
     }
@@ -260,7 +268,10 @@ class IncrementalFetchingWindowTest extends TestCase
             [],
             new Logger('test', [$handler]),
         );
-        $exportConfig = $this->buildExportConfig(['incrementalFetchingEnd' => '2026-01-01']);
+        $exportConfig = $this->buildExportConfig([
+            'incrementalFetchingMode' => 'window',
+            'incrementalFetchingEnd' => '2026-01-01',
+        ]);
 
         $extractor->export($exportConfig);
 
@@ -275,7 +286,10 @@ class IncrementalFetchingWindowTest extends TestCase
             [],
             new Logger('test', [$handler]),
         );
-        $exportConfig = $this->buildExportConfig(['incrementalFetchingEnd' => 'now']);
+        $exportConfig = $this->buildExportConfig([
+            'incrementalFetchingMode' => 'window',
+            'incrementalFetchingEnd' => 'now',
+        ]);
 
         $extractor->export($exportConfig);
 
@@ -293,6 +307,7 @@ class IncrementalFetchingWindowTest extends TestCase
         );
         $exportConfig = $this->buildExportConfig([
             'incrementalFetchingColumn' => 'id',
+            'incrementalFetchingMode' => 'window',
             'incrementalFetchingEnd' => '50000',
         ]);
 
@@ -309,10 +324,84 @@ class IncrementalFetchingWindowTest extends TestCase
             [],
             new Logger('test', [$handler]),
         );
-        $exportConfig = $this->buildExportConfig(['incrementalFetchingStart' => '20 minutes ago']);
+        $exportConfig = $this->buildExportConfig([
+            'incrementalFetchingMode' => 'window',
+            'incrementalFetchingStart' => '20 minutes ago',
+        ]);
 
         $extractor->export($exportConfig);
 
+        self::assertFalse($handler->hasWarningRecords());
+    }
+
+    // --- Watermark-mode lookback: threading + overlap guard ---
+
+    public function testExtractorWithWindowSupportThreadsColumnTypeForLookback(): void
+    {
+        $extractor = new FakeExtractorWithWindowSupport(
+            $this->createExtractorParameters(),
+            [],
+            new Logger('test'),
+        );
+        $exportConfig = $this->buildExportConfig(['incrementalFetchingLookback' => '20 minutes']);
+
+        $extractor->export($exportConfig);
+
+        $captured = $extractor->getCapturedExportConfig();
+        self::assertNotNull($captured);
+        self::assertFalse($captured->hasIncrementalFetchingWindow());
+        self::assertTrue($captured->hasIncrementalFetchingLookback());
+        self::assertSame('TIMESTAMP', $captured->getIncrementalColumnType());
+    }
+
+    public function testGuardThrowsWhenLookbackWithIncrementalLoadingAndNoPrimaryKey(): void
+    {
+        $extractor = new FakeExtractorWithWindowSupport(
+            $this->createExtractorParameters(),
+            [],
+            new Logger('test'),
+        );
+        $exportConfig = $this->buildExportConfig([
+            'incremental' => true,
+            'primaryKey' => [],
+            'incrementalFetchingLookback' => '20 minutes',
+        ]);
+
+        $this->expectException(UserException::class);
+        $extractor->export($exportConfig);
+    }
+
+    public function testGuardAllowsLookbackWithIncrementalLoadingWhenPrimaryKeySet(): void
+    {
+        $extractor = new FakeExtractorWithWindowSupport(
+            $this->createExtractorParameters(),
+            [],
+            new Logger('test'),
+        );
+        $exportConfig = $this->buildExportConfig([
+            'incremental' => true,
+            'primaryKey' => ['id'],
+            'incrementalFetchingLookback' => '20 minutes',
+        ]);
+
+        $result = $extractor->export($exportConfig);
+
+        self::assertSame('in.c-main.my_table', $result['outputTable']);
+    }
+
+    public function testLookbackDoesNotLogAbsoluteEndWarning(): void
+    {
+        $handler = new TestHandler();
+        $extractor = new FakeExtractorWithWindowSupport(
+            $this->createExtractorParameters(),
+            [],
+            new Logger('test', [$handler]),
+        );
+        $exportConfig = $this->buildExportConfig(['incrementalFetchingLookback' => '20 minutes']);
+
+        $extractor->export($exportConfig);
+
+        // The absolute-end warning is a window-mode concern only.
         self::assertFalse($handler->hasWarningRecords());
     }
 }

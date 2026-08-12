@@ -13,7 +13,7 @@ use Keboola\DbExtractorConfig\Configuration\ValueObject\ExportConfig;
 use Psr\Log\LoggerInterface;
 
 /**
- * Test double for exercising BaseExtractor::export() and guardIncrementalFetchingWindow() without a real
+ * Test double for exercising BaseExtractor::export() and guardIncrementalFetchingOverlap() without a real
  * database connection. Concrete subclasses only differ in whether they override
  * getIncrementalFetchingColumnType() (i.e. whether they "opt in" to the incremental fetching window).
  */
@@ -63,8 +63,8 @@ abstract class AbstractFakeExtractor extends BaseExtractor
     }
 
     /** Exposes the protected guard so tests can exercise it directly, in isolation from export(). */
-    public function callGuardIncrementalFetchingWindow(ExportConfig $exportConfig): void
+    public function callGuardIncrementalFetchingOverlap(ExportConfig $exportConfig): void
     {
-        $this->guardIncrementalFetchingWindow($exportConfig);
+        $this->guardIncrementalFetchingOverlap($exportConfig);
     }
 }

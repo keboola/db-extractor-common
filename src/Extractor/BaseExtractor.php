@@ -147,13 +147,15 @@ abstract class BaseExtractor
         if ($exportConfig->isIncrementalFetching()) {
             $this->validateIncrementalFetching($exportConfig);
 
-            if ($exportConfig->hasIncrementalFetchingWindow()) {
+            if ($exportConfig->hasIncrementalFetchingBounds()) {
                 $columnType = $this->getIncrementalFetchingColumnType($exportConfig);
                 if ($columnType === null) {
-                    throw new UserException('Incremental fetching window is not supported by this extractor.');
+                    throw new UserException(
+                        'Incremental fetching window/lookback is not supported by this extractor.',
+                    );
                 }
                 $exportConfig = $exportConfig->withIncrementalColumnType($columnType);
-                $this->guardIncrementalFetchingWindow($exportConfig);
+                $this->guardIncrementalFetchingOverlap($exportConfig);
             }
 
             $maxValue = $this->canFetchMaxIncrementalValueSeparately($exportConfig) ?
@@ -231,33 +233,38 @@ abstract class BaseExtractor
     }
 
     /**
-     * Guards for the incremental fetching WINDOW feature. No-op unless a window is actually configured.
+     * Guards for the incremental fetching WINDOW and watermark LOOKBACK features. No-op unless one of
+     * them is actually configured.
      *
-     * 1) A window "start" (overlap) re-emits rows that may already be in Storage. Combined with
-     *    incremental LOADING (append) and no primary key, that produces duplicate rows because there is
-     *    nothing to deduplicate on. This is a hard error.
+     * 1) A window "start" or a watermark "lookback" both re-emit rows that may already be in Storage.
+     *    Combined with incremental LOADING (append) and no primary key, that produces duplicate rows
+     *    because there is nothing to deduplicate on. This is a hard error.
      * 2) An absolute window "end" caps the fetched range at a fixed point in time; rows committed after
      *    it will never be picked up by subsequent incremental runs. That's expected for a one-off or
      *    segmented backfill, but easy to set by mistake on an otherwise-recurring config, so it's only
-     *    a warning.
+     *    a warning. (Only applies in window mode.)
      *
      * Expects $exportConfig to already carry a resolved incremental column type
      * (see ExportConfig::withIncrementalColumnType()).
      */
-    protected function guardIncrementalFetchingWindow(ExportConfig $exportConfig): void
+    protected function guardIncrementalFetchingOverlap(ExportConfig $exportConfig): void
     {
-        if (!$exportConfig->hasIncrementalFetchingWindow()) {
-            return;
-        }
+        $reFetchesOverlap = $exportConfig->hasIncrementalFetchingLookback()
+            || ($exportConfig->hasIncrementalFetchingWindow()
+                && $exportConfig->getIncrementalFetchingWindowStart() !== null);
 
-        if ($exportConfig->getIncrementalFetchingWindowStart() !== null
+        if ($reFetchesOverlap
             && $exportConfig->isIncrementalLoading()
             && !$exportConfig->hasPrimaryKey()
         ) {
             throw new UserException(
-                'Incremental fetching window "start" can re-fetch rows already loaded to storage. ' .
+                'Incremental fetching lookback/window "start" can re-fetch rows already loaded to storage. ' .
                 'A primary key is required on the table so that incremental loading can deduplicate them.',
             );
+        }
+
+        if (!$exportConfig->hasIncrementalFetchingWindow()) {
+            return;
         }
 
         $windowEnd = $exportConfig->getIncrementalFetchingWindowEnd();
