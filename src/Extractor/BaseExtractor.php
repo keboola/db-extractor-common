@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Keboola\DbExtractor\Extractor;
 
+use DateTimeImmutable;
 use Keboola\Component\Config\DatatypeSupport;
 use Keboola\DbExtractor\Adapter\ExportAdapter;
 use Keboola\DbExtractor\Adapter\Metadata\MetadataProvider;
@@ -17,6 +18,7 @@ use Keboola\DbExtractor\TableResultFormat\Metadata\Manifest\DefaultManifestSeria
 use Keboola\DbExtractorConfig\Configuration\ValueObject\DatabaseConfig;
 use Keboola\DbExtractorConfig\Configuration\ValueObject\ExportConfig;
 use Keboola\DbExtractorConfig\Configuration\ValueObject\InputTable;
+use Keboola\DbExtractorConfig\Incremental\WindowBoundResolver;
 use Keboola\DbExtractorSSHTunnel\Exception\UserException as SSHTunnelUserException;
 use Keboola\DbExtractorSSHTunnel\SSHTunnel;
 use Nette\Utils;
@@ -113,6 +115,19 @@ abstract class BaseExtractor
         throw new UserException('Incremental Fetching is not supported by this extractor.');
     }
 
+    /**
+     * Returns the basetype (e.g. "TIMESTAMP", "INTEGER", "NUMERIC", "FLOAT") of the incremental fetching
+     * column, so the incremental fetching WINDOW feature can resolve relative/absolute bounds against it.
+     *
+     * Default is `null`, meaning the window feature is unavailable for this extractor. An extractor opts
+     * in by overriding this method and returning the detected basetype (typically reusing the same
+     * metadata lookup already performed in validateIncrementalFetching()).
+     */
+    protected function getIncrementalFetchingColumnType(ExportConfig $exportConfig): ?string
+    {
+        return null;
+    }
+
     public function getTables(): array
     {
         $loadColumns = $this->parameters['tableListFilter']['listColumns'] ?? true;
@@ -131,6 +146,16 @@ abstract class BaseExtractor
     {
         if ($exportConfig->isIncrementalFetching()) {
             $this->validateIncrementalFetching($exportConfig);
+
+            if ($exportConfig->hasIncrementalFetchingWindow()) {
+                $columnType = $this->getIncrementalFetchingColumnType($exportConfig);
+                if ($columnType === null) {
+                    throw new UserException('Incremental fetching window is not supported by this extractor.');
+                }
+                $exportConfig = $exportConfig->withIncrementalColumnType($columnType);
+                $this->guardIncrementalFetchingWindow($exportConfig);
+            }
+
             $maxValue = $this->canFetchMaxIncrementalValueSeparately($exportConfig) ?
                 $this->getMaxOfIncrementalFetchingColumn($exportConfig) : null;
         } else {
@@ -203,6 +228,63 @@ abstract class BaseExtractor
             !$exportConfig->hasQuery() &&
             $exportConfig->isIncrementalFetching() &&
             !$exportConfig->hasIncrementalFetchingLimit();
+    }
+
+    /**
+     * Guards for the incremental fetching WINDOW feature. No-op unless a window is actually configured.
+     *
+     * 1) A window "start" (overlap) re-emits rows that may already be in Storage. Combined with
+     *    incremental LOADING (append) and no primary key, that produces duplicate rows because there is
+     *    nothing to deduplicate on. This is a hard error.
+     * 2) An absolute window "end" caps the fetched range at a fixed point in time; rows committed after
+     *    it will never be picked up by subsequent incremental runs. That's expected for a one-off or
+     *    segmented backfill, but easy to set by mistake on an otherwise-recurring config, so it's only
+     *    a warning.
+     *
+     * Expects $exportConfig to already carry a resolved incremental column type
+     * (see ExportConfig::withIncrementalColumnType()).
+     */
+    protected function guardIncrementalFetchingWindow(ExportConfig $exportConfig): void
+    {
+        if (!$exportConfig->hasIncrementalFetchingWindow()) {
+            return;
+        }
+
+        if ($exportConfig->getIncrementalFetchingWindowStart() !== null
+            && $exportConfig->isIncrementalLoading()
+            && !$exportConfig->hasPrimaryKey()
+        ) {
+            throw new UserException(
+                'Incremental fetching window "start" can re-fetch rows already loaded to storage. ' .
+                'A primary key is required on the table so that incremental loading can deduplicate them.',
+            );
+        }
+
+        $windowEnd = $exportConfig->getIncrementalFetchingWindowEnd();
+        $columnType = $exportConfig->getIncrementalColumnType();
+        if ($windowEnd !== null && $this->isAbsoluteWindowBound($windowEnd, $columnType)) {
+            $this->logger->warning(
+                'Incremental fetching window "end" is set to an absolute value. Rows committed after ' .
+                'this point in time will never be fetched by future incremental runs. This is expected ' .
+                'for a one-off or segmented backfill, but not for ongoing incremental synchronization.',
+            );
+        }
+    }
+
+    /**
+     * A window bound is "absolute" when it resolves to the same literal regardless of when "now" is
+     * evaluated (e.g. "2026-01-01"), as opposed to "relative" (e.g. "20 minutes ago", "now"), which
+     * moves with the wall clock. Probing the resolver at two different instants of "now" tells them
+     * apart without having to parse the raw string ourselves.
+     */
+    private function isAbsoluteWindowBound(string $rawValue, string $columnType): bool
+    {
+        $resolver = new WindowBoundResolver();
+        $now = new DateTimeImmutable();
+        $laterNow = $now->modify('+1 day');
+
+        return $resolver->resolveUpperBound($rawValue, $columnType, $now)
+            === $resolver->resolveUpperBound($rawValue, $columnType, $laterNow);
     }
 
     protected function createSshTunnel(array $parameters): array
