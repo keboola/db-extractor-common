@@ -253,23 +253,26 @@ abstract class BaseExtractor
      *    it will never be picked up by subsequent incremental runs. That's expected for a one-off or
      *    segmented backfill, but easy to set by mistake on an otherwise-recurring config, so it's only
      *    a warning. (Only applies in window mode.)
-     * 3) A watermark "lookback" combined with a fetch "limit" would persist an older row as the new
-     *    watermark and move it backwards, so newer rows are never reached. This is a hard error.
+     * 3) A fetch "limit" combined with a window or a lookback either never advances through the bounded
+     *    range (window returns the same first page) or moves the watermark backwards (lookback), so newer
+     *    rows are never reached. This is a hard error. (Plain watermark+limit chunking is unaffected.)
      *
      * Expects $exportConfig to already carry a resolved incremental column type
      * (see ExportConfig::withIncrementalColumnType()).
      */
     protected function guardIncrementalFetchingOverlap(ExportConfig $exportConfig): void
     {
-        // A lookback lowers the range below the watermark; a fetch limit caps the ascending result. If the
-        // lookback overlap holds at least "limit" rows, every run returns only those older rows and the
-        // persisted watermark moves backwards, so newer rows are never reached. Reject the combination.
-        if ($exportConfig->hasIncrementalFetchingLookback() && $exportConfig->hasIncrementalFetchingLimit()) {
+        // A fetch limit caps the ascending result to its first N rows. Combined with a window it keeps
+        // returning the first page of a fixed range and never advances; combined with a lookback it
+        // persists an older row as the watermark and moves it backwards. Reject the limit for any bounds.
+        // (This guard only runs when bounds are configured, so the limit alone is the condition here;
+        // plain watermark+limit chunking never reaches this method.)
+        if ($exportConfig->hasIncrementalFetchingLimit()) {
             throw new UserException(
-                'Incremental fetching lookback cannot be combined with "incrementalFetchingLimit": the ' .
-                'limited, ascending result would persist an older row as the watermark and move it ' .
-                'backwards, so newer rows would never be reached. Remove the limit, or use "window" mode ' .
-                'for a bounded backfill.',
+                'Incremental fetching "incrementalFetchingLimit" cannot be combined with a window or a ' .
+                'lookback: the limited result never advances through the bounded range (window) or moves ' .
+                'the watermark backwards (lookback), so newer rows are never reached. Remove the limit, ' .
+                'or use plain watermark mode.',
             );
         }
 

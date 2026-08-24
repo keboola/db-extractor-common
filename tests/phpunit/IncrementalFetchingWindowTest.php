@@ -420,7 +420,26 @@ class IncrementalFetchingWindowTest extends TestCase
         ]);
 
         $this->expectException(UserException::class);
-        $this->expectExceptionMessage('lookback cannot be combined with "incrementalFetchingLimit"');
+        $this->expectExceptionMessage('"incrementalFetchingLimit" cannot be combined with a window or a lookback');
+        $extractor->export($exportConfig);
+    }
+
+    public function testGuardThrowsWhenWindowCombinedWithLimit(): void
+    {
+        // Window + limit returns only the first N rows of the fixed range forever; reject it.
+        $extractor = new FakeExtractorWithWindowSupport(
+            $this->createExtractorParameters(),
+            [],
+            new Logger('test'),
+        );
+        $exportConfig = $this->buildExportConfig([
+            'incrementalFetchingMode' => 'window',
+            'incrementalFetchingStart' => '2020-01-01',
+            'incrementalFetchingLimit' => 100,
+        ]);
+
+        $this->expectException(UserException::class);
+        $this->expectExceptionMessage('"incrementalFetchingLimit" cannot be combined with a window or a lookback');
         $extractor->export($exportConfig);
     }
 
