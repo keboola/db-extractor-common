@@ -52,9 +52,9 @@ COPY composer.* /code/
 
 # The only advisory-affected package is guzzle 6, pulled solely by the dev/test dep
 # ihsw/toxiproxy-php-client ^2.0 (its v3 needs PHP 8.3; we are on 8.2). It never ships in the runtime.
-# Composer 2.9+ excludes advisory-affected versions from the resolution pool, breaking this lockless
-# install; the opt-out is scoped to the build-time installs only (the resolve happens here and writes the
-# lock), so the runtime `composer ci` below keeps full security blocking.
+# Composer 2.9+ excludes advisory-affected versions from the resolution pool, which breaks this ONE
+# lockless resolve; the opt-out is scoped to it. The install below and any runtime `composer install`
+# read the lock this step writes, so they keep full security blocking.
 #
 # Download dependencies, but don't run scripts or init autoloaders as the app is missing
 RUN COMPOSER_NO_SECURITY_BLOCKING=1 composer install $COMPOSER_FLAGS --no-scripts --no-autoloader
@@ -62,5 +62,5 @@ RUN COMPOSER_NO_SECURITY_BLOCKING=1 composer install $COMPOSER_FLAGS --no-script
 # Copy rest of the app
 COPY . /code/
 
-# Run normal composer - all deps are cached already
-RUN COMPOSER_NO_SECURITY_BLOCKING=1 composer install $COMPOSER_FLAGS
+# Run normal composer - all deps are cached already (installs from the lock written above)
+RUN composer install $COMPOSER_FLAGS
