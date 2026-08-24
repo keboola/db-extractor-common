@@ -181,6 +181,23 @@ class IncrementalFetchingWindowTest extends TestCase
         self::assertSame('TIMESTAMP', $captured->getIncrementalColumnType());
     }
 
+    public function testWindowModeWithoutBoundsThrows(): void
+    {
+        // Window mode ignores the watermark; with no start/end it would be a full-table scan. Reject it.
+        $extractor = new FakeExtractorWithWindowSupport(
+            $this->createExtractorParameters(),
+            [],
+            new Logger('test'),
+        );
+        $exportConfig = $this->buildExportConfig([
+            'incrementalFetchingMode' => 'window',
+        ]);
+
+        $this->expectException(UserException::class);
+        $this->expectExceptionMessage('"window" mode requires at least one of "incrementalFetchingStart"');
+        $extractor->export($exportConfig);
+    }
+
     // --- Primary-key guard: window "start" + incremental loading + no PK => hard error ---
 
     public function testGuardThrowsWhenWindowStartWithIncrementalLoadingAndNoPrimaryKey(): void
@@ -387,6 +404,24 @@ class IncrementalFetchingWindowTest extends TestCase
         $result = $extractor->export($exportConfig);
 
         self::assertSame('in.c-main.my_table', $result['outputTable']);
+    }
+
+    public function testGuardThrowsWhenLookbackCombinedWithLimit(): void
+    {
+        // Lookback + limit would persist an older row as the watermark and move it backwards; reject it.
+        $extractor = new FakeExtractorWithWindowSupport(
+            $this->createExtractorParameters(),
+            [],
+            new Logger('test'),
+        );
+        $exportConfig = $this->buildExportConfig([
+            'incrementalFetchingLookback' => '20 minutes',
+            'incrementalFetchingLimit' => 100,
+        ]);
+
+        $this->expectException(UserException::class);
+        $this->expectExceptionMessage('lookback cannot be combined with "incrementalFetchingLimit"');
+        $extractor->export($exportConfig);
     }
 
     public function testLookbackDoesNotLogAbsoluteEndWarning(): void
