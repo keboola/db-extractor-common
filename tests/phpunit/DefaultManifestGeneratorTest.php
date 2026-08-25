@@ -305,11 +305,9 @@ class DefaultManifestGeneratorTest extends TestCase
         $manifestGenerator = $this->createManifestGenerator('Snowflake', true);
         $manifestData = $manifestGenerator->generate($exportConfig, $exportResult, false);
 
+        // Storage rejects a manifest defining both, so exactly one must be present
         Assert::assertSame('Table level comment', $manifestData['description']);
-        Assert::assertSame(
-            'Table level comment',
-            $manifestData['table_metadata']['KBC.description'],
-        );
+        Assert::assertArrayNotHasKey('KBC.description', $manifestData['table_metadata']);
 
         // Columns without a comment must not gain a description key at all
         $descriptions = [];
@@ -339,7 +337,8 @@ class DefaultManifestGeneratorTest extends TestCase
         $manifestData = $manifestGenerator->generate($exportConfig, $exportResult, true);
 
         // The legacy format has no top-level description field, the value must
-        // travel in table metadata instead
+        // travel in table metadata instead. Storage rejects a manifest that
+        // defines both "description" and "table_metadata.KBC.description".
         Assert::assertArrayNotHasKey('description', $manifestData);
         Assert::assertContains(
             ['key' => 'KBC.description', 'value' => 'Table level comment'],

@@ -51,7 +51,7 @@ class DefaultManifestGenerator implements ManifestGenerator
                 );
             } else {
                 // No custom query -> no generated columns -> all metadata are present in table metadata
-                $this->generateColumnsFromTableMetadata($manifestOptions, $exportConfig);
+                $this->generateColumnsFromTableMetadata($manifestOptions, $exportConfig, $legacy);
             }
         }
 
@@ -61,6 +61,7 @@ class DefaultManifestGenerator implements ManifestGenerator
     protected function generateColumnsFromTableMetadata(
         ManifestOptions $manifestOptions,
         ExportConfig $exportConfig,
+        bool $legacy = false,
     ): void {
         $table = $this->metadataProvider->getTable($exportConfig->getTable());
         $columns = $exportConfig->hasColumns() ? $exportConfig->getColumns() : null;
@@ -69,8 +70,15 @@ class DefaultManifestGenerator implements ManifestGenerator
         $tableMetadata = $this->constructTableMetadata($table);
 
         if ($table->hasDescription()) {
-            $manifestOptions->setDescription($table->getDescription());
+            if ($legacy) {
+                // The legacy format has no top-level description field, so the value has
+                // to travel in table metadata instead
+                $tableMetadata['KBC.description'] = $table->getDescription();
+            } else {
+                $manifestOptions->setDescription($table->getDescription());
+            }
         }
+
         $manifestOptions->setTableMetadata($tableMetadata);
         $manifestOptions->setSchema($schema);
     }
@@ -272,7 +280,6 @@ class DefaultManifestGenerator implements ManifestGenerator
         $values = [
             'KBC.name' => $table->getName(),
             'KBC.sanitizedName' => $table->getSanitizedName(),
-            'KBC.description' => $table->hasDescription() ? $table->getDescription() : null,
             'KBC.schema' => $table->hasSchema() ? $table->getSchema() : null,
             'KBC.catalog' => $table->hasCatalog() ? $table->getCatalog() : null,
             'KBC.tablespaceName' => $table->hasTablespaceName() ? $table->getTablespaceName() : null,
