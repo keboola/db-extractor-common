@@ -166,6 +166,9 @@ class DefaultManifestGenerator implements ManifestGenerator
             $isNullable = false;
         }
 
+        // Read before the unset below, otherwise the description is always null
+        $description = $columnMetadata['KBC.description'] ?? null;
+
         unset(
             $columnMetadata[Common::KBC_METADATA_KEY_BASETYPE],
             $columnMetadata[Common::KBC_METADATA_KEY_LENGTH],
@@ -181,7 +184,7 @@ class DefaultManifestGenerator implements ManifestGenerator
             $dataTypes,
             $isNullable,
             $isPrimaryKey,
-            $columnMetadata['KBC.description'] ?? null,
+            $description,
             $columnMetadata,
         );
     }
@@ -269,6 +272,7 @@ class DefaultManifestGenerator implements ManifestGenerator
         $values = [
             'KBC.name' => $table->getName(),
             'KBC.sanitizedName' => $table->getSanitizedName(),
+            'KBC.description' => $table->hasDescription() ? $table->getDescription() : null,
             'KBC.schema' => $table->hasSchema() ? $table->getSchema() : null,
             'KBC.catalog' => $table->hasCatalog() ? $table->getCatalog() : null,
             'KBC.tablespaceName' => $table->hasTablespaceName() ? $table->getTablespaceName() : null,

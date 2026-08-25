@@ -291,6 +291,78 @@ class DefaultManifestGeneratorTest extends TestCase
         ], $manifestData);
     }
 
+    public function testCsvWithoutHeaderTableQueryWithDescriptions(): void
+    {
+        $exportConfig = $this->createExportConfig();
+        $exportResult = $this->createExportResult();
+
+        $exportConfig->method('hasQuery')->willReturn(false);
+        $exportConfig->method('hasColumns')->willReturn(true);
+        $exportConfig->method('getColumns')->willReturn(['pk1', 'pk2', 'name', 'age']);
+        $exportConfig->method('getTable')->willReturn(new InputTable('OutputTable', 'Schema'));
+        $exportResult->method('hasCsvHeader')->willReturn(false);
+
+        $manifestGenerator = $this->createManifestGenerator('Snowflake', true);
+        $manifestData = $manifestGenerator->generate($exportConfig, $exportResult, false);
+
+        Assert::assertSame('Table level comment', $manifestData['description']);
+        Assert::assertSame(
+            'Table level comment',
+            $manifestData['table_metadata']['KBC.description'],
+        );
+
+        // Columns without a comment must not gain a description key at all
+        $descriptions = [];
+        foreach ($manifestData['schema'] as $column) {
+            $descriptions[$column['name']] = $column['description'] ?? null;
+        }
+        Assert::assertSame([
+            'pk1' => 'Primary key part one',
+            'pk2' => null,
+            'name' => 'Customer name',
+            'age' => null,
+        ], $descriptions);
+    }
+
+    public function testCsvWithoutHeaderTableQueryWithDescriptionsLegacyFormat(): void
+    {
+        $exportConfig = $this->createExportConfig();
+        $exportResult = $this->createExportResult();
+
+        $exportConfig->method('hasQuery')->willReturn(false);
+        $exportConfig->method('hasColumns')->willReturn(true);
+        $exportConfig->method('getColumns')->willReturn(['pk1', 'pk2', 'name', 'age']);
+        $exportConfig->method('getTable')->willReturn(new InputTable('OutputTable', 'Schema'));
+        $exportResult->method('hasCsvHeader')->willReturn(false);
+
+        $manifestGenerator = $this->createManifestGenerator('Snowflake', true);
+        $manifestData = $manifestGenerator->generate($exportConfig, $exportResult, true);
+
+        // The legacy format has no top-level description field, the value must
+        // travel in table metadata instead
+        Assert::assertArrayNotHasKey('description', $manifestData);
+        Assert::assertContains(
+            ['key' => 'KBC.description', 'value' => 'Table level comment'],
+            $manifestData['metadata'],
+        );
+
+        $descriptions = [];
+        foreach ($manifestData['column_metadata'] as $columnName => $columnMetadata) {
+            $descriptions[$columnName] = null;
+            foreach ($columnMetadata as $item) {
+                if ($item['key'] === 'KBC.description') {
+                    $descriptions[$columnName] = $item['value'];
+                }
+            }
+        }
+        Assert::assertSame([
+            'pk1' => 'Primary key part one',
+            'pk2' => null,
+            'name' => 'Customer name',
+            'age' => null,
+        ], $descriptions);
+    }
+
     public function testCsvWithoutHeaderCustomQuery(): void
     {
         $exportConfig = $this->createExportConfig();
@@ -811,8 +883,10 @@ class DefaultManifestGeneratorTest extends TestCase
             ->getMock();
     }
 
-    protected function createManifestGenerator(string $backend = 'Snowflake'): ManifestGenerator
-    {
+    protected function createManifestGenerator(
+        string $backend = 'Snowflake',
+        bool $withDescriptions = false,
+    ): ManifestGenerator {
         $metadataProvider = $this
             ->getMockBuilder(MetadataProvider::class)
             ->disableAutoReturnValueGeneration()
@@ -821,11 +895,14 @@ class DefaultManifestGeneratorTest extends TestCase
         $tableBuilder = TableBuilder::create();
         $tableBuilder
             ->setName('OutputTable')
-            ->setSchema('Schema');
+            ->setSchema('Schema')
+            ->setDescription($withDescriptions ? 'Table level comment' : null);
         $tableBuilder
             ->addColumn()
             ->setName('pk1')
-            ->setType('INTEGER');
+            ->setType('INTEGER')
+            ->setDescription($withDescriptions ? 'Primary key part one' : null);
+        // pk2, date and age intentionally keep no description
         $tableBuilder
             ->addColumn()
             ->setName('pk2')
@@ -838,7 +915,8 @@ class DefaultManifestGeneratorTest extends TestCase
             ->addColumn()
             ->setName('name')
             ->setType('VARCHAR')
-            ->setLength('255');
+            ->setLength('255')
+            ->setDescription($withDescriptions ? 'Customer name' : null);
         $tableBuilder
             ->addColumn()
             ->setName('age')
