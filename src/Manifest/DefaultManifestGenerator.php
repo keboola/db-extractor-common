@@ -51,7 +51,7 @@ class DefaultManifestGenerator implements ManifestGenerator
                 );
             } else {
                 // No custom query -> no generated columns -> all metadata are present in table metadata
-                $this->generateColumnsFromTableMetadata($manifestOptions, $exportConfig);
+                $this->generateColumnsFromTableMetadata($manifestOptions, $exportConfig, $legacy);
             }
         }
 
@@ -61,6 +61,7 @@ class DefaultManifestGenerator implements ManifestGenerator
     protected function generateColumnsFromTableMetadata(
         ManifestOptions $manifestOptions,
         ExportConfig $exportConfig,
+        bool $legacy = false,
     ): void {
         $table = $this->metadataProvider->getTable($exportConfig->getTable());
         $columns = $exportConfig->hasColumns() ? $exportConfig->getColumns() : null;
@@ -69,8 +70,15 @@ class DefaultManifestGenerator implements ManifestGenerator
         $tableMetadata = $this->constructTableMetadata($table);
 
         if ($table->hasDescription()) {
-            $manifestOptions->setDescription($table->getDescription());
+            if ($legacy) {
+                // The legacy format has no top-level description field, so the value has
+                // to travel in table metadata instead
+                $tableMetadata['KBC.description'] = $table->getDescription();
+            } else {
+                $manifestOptions->setDescription($table->getDescription());
+            }
         }
+
         $manifestOptions->setTableMetadata($tableMetadata);
         $manifestOptions->setSchema($schema);
     }
@@ -166,6 +174,9 @@ class DefaultManifestGenerator implements ManifestGenerator
             $isNullable = false;
         }
 
+        // Read before the unset below, otherwise the description is always null
+        $description = $columnMetadata['KBC.description'] ?? null;
+
         unset(
             $columnMetadata[Common::KBC_METADATA_KEY_BASETYPE],
             $columnMetadata[Common::KBC_METADATA_KEY_LENGTH],
@@ -181,7 +192,7 @@ class DefaultManifestGenerator implements ManifestGenerator
             $dataTypes,
             $isNullable,
             $isPrimaryKey,
-            $columnMetadata['KBC.description'] ?? null,
+            $description,
             $columnMetadata,
         );
     }
